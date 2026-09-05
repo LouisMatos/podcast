@@ -1,0 +1,64 @@
+name: podcast_app
+description: "Aplicativo de escuta de podcasts para Android e iOS."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Estado / MVVM
+  flutter_riverpod: ^3.4.3
+  riverpod_annotation: ^4.0.7
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+
+  # Navegação
+  go_router: ^18.0.1
+
+  # Rede e conteúdo
+  dio: ^5.11.1
+  rss_dart: ^1.0.14
+
+  # Persistência local
+  drift: ^2.34.4
+  drift_flutter: ^0.3.1
+  shared_preferences: ^2.5.5
+  path_provider: ^2.1.6
+
+  # Áudio
+  just_audio: ^0.10.6
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
+
+  # Download
+  flutter_downloader: ^1.12.1
+
+  # UI
+  google_fonts: ^8.2.1
+  cached_network_image: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  build_runner: ^2.16.1
+  riverpod_generator: ^4.0.9
+  freezed: ^4.0.1
+  json_serializable: ^6.14.1
+  drift_dev: ^2.34.6
+
+  # custom_lint / riverpod_lint estão fora por enquanto: custom_lint 0.8.x fixa
+  # analyzer ^8.0.0 e drift_dev 2.34.x exige analyzer >=13.0.0. Reavaliar quando
+  # custom_lint subir o analyzer.
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
+
+flutter:
+  uses-material-design: true

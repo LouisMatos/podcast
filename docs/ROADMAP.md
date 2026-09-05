@@ -1,0 +1,110 @@
+# Roadmap — estado do projeto
+
+> **Este arquivo é a fonte de verdade para retomar o trabalho.**
+> Ao terminar uma fase: marque os checkboxes, atualize "Onde parei" e faça commit.
+> Ao voltar depois de dias: leia "Onde parei", depois `docs/ARCHITECTURE.md`, depois a fase atual.
+
+## Onde parei
+
+**Fase atual:** 1 — Design system e casca de navegação
+**Última coisa concluída:** Fase 0 (fundação, scripts, docs) — app padrão do Flutter roda no emulador
+**Próximo passo concreto:** criar os tokens em `frontend/lib/core/theme/`
+
+## Regra de ouro
+
+Toda fase termina com o app **rodando** via `./scripts/run_android.sh` e um commit.
+Nunca deixe uma fase pela metade sem anotar acima o que falta.
+
+---
+
+## Fase 0 — Fundação e script de execução ✅
+
+- [x] `git init` na raiz
+- [x] `flutter create` em `frontend/` (org `com.luismatos`, projeto `podcast_app`)
+- [x] `backend/README.md` como placeholder
+- [x] `pubspec.yaml` com a stack completa
+- [x] `analysis_options.yaml` com lints e exclusão dos arquivos gerados
+- [x] `scripts/run_android.sh` e `scripts/gen.sh`
+- [x] `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`
+- [x] App padrão abre no emulador pelo script
+
+## Fase 1 — Design system e casca de navegação
+
+- [ ] `core/theme/app_colors.dart` — paleta pastel, claro e escuro
+- [ ] `core/theme/app_typography.dart` — Nunito via `google_fonts`
+- [ ] `core/theme/app_radii.dart` e `app_shadows.dart`
+- [ ] `core/theme/motion.dart` — durações e curvas
+- [ ] `core/theme/app_theme.dart` — monta o `ThemeData` a partir dos tokens
+- [ ] `core/widgets/`: `SoftCard`, `PillButton`, `PastelChip`, `ShimmerBox`, `SectionHeader`, `EmptyState`
+- [ ] `core/router/app_router.dart` — `go_router` com shell de 3 abas e transição fade+slide
+- [ ] Telas Descobrir / Biblioteca / Ajustes com dados mockados
+- [ ] `app.dart` com `ProviderScope` + `MaterialApp.router`
+- [ ] **Pronto quando:** navegação funciona, tema claro/escuro alterna, animações no tempo definido
+
+## Fase 2 — Descoberta e detalhe do podcast
+
+- [ ] `core/network/dio_client.dart`
+- [ ] `data/models/podcast.dart` e `episode.dart` (Freezed + JSON)
+- [ ] `data/sources/itunes_search_api.dart`
+- [ ] `data/sources/rss_feed_parser.dart` (`rss_dart`, lendo `itunes:duration`, `itunes:image`, `enclosure`)
+- [ ] `data/repositories/podcast_repository.dart`
+- [ ] `DiscoverViewModel` com debounce de busca
+- [ ] `PodcastDetailViewModel`
+- [ ] **Pronto quando:** busca real retorna podcasts e o detalhe lista episódios reais
+
+## Fase 3 — Persistência local
+
+- [ ] Schema drift: `subscriptions`, `episodes`, `playback_progress`, `downloads`
+- [ ] DAOs + `LibraryRepository`
+- [ ] Assinar / desassinar
+- [ ] Biblioteca reativa (`Stream` do drift → `StreamNotifier`)
+- [ ] **Pronto quando:** assinatura e posição de escuta sobrevivem ao fechar o app
+
+## Fase 4 — Player
+
+- [ ] `services/audio/podcast_audio_handler.dart` (`BaseAudioHandler` + `QueueHandler` + `SeekHandler`)
+- [ ] Config Android: `AudioServiceActivity`, `<service>` e `<receiver>` no manifesto, permissões, `minSdk` ≥ 23, `launchMode="singleTop"`
+- [ ] Mini-player sobre o bottom nav
+- [ ] Full player com `Hero` na capa
+- [ ] Velocidade 0.5×–3.0×
+- [ ] Skip ±15s / ±30s
+- [ ] Sleep timer (X min ou fim do episódio)
+- [ ] Salvar progresso a cada ~5s
+- [ ] **Pronto quando:** toca com a tela apagada e os controles aparecem na lockscreen
+
+## Fase 5 — Download offline
+
+- [ ] `services/download/download_service.dart` com `flutter_downloader`
+- [ ] Fila e progresso persistidos em drift
+- [ ] Player prefere o arquivo local quando existe
+- [ ] Tela de downloads com uso de espaço e remoção
+- [ ] Permissão `POST_NOTIFICATIONS` (Android 13+)
+- [ ] **Pronto quando:** episódio baixado toca em modo avião
+
+## Fase 6 — Polimento e testes
+
+- [ ] Estados vazios e de erro ilustrados, com retry
+- [ ] Shimmer em todo carregamento
+- [ ] Testes unitários dos ViewModels e do parser de RSS (`mocktail`)
+- [ ] Widget test do player
+- [ ] Acessibilidade: contraste ≥ 4.5:1 no texto, semantics nos controles
+
+## Fase 7 — iOS e evolução
+
+- [ ] Instalar Xcode + CocoaPods
+- [ ] `UIBackgroundModes: audio` no `Info.plist`
+- [ ] Testar no simulador iOS
+- [ ] `scripts/run_ios.sh`
+- [ ] Backlog: OPML import/export, fila de reprodução, busca por categoria, sync entre aparelhos
+
+---
+
+## Dívidas técnicas conhecidas
+
+| Item | Detalhe |
+|---|---|
+| `custom_lint` / `riverpod_lint` | Fora do `pubspec.yaml`: `custom_lint` 0.8.x fixa `analyzer ^8.0.0`, `drift_dev` 2.34.x exige `analyzer >=13.0.0`. Reincluir quando `custom_lint` subir o analyzer. |
+| `webfeed_plus` | Descartado por fixar `intl ^0.19.0`, incompatível com `go_router` 18. Usamos `rss_dart`. |
+| `sqlite3_flutter_libs` | Publicado como `0.6.0+eol`. Não declarar direto — `drift_flutter` resolve o sqlite nativo. |
+| Android `cmdline-tools` | Ausente no SDK; `flutter doctor` reclama e as licenças ficam "unknown". Não bloqueou o build até agora. Se travar: instalar via Android Studio e rodar `flutter doctor --android-licenses`. |
+| Xcode / CocoaPods | Ausentes. Build iOS só na Fase 7. |

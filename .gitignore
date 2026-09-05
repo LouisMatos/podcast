@@ -1,0 +1,11 @@
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Flutter/Dart (frontend também tem seu próprio .gitignore gerado)
+**/.dart_tool/
+**/build/
+.claude/

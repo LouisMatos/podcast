@@ -1,0 +1,22 @@
+# Configuração do analisador estático. Rode com `flutter analyze`.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    # Arquivos gerados por build_runner (freezed, json_serializable, riverpod, drift).
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  errors:
+    # Import de arquivo gerado antes de rodar o codegen não deve travar a análise.
+    uri_has_not_been_generated: ignore
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_print
+    - unawaited_futures
+    - use_super_parameters
