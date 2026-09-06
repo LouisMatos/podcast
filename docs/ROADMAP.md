@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 1 — Design system e casca de navegação
-**Última coisa concluída:** Fase 0 (fundação, scripts, docs) — app padrão do Flutter roda no emulador
-**Próximo passo concreto:** criar os tokens em `frontend/lib/core/theme/`
+**Fase atual:** 2 — Descoberta e detalhe do podcast
+**Última coisa concluída:** Fase 1 (design system + casca de navegação) — 3 abas navegáveis, tema claro/escuro, dados mockados
+**Próximo passo concreto:** `core/network/dio_client.dart` e `data/sources/itunes_search_api.dart`
 
 ## Regra de ouro
 
@@ -28,18 +28,22 @@ Nunca deixe uma fase pela metade sem anotar acima o que falta.
 - [x] `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`
 - [x] App padrão abre no emulador pelo script
 
-## Fase 1 — Design system e casca de navegação
+## Fase 1 — Design system e casca de navegação ✅
 
-- [ ] `core/theme/app_colors.dart` — paleta pastel, claro e escuro
-- [ ] `core/theme/app_typography.dart` — Nunito via `google_fonts`
-- [ ] `core/theme/app_radii.dart` e `app_shadows.dart`
-- [ ] `core/theme/motion.dart` — durações e curvas
-- [ ] `core/theme/app_theme.dart` — monta o `ThemeData` a partir dos tokens
-- [ ] `core/widgets/`: `SoftCard`, `PillButton`, `PastelChip`, `ShimmerBox`, `SectionHeader`, `EmptyState`
-- [ ] `core/router/app_router.dart` — `go_router` com shell de 3 abas e transição fade+slide
-- [ ] Telas Descobrir / Biblioteca / Ajustes com dados mockados
-- [ ] `app.dart` com `ProviderScope` + `MaterialApp.router`
-- [ ] **Pronto quando:** navegação funciona, tema claro/escuro alterna, animações no tempo definido
+- [x] `core/theme/app_colors.dart` — paleta pastel, claro e escuro
+- [x] `core/theme/app_typography.dart` — Nunito via `google_fonts`
+- [x] `core/theme/app_radii.dart` e `app_shadows.dart`
+- [x] `core/theme/motion.dart` — durações e curvas
+- [x] `core/theme/app_theme.dart` — monta o `ThemeData` a partir dos tokens
+- [x] `core/widgets/`: `SoftCard`, `PillButton`, `PastelChip`, `ShimmerBox`, `SectionHeader`, `EmptyState`
+- [x] `core/router/app_router.dart` + `app_shell.dart` — `go_router` com `StatefulShellRoute` de 3 abas e transição fade+slide
+- [x] Telas Descobrir / Biblioteca / Ajustes com dados mockados
+- [x] `app.dart` com `ProviderScope` + `MaterialApp.router`
+- [x] **Pronto quando:** navegação funciona, tema claro/escuro alterna, animações no tempo definido
+
+Nota: `themeModeProvider` usa `Notifier`/`NotifierProvider`, não `StateProvider` —
+Riverpod 3 moveu `StateProvider` pra `package:flutter_riverpod/legacy.dart`.
+Ficou mais alinhado ao resto do projeto (que já usa `@riverpod`/codegen).
 
 ## Fase 2 — Descoberta e detalhe do podcast
 
