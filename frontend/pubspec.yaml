@@ -44,6 +44,9 @@ dependencies:
   # UI
   google_fonts: ^8.2.1
   cached_network_image: ^4.0.0
+  # Render da descrição (show notes) do episódio, que vem em HTML no RSS.
+  # Dart puro (html + csslib) — não puxa analyzer/intl conflitante.
+  flutter_widget_from_html_core: ^0.17.0
 
 dev_dependencies:
   flutter_test:

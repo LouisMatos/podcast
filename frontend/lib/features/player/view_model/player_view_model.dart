@@ -50,9 +50,18 @@ class PlayerViewModel extends _$PlayerViewModel {
     return const PlayerState();
   }
 
-  /// Toca [episode], começando a fila em [queue] (a lista de episódios do
+  /// Carrega [episode], começando a fila em [queue] (a lista de episódios do
   /// podcast) — retoma de onde parou se houver progresso salvo (Fase 3).
-  Future<void> playEpisode(Podcast podcast, Episode episode, {required List<Episode> queue}) async {
+  ///
+  /// [autoPlay] `false` (padrão): só prepara o áudio e mostra o mini-player
+  /// pausado — selecionar um episódio não deve tocar sozinho (Fase 8.3). A
+  /// tela de episódio e o botão de play na lista passam `true`.
+  Future<void> playEpisode(
+    Podcast podcast,
+    Episode episode, {
+    required List<Episode> queue,
+    bool autoPlay = false,
+  }) async {
     _podcast = podcast;
     _queue = queue;
 
@@ -73,6 +82,7 @@ class PlayerViewModel extends _$PlayerViewModel {
       items,
       startIndex: startIndex < 0 ? 0 : startIndex,
       initialPosition: savedPosition,
+      autoPlay: autoPlay,
     );
   }
 
@@ -103,7 +113,8 @@ class PlayerViewModel extends _$PlayerViewModel {
     final index = _queue.indexWhere((e) => e.guid == episode.guid);
     if (index == -1 || index >= _queue.length - 1) return;
 
-    await playEpisode(podcast, _queue[index + 1], queue: _queue);
+    // "Próximo" é ação explícita do usuário — aqui toca de fato.
+    await playEpisode(podcast, _queue[index + 1], queue: _queue, autoPlay: true);
   }
 
   void startSleepTimer(Duration duration) {

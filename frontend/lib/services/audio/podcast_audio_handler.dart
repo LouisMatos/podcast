@@ -17,19 +17,23 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   final just_audio.AudioPlayer _player = just_audio.AudioPlayer();
 
-  /// Toca uma fila a partir do item em [startIndex]. Retomando de
+  /// Carrega uma fila a partir do item em [startIndex], retomando de
   /// [initialPosition] quando existe progresso salvo (Fase 3).
+  ///
+  /// [autoPlay] `false` só prepara o áudio (o usuário decide quando ouvir —
+  /// Fase 8.3). O auto-avanço no fim de um episódio continua com `true`.
   Future<void> playQueue(
     List<MediaItem> items, {
     required int startIndex,
     Duration? initialPosition,
+    bool autoPlay = true,
   }) async {
     queue.add(items);
-    await skipToQueueItem(startIndex, initialPosition: initialPosition);
+    await skipToQueueItem(startIndex, initialPosition: initialPosition, autoPlay: autoPlay);
   }
 
   @override
-  Future<void> skipToQueueItem(int index, {Duration? initialPosition}) async {
+  Future<void> skipToQueueItem(int index, {Duration? initialPosition, bool autoPlay = true}) async {
     final items = queue.value;
     if (index < 0 || index >= items.length) return;
 
@@ -41,7 +45,7 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     if (initialPosition != null && initialPosition > Duration.zero) {
       await _player.seek(initialPosition);
     }
-    await _player.play();
+    if (autoPlay) await _player.play();
   }
 
   @override

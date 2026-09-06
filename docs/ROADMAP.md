@@ -11,12 +11,11 @@ v1 (Fases 0–6) segue completa e intacta. Fase 7 (iOS) continua pausada de
 propósito — só Android por enquanto.
 
 **Fase atual:** 8 — novas features (descoberta, progresso, player)
-**Sub-fase concluída:** 8.2 — barra de progresso + selo "Ouvido" no tile de
-episódio; abas "Episódios"/"Baixados" no detalhe com busca, filtro
-(ouvido/não) e ordenação. 39 testes (era 32).
-**Próximo passo concreto:** Fase 8.3 — sem autoplay ao selecionar episódio +
-tela de descrição do episódio (HTML) com player minimizado. Ver checklist
-da 8.3 abaixo.
+**Sub-fase concluída:** 8.3 — selecionar episódio abre a tela de descrição
+(HTML) sem tocar; player minimizado no rodapé; "Abrir player" pra tela
+cheia; auto-avanço no fim da fila mantido. 43 testes (era 39).
+**Próximo passo concreto:** Fase 8.4 — controles de volume + equalizador
+(Android) no player. Ver checklist da 8.4 abaixo.
 **Plano completo da Fase 8:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
 
 ## Regra de ouro
@@ -317,20 +316,48 @@ Armadilhas:
   (`package:drift/native.dart`), `tearDown(() => db.close())`. Inserir a
   `Subscriptions` antes de qualquer coisa com FK.
 
-### Fase 8.3 — Sem autoplay ao selecionar + tela de episódio ⬜
+### Fase 8.3 — Sem autoplay ao selecionar + tela de episódio ✅
 
 Features 5 e 7.
 
-- [ ] `PodcastAudioHandler.playQueue`/`skipToQueueItem` ganham `autoPlay`
-      (default `true`); `_onEpisodeCompleted` mantém `true`.
-- [ ] `PlayerViewModel.playEpisode(..., {bool autoPlay = false})`.
-- [ ] pubspec: `flutter_widget_from_html_core` (fallback `_stripHtml` se
-      conflitar com analyzer/intl).
-- [ ] `features/episode_detail/` — `EpisodeDetailScreen` com `MiniPlayer` no
-      rodapé, descrição em HTML, botões "Tocar"/"Pausar" e "Abrir player".
-- [ ] Rota `/episode` (root nav), `extra` = `({Podcast, Episode, List<Episode>})`.
-- [ ] `_EpisodeTile.onTap` → `/episode` (sem disparar play).
-- [ ] Testes: `player_view_model_test` (autoPlay), `episode_detail_screen_test`.
+- [x] `PodcastAudioHandler.playQueue`/`skipToQueueItem` ganham `autoPlay`
+      (default `true`); só chamam `_player.play()` se `true`.
+      `_onEpisodeCompleted` mantém `true` (auto-avanço no fim da fila).
+- [x] `PlayerViewModel.playEpisode(..., {bool autoPlay = false})` — default
+      `false`. `playNextInQueue` passa `true` (ação explícita).
+- [x] pubspec: `flutter_widget_from_html_core: ^0.17.0` (Dart puro, sem
+      conflito de analyzer/intl).
+- [x] `features/episode_detail/` — `EpisodeDetailScreen`: `MiniPlayer` no
+      `bottomNavigationBar`, capa (Hero tag `episode-artwork-<guid>`),
+      `HtmlWidget` da descrição, `PillButton` "Tocar"/"Retomar"/"Pausar" +
+      `DownloadButton`, `PillButton` ghost "Abrir player" → `/player`.
+- [x] Rota `/episode` (root nav), `extra` = record
+      `({Podcast podcast, Episode episode, List<Episode> queue})`.
+- [x] `DownloadButton` extraído pra `features/downloads/widgets/` (usado em 3
+      telas). `_EpisodeTile`: card abre `/episode`; ícone de play à esquerda
+      virou `IconButton` que toca de fato (`autoPlay: true`).
+- [x] Testes: `player_view_model_test` (fake handler, autoPlay),
+      `episode_detail_screen_test`. 4 novos, 43 no total.
+
+Armadilhas:
+
+- **Selecionar episódio (tocar no card do `_EpisodeTile`) abre `/episode`,
+  não toca.** O play rápido está no `IconButton` de play à esquerda do tile
+  e no botão "Tocar" da tela de episódio — ambos com `autoPlay: true`.
+- `EpisodeDetailScreen` monta o próprio `const MiniPlayer()` no
+  `bottomNavigationBar` porque `/episode` é rota de root (cobre o `AppShell`
+  e o mini-player dele).
+- Hero da capa na tela de episódio usa tag `episode-artwork-<guid>` — as
+  telas de podcast/player usam `podcast-artwork-<id>`, então não colidem
+  quando o mini-player (que tem a tag do podcast) está visível.
+- Teste de `PlayerViewModel` com `test()` puro: `TestWidgetsFlutterBinding.
+  ensureInitialized()` no início do `main` — o construtor do
+  `PodcastAudioHandler` cria um `just_audio.AudioPlayer` que registra method
+  channel handler e precisa do binding. Fake handler sobrescreve `playQueue`
+  pra não bater em channel.
+- `HtmlWidget` renderiza `RichText` — em teste, `find.textContaining` não
+  acha o texto; usar `find.byType(HtmlWidget)`. Links da descrição ainda não
+  abrem (sem `url_launcher` — backlog).
 
 ### Fase 8.4 — Player: volume + equalizador ⬜
 

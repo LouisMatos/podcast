@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 8.2 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 8.3 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -62,14 +62,17 @@ podcast/
       features/                  discover/ (busca + carrossel Top 20 + categorias),
                                   category/, library/, podcast_detail/ (abas
                                   Episódios/Baixados, busca/filtro/ordenação,
-                                  progresso no tile), settings/,
+                                  progresso no tile), episode_detail/ (descrição
+                                  HTML, /episode), settings/,
                                   player/ (mini-player + tela cheia), downloads/
+                                  (+ widgets/DownloadButton compartilhado)
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service)
       services/download/         DownloadService (flutter_downloader)
-    test/                        39 testes — data/sources/, data/repositories/,
+    test/                        43 testes — data/sources/, data/repositories/,
                                   features/discover/, features/podcast_detail/,
-                                  features/player/, widget_test.dart
+                                  features/episode_detail/, features/player/,
+                                  widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
                                   MainActivity estende AudioServiceActivity (Fase 4)
     ios/                         projeto nativo iOS (build só na Fase 7)
@@ -265,3 +268,16 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   (`package:drift/native.dart`) + `tearDown(() => db.close())`. Inserir a
   `Subscriptions` antes de qualquer linha com FK (`playbackProgress`,
   `downloads`, `episodeCache`).
+- **Selecionar episódio não toca** (Fase 8.3): tocar no card do
+  `_EpisodeTile` abre `/episode` (`EpisodeDetailScreen`, descrição em
+  `HtmlWidget`). Play só via `IconButton` de play do tile ou botão "Tocar"
+  da tela — esses passam `autoPlay: true`. `PlayerViewModel.playEpisode`
+  tem `autoPlay` default `false`; `PodcastAudioHandler.playQueue`/
+  `skipToQueueItem` têm `autoPlay` default `true` (o auto-avanço no fim da
+  fila continua tocando). `/episode` é rota de root e monta o próprio
+  `MiniPlayer` no rodapé. Hero da capa lá usa tag `episode-artwork-<guid>`
+  (o resto usa `podcast-artwork-<id>`).
+- **Teste que instancia `PodcastAudioHandler` em `test()` puro** precisa de
+  `TestWidgetsFlutterBinding.ensureInitialized()` (o `just_audio.AudioPlayer`
+  do construtor registra method channel handler). `HtmlWidget` vira
+  `RichText` — em teste usar `find.byType(HtmlWidget)`, não `textContaining`.

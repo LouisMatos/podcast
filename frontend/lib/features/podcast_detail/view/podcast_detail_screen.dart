@@ -14,12 +14,10 @@ import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/search_field.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
-import '../../../data/models/download_status.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
-import '../../../services/download/download_service.dart';
-import '../../downloads/view_model/download_status_provider.dart';
+import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view_model/player_view_model.dart';
 import '../view_model/downloaded_episodes_provider.dart';
@@ -432,26 +430,32 @@ class _EpisodeTile extends ConsumerWidget {
     final isCurrent = player.episode?.guid == episode.guid;
 
     return SoftCard(
-      onTap: () {
-        // Abre o player na hora — ele mesmo mostra o buffering. Esperar o
-        // playEpisode terminar antes de navegar deixaria o toque parecendo
-        // sem resposta enquanto o áudio carrega.
-        if (!isCurrent) {
-          unawaited(
-            ref.read(playerViewModelProvider.notifier).playEpisode(podcast, episode, queue: queue),
-          );
-        }
-        context.push('/player');
-      },
+      // Tocar no tile abre a descrição do episódio — NÃO toca (Fase 8.3).
+      // O play rápido fica no ícone à esquerda.
+      onTap: () => context.push(
+        '/episode',
+        extra: (podcast: podcast, episode: episode, queue: queue),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isCurrent && player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
-            color: colors.primary,
-            size: 32,
+          IconButton(
+            icon: Icon(
+              isCurrent && player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
+              color: colors.primary,
+              size: 32,
+            ),
+            tooltip: isCurrent && player.isPlaying ? 'Pausar' : 'Tocar',
+            onPressed: () {
+              final n = ref.read(playerViewModelProvider.notifier);
+              if (isCurrent) {
+                n.togglePlayPause();
+              } else {
+                unawaited(n.playEpisode(podcast, episode, queue: queue, autoPlay: true));
+              }
+            },
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,7 +477,7 @@ class _EpisodeTile extends ConsumerWidget {
           ),
           if (isSubscribed) ...[
             const SizedBox(width: 8),
-            _DownloadButton(podcast: podcast, episode: episode),
+            DownloadButton(podcast: podcast, episode: episode),
           ],
         ],
       ),
@@ -556,54 +560,6 @@ class _EpisodeProgressLine extends StatelessWidget {
     final m = d.inMinutes;
     if (m >= 60) return '${d.inHours}h${(m % 60).toString().padLeft(2, '0')}min';
     return '${m}min';
-  }
-}
-
-/// Botão de download do episódio: baixar, progresso, cancelar ou remover,
-/// dependendo do estado atual em [downloadStatusProvider].
-class _DownloadButton extends ConsumerWidget {
-  const _DownloadButton({required this.podcast, required this.episode});
-
-  final Podcast podcast;
-  final Episode episode;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final download = ref.watch(downloadStatusProvider(podcast.id, episode.guid)).value;
-    final service = ref.read(downloadServiceProvider);
-
-    return switch (download?.status) {
-      null || DownloadStatus.failed || DownloadStatus.canceled || DownloadStatus.paused => IconButton(
-          icon: Icon(Icons.download_outlined, color: colors.textMuted),
-          tooltip: 'Baixar',
-          onPressed: () => service.download(podcastId: podcast.id, episode: episode),
-        ),
-      DownloadStatus.queued || DownloadStatus.running => SizedBox(
-          width: 40,
-          height: 40,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: download!.status == DownloadStatus.queued ? null : download.progress / 100,
-                strokeWidth: 2.5,
-                color: colors.primary,
-              ),
-              IconButton(
-                icon: Icon(Icons.close, size: 16, color: colors.textMuted),
-                tooltip: 'Cancelar',
-                onPressed: () => service.cancel(podcastId: podcast.id, episodeGuid: episode.guid),
-              ),
-            ],
-          ),
-        ),
-      DownloadStatus.complete => IconButton(
-          icon: Icon(Icons.offline_pin, color: colors.secondary),
-          tooltip: 'Baixado — toque pra remover',
-          onPressed: () => service.remove(podcastId: podcast.id, episodeGuid: episode.guid),
-        ),
-    };
   }
 }
 

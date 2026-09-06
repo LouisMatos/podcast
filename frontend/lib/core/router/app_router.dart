@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/episode.dart';
 import '../../data/models/podcast.dart';
 import '../../features/category/view/category_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
+import '../../features/episode_detail/view/episode_detail_screen.dart';
 import '../../features/downloads/view/downloads_screen.dart';
 import '../../features/library/view/library_screen.dart';
 import '../../features/player/view/player_screen.dart';
@@ -83,6 +85,19 @@ final GoRouter appRouter = GoRouter(
       path: '/player',
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => _fadeSlidePage(state, const PlayerScreen()),
+    ),
+    // Descrição do episódio. Cobre a casca (mostra o próprio mini-player),
+    // aberta ao selecionar um episódio — sem tocar nada (Fase 8.3).
+    GoRoute(
+      path: '/episode',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final args = state.extra! as ({Podcast podcast, Episode episode, List<Episode> queue});
+        return _fadeSlidePage(
+          state,
+          EpisodeDetailScreen(podcast: args.podcast, episode: args.episode, queue: args.queue),
+        );
+      },
     ),
   ],
 );
