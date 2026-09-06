@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 4 — Player
-**Última coisa concluída:** Fase 3 (persistência local) — assinar/desassinar com SQLite via drift, sobrevive ao restart do app, biblioteca 100% reativa
-**Próximo passo concreto:** `services/audio/podcast_audio_handler.dart` (`BaseAudioHandler` + `just_audio`) e config do manifesto Android pra player em background
+**Fase atual:** 5 — Download offline
+**Última coisa concluída:** Fase 4 (player) — background/lockscreen, velocidade, skip, sleep timer, progresso salvo e retomado
+**Próximo passo concreto:** `services/download/download_service.dart` com `flutter_downloader` + tabela `downloads` (schema já existe desde a Fase 3)
 
 ## Regra de ouro
 
@@ -98,17 +98,46 @@ Notas:
   `.insert()` gerado ainda trata como opcional (`Value.absent()` por
   padrão) — sempre passar `Value(podcast.id)` explícito.
 
-## Fase 4 — Player
+## Fase 4 — Player ✅
 
-- [ ] `services/audio/podcast_audio_handler.dart` (`BaseAudioHandler` + `QueueHandler` + `SeekHandler`)
-- [ ] Config Android: `AudioServiceActivity`, `<service>` e `<receiver>` no manifesto, permissões, `minSdk` ≥ 23, `launchMode="singleTop"`
-- [ ] Mini-player sobre o bottom nav
-- [ ] Full player com `Hero` na capa
-- [ ] Velocidade 0.5×–3.0×
-- [ ] Skip ±15s / ±30s
-- [ ] Sleep timer (X min ou fim do episódio)
-- [ ] Salvar progresso a cada ~5s
-- [ ] **Pronto quando:** toca com a tela apagada e os controles aparecem na lockscreen
+- [x] `services/audio/podcast_audio_handler.dart` (`BaseAudioHandler` + `QueueHandler` + `SeekHandler`, `just_audio` por baixo)
+- [x] Config Android: `MainActivity` estende `AudioServiceActivity`, `<service>` + `<receiver>` no manifesto, permissões (`INTERNET` movida pro manifest principal — antes só existia no de debug), `minSdk` 24 (default do Flutter já atende o ≥23 pedido), `launchMode="singleTop"` (já vinha do template)
+- [x] Mini-player sobre o bottom nav (`AppShell`), só aparece depois do primeiro play
+- [x] Full player em `/player` (rota de topo, fora das 3 abas) com `Hero` na capa vindo da lista/mini-player
+- [x] Velocidade 0.5×–3.0×
+- [x] Skip -15s / +30s
+- [x] Sleep timer (5/15/30/60 min, cancelável)
+- [x] Progresso salvo a cada ~5s enquanto toca + na hora que pausa (não só no ciclo periódico)
+- [x] Retoma da posição salva ao tocar o episódio de novo (`LibraryRepository.playbackPositionFor`)
+- [x] **Pronto quando:** toca com a tela apagada e os controles aparecem na notificação/lockscreen
+
+Notas:
+
+- `PlayerViewModel` é `keepAlive: true` — o áudio toca em background e o
+  mini-player aparece em qualquer aba, então não pode ser descartado ao
+  trocar de tela.
+- Status de assinatura e player ficam deliberadamente em providers
+  diferentes (`isSubscribedProvider` já existia da Fase 3): juntar
+  play/pause no mesmo estado do fetch de episódios faria assinar/desassinar
+  ou trocar de faixa refazer o fetch inteiro do RSS.
+- `AsyncValue.valueOrNull` não existe no Riverpod 3.4.3 — `value` já é
+  nullable (`ValueT? get value`). Usar `state.value`, não `.valueOrNull`.
+- Riverpod codegen usa `Ref` genérico (não mais `XRef` por provider) —
+  `import 'package:riverpod_annotation/riverpod_annotation.dart'` já expõe.
+- Navegar pro player **antes** de esperar o `playEpisode` terminar (fire
+  Future sem `await`, depois `context.push`) — esperar primeiro deixa o
+  toque parecendo sem resposta enquanto o áudio buffereia. A tela do
+  player já lida com `isBuffering`.
+- iTunes API devolvia `Content-Type: text/javascript`; visto na Fase 2.
+  Já corrigido lá — mencionado aqui porque foi o mesmo tipo de armadilha
+  silenciosa (exceção engolida) que quase escondeu o bug de navegação
+  desta fase.
+- **Emulador mata o serviço de áudio por "app idle" depois de ~2m30s de
+  tela apagada** (`ActivityManager: Stopping service due to app idle`),
+  mesmo com foreground service + notificação ativos. Confirmado como
+  comportamento de gerenciamento de energia do emulador/Android (Doze/App
+  Standby), não bug do app — reproduzir num device real com "não otimizar
+  bateria" ligado pro app antes de investigar mais.
 
 ## Fase 5 — Download offline
 

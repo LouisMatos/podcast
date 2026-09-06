@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show OrderingTerm, Value;
+import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
@@ -53,6 +53,33 @@ class LibraryRepository {
     // As linhas de `episodeCache`/`playbackProgress`/`downloads` somem
     // sozinhas via `onDelete: cascade` nas referências.
     await (_db.delete(_db.subscriptions)..where((t) => t.id.equals(podcastId))).go();
+  }
+
+  /// Posição salva de um episódio, ou `null` se nunca tocou. Usado pelo
+  /// player (Fase 4) pra retomar de onde parou.
+  Future<Duration?> playbackPositionFor(int podcastId, String episodeGuid) async {
+    final query = _db.select(_db.playbackProgress)
+      ..where((t) => t.podcastId.equals(podcastId) & t.episodeGuid.equals(episodeGuid));
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+    return Duration(seconds: row.positionSeconds);
+  }
+
+  Future<void> savePlaybackPosition({
+    required int podcastId,
+    required String episodeGuid,
+    required Duration position,
+    required bool completed,
+  }) {
+    return _db.into(_db.playbackProgress).insertOnConflictUpdate(
+          PlaybackProgressCompanion.insert(
+            podcastId: podcastId,
+            episodeGuid: episodeGuid,
+            positionSeconds: Value(position.inSeconds),
+            completed: Value(completed),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
   }
 
   Future<void> _cacheEpisodes(int podcastId, List<Episode> episodes) {

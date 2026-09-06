@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/podcast.dart';
 import '../../features/discover/view/discover_screen.dart';
 import '../../features/library/view/library_screen.dart';
+import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../theme/motion.dart';
@@ -57,6 +58,13 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+    // Fora das 3 abas de propósito: o player cheio cobre a tela inteira e
+    // pode ser aberto do mini-player em qualquer uma delas.
+    GoRoute(
+      path: '/player',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => _fadeSlidePage(state, const PlayerScreen()),
     ),
   ],
 );

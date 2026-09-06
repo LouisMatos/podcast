@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
@@ -12,6 +15,7 @@ import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
+import '../../player/view_model/player_view_model.dart';
 import '../view_model/podcast_detail_view_model.dart';
 
 class PodcastDetailScreen extends ConsumerWidget {
@@ -145,7 +149,7 @@ class _PodcastDetailBody extends ConsumerWidget {
           )
         else
           for (final episode in episodes!) ...[
-            _EpisodeTile(episode: episode),
+            _EpisodeTile(podcast: podcast, episode: episode, queue: episodes!),
             const SizedBox(height: 12),
           ],
       ],
@@ -162,21 +166,37 @@ class _PodcastDetailBody extends ConsumerWidget {
   }
 }
 
-class _EpisodeTile extends StatelessWidget {
-  const _EpisodeTile({required this.episode});
+class _EpisodeTile extends ConsumerWidget {
+  const _EpisodeTile({required this.podcast, required this.episode, required this.queue});
 
+  final Podcast podcast;
   final Episode episode;
+  final List<Episode> queue;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final player = ref.watch(playerViewModelProvider);
+    final isCurrent = player.episode?.guid == episode.guid;
 
     return SoftCard(
-      onTap: () {},
+      onTap: () {
+        // Abre o player na hora — ele mesmo mostra o buffering. Esperar o
+        // playEpisode terminar antes de navegar deixaria o toque parecendo
+        // sem resposta enquanto o áudio carrega.
+        if (!isCurrent) {
+          unawaited(ref.read(playerViewModelProvider.notifier).playEpisode(podcast, episode, queue: queue));
+        }
+        context.push('/player');
+      },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.play_circle_outline, color: colors.primary, size: 32),
+          Icon(
+            isCurrent && player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
+            color: colors.primary,
+            size: 32,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
