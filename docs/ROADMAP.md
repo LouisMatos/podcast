@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 2 — Descoberta e detalhe do podcast
-**Última coisa concluída:** Fase 1 (design system + casca de navegação) — 3 abas navegáveis, tema claro/escuro, dados mockados
-**Próximo passo concreto:** `core/network/dio_client.dart` e `data/sources/itunes_search_api.dart`
+**Fase atual:** 3 — Persistência local
+**Última coisa concluída:** Fase 2 (descoberta + detalhe) — busca real na iTunes Search API, feed RSS parseado, episódios reais na tela de detalhe
+**Próximo passo concreto:** schema drift (`subscriptions`, `episodes`, `playback_progress`, `downloads`) em `core/database/`
 
 ## Regra de ouro
 
@@ -45,16 +45,30 @@ Nota: `themeModeProvider` usa `Notifier`/`NotifierProvider`, não `StateProvider
 Riverpod 3 moveu `StateProvider` pra `package:flutter_riverpod/legacy.dart`.
 Ficou mais alinhado ao resto do projeto (que já usa `@riverpod`/codegen).
 
-## Fase 2 — Descoberta e detalhe do podcast
+## Fase 2 — Descoberta e detalhe do podcast ✅
 
-- [ ] `core/network/dio_client.dart`
-- [ ] `data/models/podcast.dart` e `episode.dart` (Freezed + JSON)
-- [ ] `data/sources/itunes_search_api.dart`
-- [ ] `data/sources/rss_feed_parser.dart` (`rss_dart`, lendo `itunes:duration`, `itunes:image`, `enclosure`)
-- [ ] `data/repositories/podcast_repository.dart`
-- [ ] `DiscoverViewModel` com debounce de busca
-- [ ] `PodcastDetailViewModel`
-- [ ] **Pronto quando:** busca real retorna podcasts e o detalhe lista episódios reais
+- [x] `core/network/dio_client.dart`
+- [x] `data/models/podcast.dart` e `episode.dart` (Freezed — sem JSON codegen; a tradução do JSON/XML bruto é manual dentro dos data sources, ver ARCHITECTURE.md)
+- [x] `data/sources/itunes_search_api.dart`
+- [x] `data/sources/rss_feed_parser.dart` (`rss_dart`, lendo `itunes:duration`, `itunes:image`, `enclosure`)
+- [x] `data/repositories/podcast_repository.dart`
+- [x] `DiscoverViewModel` com debounce de busca (400ms)
+- [x] `PodcastDetailViewModel` (`AsyncNotifier.family` pelo próprio `Podcast`)
+- [x] `PodcastDetailScreen` com `Hero` na capa vindo da lista
+- [x] **Pronto quando:** busca real retorna podcasts e o detalhe lista episódios reais
+
+Notas:
+
+- Freezed 4 exige `abstract class Foo with _$Foo` (não mais `class Foo with _$Foo`)
+  — sem o `abstract`, dá erro "Missing concrete implementations" no analyze.
+- A iTunes Search API devolve `Content-Type: text/javascript`, não
+  `application/json`. O parser automático do Dio (`Dio.get<Map<...>>`) não
+  decodifica isso — vinha um `DioException`/`type 'String' is not a subtype
+  of Map` silencioso. Corrigido pedindo `ResponseType.plain` e decodificando
+  com `jsonDecode` na mão (ver `ItunesSearchApi.search`).
+- Datas de `pubDate` do RSS são parseadas com `intl`'s `DateFormat('EEE, dd
+  MMM yyyy HH:mm:ss Z', 'en_US')`; falha vira `null` (episódio sem data),
+  não trava a tela.
 
 ## Fase 3 — Persistência local
 

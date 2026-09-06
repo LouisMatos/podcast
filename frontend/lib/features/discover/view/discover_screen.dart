@@ -1,59 +1,28 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/pastel_chip.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
+import '../../../data/models/podcast.dart';
+import '../view_model/discover_state.dart';
+import '../view_model/discover_view_model.dart';
 
-class _MockPodcast {
-  const _MockPodcast(this.title, this.author, this.category, this.colorOf);
-
-  final String title;
-  final String author;
-  final String category;
-  final Color Function(AppColors colors) colorOf;
-}
-
-const _mockPodcasts = <_MockPodcast>[
-  _MockPodcast('Café com Código', 'Estúdio Lavanda', 'Tecnologia', _primary),
-  _MockPodcast('Histórias da Cidade', 'Rádio Menta', 'Cultura', _secondary),
-  _MockPodcast('Mente Tranquila', 'Bem-Estar Pod', 'Saúde', _accent),
-  _MockPodcast('Ciência Sem Filtro', 'Laboratório Aberto', 'Ciência', _primary),
-  _MockPodcast('Negócios de Verdade', 'Grupo Pastel', 'Negócios', _secondary),
-];
-
-Color _primary(AppColors c) => c.primary;
-Color _secondary(AppColors c) => c.secondary;
-Color _accent(AppColors c) => c.accent;
-
-/// Tela de descoberta.
-///
-/// A lista e a busca aqui são mockadas em memória, filtrando localmente —
-/// não é o ViewModel real. A busca de verdade (iTunes Search API) entra na
-/// Fase 2 com um `DiscoverViewModel` próprio; ver docs/ROADMAP.md.
-class DiscoverScreen extends StatefulWidget {
+/// Tela de descoberta: busca podcasts na iTunes Search API
+/// (`DiscoverViewModel` cuida do debounce e do estado).
+class DiscoverScreen extends ConsumerWidget {
   const DiscoverScreen({super.key});
 
   @override
-  State<DiscoverScreen> createState() => _DiscoverScreenState();
-}
-
-class _DiscoverScreenState extends State<DiscoverScreen> {
-  String _query = '';
-
-  List<_MockPodcast> get _filtered {
-    if (_query.isEmpty) return _mockPodcasts;
-    final query = _query.toLowerCase();
-    return _mockPodcasts
-        .where((p) => p.title.toLowerCase().contains(query) || p.category.toLowerCase().contains(query))
-        .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final results = _filtered;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(discoverViewModelProvider);
+    final notifier = ref.read(discoverViewModelProvider.notifier);
 
     return SafeArea(
       child: ListView(
@@ -63,35 +32,82 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           const SizedBox(height: 4),
           Text('Encontre seu próximo podcast favorito', style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 20),
-          _SearchField(onChanged: (value) => setState(() => _query = value)),
+          _SearchField(onChanged: notifier.onQueryChanged),
           const SizedBox(height: 24),
-          SectionHeader(title: _query.isEmpty ? 'Em alta' : 'Resultados'),
+          SectionHeader(title: state.query.isEmpty ? 'Descubra podcasts' : 'Resultados'),
           AnimatedSwitcher(
             duration: AppMotion.base,
             switchInCurve: AppMotion.enter,
             switchOutCurve: AppMotion.standard,
-            child: results.isEmpty
-                ? Padding(
-                    key: const ValueKey('empty'),
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'Nenhum resultado pra "$_query"',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : Column(
-                    key: ValueKey('$_query-${results.length}'),
-                    children: [
-                      for (final podcast in results) ...[
-                        _PodcastTile(podcast: podcast),
-                        const SizedBox(height: 12),
-                      ],
-                    ],
-                  ),
+            child: _DiscoverBody(key: ValueKey(_bodyKey(state)), state: state),
           ),
         ],
       ),
+    );
+  }
+
+  String _bodyKey(DiscoverState state) {
+    if (state.query.isEmpty) return 'idle';
+    if (state.isLoading) return 'loading';
+    if (state.error != null) return 'error';
+    return 'results-${state.query}-${state.results.length}';
+  }
+}
+
+class _DiscoverBody extends StatelessWidget {
+  const _DiscoverBody({super.key, required this.state});
+
+  final DiscoverState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.query.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Text(
+          'Busque por um podcast ou categoria acima.',
+          style: Theme.of(context).textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    if (state.isLoading) {
+      return Column(
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            const _PodcastTileSkeleton(),
+            const SizedBox(height: 12),
+          ],
+        ],
+      );
+    }
+
+    if (state.error case final error?) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Text(error, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+      );
+    }
+
+    if (state.results.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Text(
+          'Nenhum resultado pra "${state.query}"',
+          style: Theme.of(context).textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final podcast in state.results) ...[
+          _PodcastTile(podcast: podcast),
+          const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 }
@@ -129,36 +145,92 @@ class _SearchField extends StatelessWidget {
 class _PodcastTile extends StatelessWidget {
   const _PodcastTile({required this.podcast});
 
-  final _MockPodcast podcast;
+  final Podcast podcast;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final tint = podcast.colorOf(colors);
 
     return SoftCard(
-      onTap: () {},
+      onTap: () => context.push('/discover/podcast', extra: podcast),
       child: Row(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(color: tint.withValues(alpha: 0.5), borderRadius: AppRadii.smAll),
-            child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+          Hero(
+            tag: 'podcast-artwork-${podcast.id}',
+            child: ClipRRect(
+              borderRadius: AppRadii.smAll,
+              child: podcast.artworkUrl == null
+                  ? _artworkFallback(colors)
+                  : CachedNetworkImage(
+                      imageUrl: podcast.artworkUrl!,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const ShimmerBox(width: 56, height: 56),
+                      errorWidget: (context, url, error) => _artworkFallback(colors),
+                    ),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(podcast.title, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  podcast.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 2),
-                Text(podcast.author, style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  podcast.author,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          PastelChip(label: podcast.category, color: tint),
+          if (podcast.genre case final genre?) ...[
+            const SizedBox(width: 12),
+            PastelChip(label: genre),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _artworkFallback(AppColors colors) {
+    return Container(
+      width: 56,
+      height: 56,
+      color: colors.primary.withValues(alpha: 0.5),
+      child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+    );
+  }
+}
+
+class _PodcastTileSkeleton extends StatelessWidget {
+  const _PodcastTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      child: Row(
+        children: [
+          const ShimmerBox(width: 56, height: 56, borderRadius: AppRadii.smAll),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                ShimmerBox(height: 16),
+                SizedBox(height: 8),
+                ShimmerBox(width: 140, height: 12),
+              ],
+            ),
+          ),
         ],
       ),
     );

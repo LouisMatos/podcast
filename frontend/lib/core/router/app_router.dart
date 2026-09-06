@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/podcast.dart';
 import '../../features/discover/view/discover_screen.dart';
 import '../../features/library/view/library_screen.dart';
+import '../../features/podcast_detail/view/podcast_detail_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../theme/motion.dart';
 import 'app_shell.dart';
@@ -21,6 +23,13 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/discover',
               pageBuilder: (context, state) => _fadeSlidePage(state, const DiscoverScreen()),
+              routes: [
+                GoRoute(
+                  path: 'podcast',
+                  pageBuilder: (context, state) =>
+                      _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
+                ),
+              ],
             ),
           ],
         ),

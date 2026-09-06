@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 0 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 2 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -48,11 +48,13 @@ podcast/
       run_android.sh            build + emulador + run (ver Comandos)
       gen.sh                     atalho pro build_runner
     lib/
-      main.dart                  único arquivo de código hoje (Fase 1 em diante
-                                  populam core/, data/, features/, services/ —
-                                  layout alvo descrito em "Arquitetura" abaixo)
+      main.dart, app.dart        bootstrap + ProviderScope/MaterialApp.router
+      core/                      theme/, router/, network/, widgets/ (Fase 1-2)
+      data/                      models/, sources/, repositories/ (Fase 2)
+      features/                  discover/, library/, podcast_detail/, settings/
+                                  — layout completo descrito em "Arquitetura" abaixo
     test/
-      widget_test.dart           teste padrão gerado pelo `flutter create`
+      widget_test.dart           smoke test de navegação
     android/                     projeto nativo Android (manifests, gradle)
     ios/                         projeto nativo iOS (build só na Fase 7)
 ```
@@ -158,3 +160,11 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
 - **`StateProvider` não vem mais de `flutter_riverpod.dart`**: Riverpod 3
   moveu pra `package:flutter_riverpod/legacy.dart`. Preferir `Notifier`/
   `NotifierProvider` (ver `lib/features/settings/view_model/theme_mode_provider.dart`).
+- **Freezed 4 exige `abstract class Foo with _$Foo`** — sem `abstract` dá
+  erro "Missing concrete implementations" no analyze. Todo modelo Freezed
+  do projeto segue esse padrão (`lib/data/models/`, estados de ViewModel).
+- **A iTunes Search API devolve `Content-Type: text/javascript`**, não
+  `application/json` — o parser automático do Dio (`Dio.get<Map<...>>`) não
+  decodifica isso. `ItunesSearchApi` pede `ResponseType.plain` e decodifica
+  com `jsonDecode` na mão; seguir esse padrão pra qualquer API nova que não
+  declare `application/json` corretamente.
