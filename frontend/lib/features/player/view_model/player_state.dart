@@ -5,6 +5,9 @@ import '../../../data/models/podcast.dart';
 
 part 'player_state.freezed.dart';
 
+/// Uma banda do equalizador, do jeito que a UI precisa (Hz + ganho em dB).
+typedef EqualizerBand = ({int index, double centerHz, double gain});
+
 /// Estado do player, pronto pra UI — sem nenhum tipo do `audio_service` ou
 /// do `just_audio` vazando pra fora do `PlayerViewModel`.
 @freezed
@@ -20,6 +23,12 @@ abstract class PlayerState with _$PlayerState {
     Duration? duration,
     @Default(1.0) double speed,
     Duration? sleepTimerRemaining,
+    @Default(1.0) double volume,
+    @Default(false) bool equalizerEnabled,
+    @Default(false) bool equalizerAvailable,
+    @Default(0.0) double equalizerMinDb,
+    @Default(0.0) double equalizerMaxDb,
+    @Default(<EqualizerBand>[]) List<EqualizerBand> equalizerBands,
   }) = _PlayerState;
 
   const PlayerState._();

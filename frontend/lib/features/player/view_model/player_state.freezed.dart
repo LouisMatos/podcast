@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlayerState {
 
- Podcast? get podcast; Episode? get episode; List<Episode> get queue; bool get isPlaying; bool get isBuffering; Duration get position; Duration get bufferedPosition; Duration? get duration; double get speed; Duration? get sleepTimerRemaining;
+ Podcast? get podcast; Episode? get episode; List<Episode> get queue; bool get isPlaying; bool get isBuffering; Duration get position; Duration get bufferedPosition; Duration? get duration; double get speed; Duration? get sleepTimerRemaining; double get volume; bool get equalizerEnabled; bool get equalizerAvailable; double get equalizerMinDb; double get equalizerMaxDb; List<EqualizerBand> get equalizerBands;
 /// Create a copy of PlayerState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $PlayerStateCopyWith<PlayerState> get copyWith => _$PlayerStateCopyWithImpl<Play
 @override
 bool operator ==(Object other) {
   final _this = this as PlayerState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerState&&(identical(other.podcast, _this.podcast) || other.podcast == _this.podcast)&&(identical(other.episode, _this.episode) || other.episode == _this.episode)&&const DeepCollectionEquality().equals(other.queue, _this.queue)&&(identical(other.isPlaying, _this.isPlaying) || other.isPlaying == _this.isPlaying)&&(identical(other.isBuffering, _this.isBuffering) || other.isBuffering == _this.isBuffering)&&(identical(other.position, _this.position) || other.position == _this.position)&&(identical(other.bufferedPosition, _this.bufferedPosition) || other.bufferedPosition == _this.bufferedPosition)&&(identical(other.duration, _this.duration) || other.duration == _this.duration)&&(identical(other.speed, _this.speed) || other.speed == _this.speed)&&(identical(other.sleepTimerRemaining, _this.sleepTimerRemaining) || other.sleepTimerRemaining == _this.sleepTimerRemaining));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerState&&(identical(other.podcast, _this.podcast) || other.podcast == _this.podcast)&&(identical(other.episode, _this.episode) || other.episode == _this.episode)&&const DeepCollectionEquality().equals(other.queue, _this.queue)&&(identical(other.isPlaying, _this.isPlaying) || other.isPlaying == _this.isPlaying)&&(identical(other.isBuffering, _this.isBuffering) || other.isBuffering == _this.isBuffering)&&(identical(other.position, _this.position) || other.position == _this.position)&&(identical(other.bufferedPosition, _this.bufferedPosition) || other.bufferedPosition == _this.bufferedPosition)&&(identical(other.duration, _this.duration) || other.duration == _this.duration)&&(identical(other.speed, _this.speed) || other.speed == _this.speed)&&(identical(other.sleepTimerRemaining, _this.sleepTimerRemaining) || other.sleepTimerRemaining == _this.sleepTimerRemaining)&&(identical(other.volume, _this.volume) || other.volume == _this.volume)&&(identical(other.equalizerEnabled, _this.equalizerEnabled) || other.equalizerEnabled == _this.equalizerEnabled)&&(identical(other.equalizerAvailable, _this.equalizerAvailable) || other.equalizerAvailable == _this.equalizerAvailable)&&(identical(other.equalizerMinDb, _this.equalizerMinDb) || other.equalizerMinDb == _this.equalizerMinDb)&&(identical(other.equalizerMaxDb, _this.equalizerMaxDb) || other.equalizerMaxDb == _this.equalizerMaxDb)&&const DeepCollectionEquality().equals(other.equalizerBands, _this.equalizerBands));
 }
 
 
 @override
 int get hashCode {
   final _this = this as PlayerState;
-  return Object.hash(runtimeType,_this.podcast,_this.episode,const DeepCollectionEquality().hash(_this.queue),_this.isPlaying,_this.isBuffering,_this.position,_this.bufferedPosition,_this.duration,_this.speed,_this.sleepTimerRemaining);
+  return Object.hash(runtimeType,_this.podcast,_this.episode,const DeepCollectionEquality().hash(_this.queue),_this.isPlaying,_this.isBuffering,_this.position,_this.bufferedPosition,_this.duration,_this.speed,_this.sleepTimerRemaining,_this.volume,_this.equalizerEnabled,_this.equalizerAvailable,_this.equalizerMinDb,_this.equalizerMaxDb,const DeepCollectionEquality().hash(_this.equalizerBands));
 }
 
 @override
 String toString() {
   final _this = this as PlayerState;
-  return 'PlayerState(podcast: ${_this.podcast}, episode: ${_this.episode}, queue: ${_this.queue}, isPlaying: ${_this.isPlaying}, isBuffering: ${_this.isBuffering}, position: ${_this.position}, bufferedPosition: ${_this.bufferedPosition}, duration: ${_this.duration}, speed: ${_this.speed}, sleepTimerRemaining: ${_this.sleepTimerRemaining})';
+  return 'PlayerState(podcast: ${_this.podcast}, episode: ${_this.episode}, queue: ${_this.queue}, isPlaying: ${_this.isPlaying}, isBuffering: ${_this.isBuffering}, position: ${_this.position}, bufferedPosition: ${_this.bufferedPosition}, duration: ${_this.duration}, speed: ${_this.speed}, sleepTimerRemaining: ${_this.sleepTimerRemaining}, volume: ${_this.volume}, equalizerEnabled: ${_this.equalizerEnabled}, equalizerAvailable: ${_this.equalizerAvailable}, equalizerMinDb: ${_this.equalizerMinDb}, equalizerMaxDb: ${_this.equalizerMaxDb}, equalizerBands: ${_this.equalizerBands})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $PlayerStateCopyWith<$Res>  {
   factory $PlayerStateCopyWith(PlayerState value, $Res Function(PlayerState) _then) = _$PlayerStateCopyWithImpl;
 @useResult
 $Res call({
- Podcast? podcast, Episode? episode, List<Episode> queue, bool isPlaying, bool isBuffering, Duration position, Duration bufferedPosition, Duration? duration, double speed, Duration? sleepTimerRemaining
+ Podcast? podcast, Episode? episode, List<Episode> queue, bool isPlaying, bool isBuffering, Duration position, Duration bufferedPosition, Duration? duration, double speed, Duration? sleepTimerRemaining, double volume, bool equalizerEnabled, bool equalizerAvailable, double equalizerMinDb, double equalizerMaxDb, List<EqualizerBand> equalizerBands
 });
 
 
@@ -68,7 +68,7 @@ class _$PlayerStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? podcast = freezed,Object? episode = freezed,Object? queue = null,Object? isPlaying = null,Object? isBuffering = null,Object? position = null,Object? bufferedPosition = null,Object? duration = freezed,Object? speed = null,Object? sleepTimerRemaining = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? podcast = freezed,Object? episode = freezed,Object? queue = null,Object? isPlaying = null,Object? isBuffering = null,Object? position = null,Object? bufferedPosition = null,Object? duration = freezed,Object? speed = null,Object? sleepTimerRemaining = freezed,Object? volume = null,Object? equalizerEnabled = null,Object? equalizerAvailable = null,Object? equalizerMinDb = null,Object? equalizerMaxDb = null,Object? equalizerBands = null,}) {
   return _then(PlayerState(
 podcast: freezed == podcast ? _self.podcast : podcast // ignore: cast_nullable_to_non_nullable
 as Podcast?,episode: freezed == episode ? _self.episode : episode // ignore: cast_nullable_to_non_nullable
@@ -80,7 +80,13 @@ as Duration,bufferedPosition: null == bufferedPosition ? _self.bufferedPosition 
 as Duration,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
 as Duration?,speed: null == speed ? _self.speed : speed // ignore: cast_nullable_to_non_nullable
 as double,sleepTimerRemaining: freezed == sleepTimerRemaining ? _self.sleepTimerRemaining : sleepTimerRemaining // ignore: cast_nullable_to_non_nullable
-as Duration?,
+as Duration?,volume: null == volume ? _self.volume : volume // ignore: cast_nullable_to_non_nullable
+as double,equalizerEnabled: null == equalizerEnabled ? _self.equalizerEnabled : equalizerEnabled // ignore: cast_nullable_to_non_nullable
+as bool,equalizerAvailable: null == equalizerAvailable ? _self.equalizerAvailable : equalizerAvailable // ignore: cast_nullable_to_non_nullable
+as bool,equalizerMinDb: null == equalizerMinDb ? _self.equalizerMinDb : equalizerMinDb // ignore: cast_nullable_to_non_nullable
+as double,equalizerMaxDb: null == equalizerMaxDb ? _self.equalizerMaxDb : equalizerMaxDb // ignore: cast_nullable_to_non_nullable
+as double,equalizerBands: null == equalizerBands ? _self.equalizerBands : equalizerBands // ignore: cast_nullable_to_non_nullable
+as List<EqualizerBand>,
   ));
 }
 /// Create a copy of PlayerState
@@ -189,10 +195,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining,  double volume,  bool equalizerEnabled,  bool equalizerAvailable,  double equalizerMinDb,  double equalizerMaxDb,  List<EqualizerBand> equalizerBands)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlayerState() when $default != null:
-return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining);case _:
+return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining,_that.volume,_that.equalizerEnabled,_that.equalizerAvailable,_that.equalizerMinDb,_that.equalizerMaxDb,_that.equalizerBands);case _:
   return orElse();
 
 }
@@ -210,10 +216,10 @@ return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.is
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining,  double volume,  bool equalizerEnabled,  bool equalizerAvailable,  double equalizerMinDb,  double equalizerMaxDb,  List<EqualizerBand> equalizerBands)  $default,) {final _that = this;
 switch (_that) {
 case _PlayerState():
-return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining);case _:
+return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining,_that.volume,_that.equalizerEnabled,_that.equalizerAvailable,_that.equalizerMinDb,_that.equalizerMaxDb,_that.equalizerBands);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -230,10 +236,10 @@ return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.is
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Podcast? podcast,  Episode? episode,  List<Episode> queue,  bool isPlaying,  bool isBuffering,  Duration position,  Duration bufferedPosition,  Duration? duration,  double speed,  Duration? sleepTimerRemaining,  double volume,  bool equalizerEnabled,  bool equalizerAvailable,  double equalizerMinDb,  double equalizerMaxDb,  List<EqualizerBand> equalizerBands)?  $default,) {final _that = this;
 switch (_that) {
 case _PlayerState() when $default != null:
-return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining);case _:
+return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.isBuffering,_that.position,_that.bufferedPosition,_that.duration,_that.speed,_that.sleepTimerRemaining,_that.volume,_that.equalizerEnabled,_that.equalizerAvailable,_that.equalizerMinDb,_that.equalizerMaxDb,_that.equalizerBands);case _:
   return null;
 
 }
@@ -245,7 +251,7 @@ return $default(_that.podcast,_that.episode,_that.queue,_that.isPlaying,_that.is
 
 
 class _PlayerState extends PlayerState {
-  const _PlayerState({this.podcast, this.episode,  List<Episode> queue = const <Episode>[], this.isPlaying = false, this.isBuffering = false, this.position = Duration.zero, this.bufferedPosition = Duration.zero, this.duration, this.speed = 1.0, this.sleepTimerRemaining}): _queue = queue,super._();
+  const _PlayerState({this.podcast, this.episode,  List<Episode> queue = const <Episode>[], this.isPlaying = false, this.isBuffering = false, this.position = Duration.zero, this.bufferedPosition = Duration.zero, this.duration, this.speed = 1.0, this.sleepTimerRemaining, this.volume = 1.0, this.equalizerEnabled = false, this.equalizerAvailable = false, this.equalizerMinDb = 0.0, this.equalizerMaxDb = 0.0,  List<EqualizerBand> equalizerBands = const <EqualizerBand>[]}): _queue = queue,_equalizerBands = equalizerBands,super._();
   
 
 @override final  Podcast? podcast;
@@ -264,6 +270,18 @@ class _PlayerState extends PlayerState {
 @override final  Duration? duration;
 @override@JsonKey() final  double speed;
 @override final  Duration? sleepTimerRemaining;
+@override@JsonKey() final  double volume;
+@override@JsonKey() final  bool equalizerEnabled;
+@override@JsonKey() final  bool equalizerAvailable;
+@override@JsonKey() final  double equalizerMinDb;
+@override@JsonKey() final  double equalizerMaxDb;
+ final  List<EqualizerBand> _equalizerBands;
+@override@JsonKey() List<EqualizerBand> get equalizerBands {
+  if (_equalizerBands is EqualUnmodifiableListView) return _equalizerBands;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_equalizerBands);
+}
+
 
 /// Create a copy of PlayerState
 /// with the given fields replaced by the non-null parameter values.
@@ -275,18 +293,18 @@ _$PlayerStateCopyWith<_PlayerState> get copyWith => __$PlayerStateCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerState&&(identical(other.podcast, podcast) || other.podcast == podcast)&&(identical(other.episode, episode) || other.episode == episode)&&const DeepCollectionEquality().equals(other.queue, _queue)&&(identical(other.isPlaying, isPlaying) || other.isPlaying == isPlaying)&&(identical(other.isBuffering, isBuffering) || other.isBuffering == isBuffering)&&(identical(other.position, position) || other.position == position)&&(identical(other.bufferedPosition, bufferedPosition) || other.bufferedPosition == bufferedPosition)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.speed, speed) || other.speed == speed)&&(identical(other.sleepTimerRemaining, sleepTimerRemaining) || other.sleepTimerRemaining == sleepTimerRemaining));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerState&&(identical(other.podcast, podcast) || other.podcast == podcast)&&(identical(other.episode, episode) || other.episode == episode)&&const DeepCollectionEquality().equals(other.queue, _queue)&&(identical(other.isPlaying, isPlaying) || other.isPlaying == isPlaying)&&(identical(other.isBuffering, isBuffering) || other.isBuffering == isBuffering)&&(identical(other.position, position) || other.position == position)&&(identical(other.bufferedPosition, bufferedPosition) || other.bufferedPosition == bufferedPosition)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.speed, speed) || other.speed == speed)&&(identical(other.sleepTimerRemaining, sleepTimerRemaining) || other.sleepTimerRemaining == sleepTimerRemaining)&&(identical(other.volume, volume) || other.volume == volume)&&(identical(other.equalizerEnabled, equalizerEnabled) || other.equalizerEnabled == equalizerEnabled)&&(identical(other.equalizerAvailable, equalizerAvailable) || other.equalizerAvailable == equalizerAvailable)&&(identical(other.equalizerMinDb, equalizerMinDb) || other.equalizerMinDb == equalizerMinDb)&&(identical(other.equalizerMaxDb, equalizerMaxDb) || other.equalizerMaxDb == equalizerMaxDb)&&const DeepCollectionEquality().equals(other.equalizerBands, _equalizerBands));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,podcast,episode,const DeepCollectionEquality().hash(_queue),isPlaying,isBuffering,position,bufferedPosition,duration,speed,sleepTimerRemaining);
+    return Object.hash(runtimeType,podcast,episode,const DeepCollectionEquality().hash(_queue),isPlaying,isBuffering,position,bufferedPosition,duration,speed,sleepTimerRemaining,volume,equalizerEnabled,equalizerAvailable,equalizerMinDb,equalizerMaxDb,const DeepCollectionEquality().hash(_equalizerBands));
 }
 
 @override
 String toString() {
-    return 'PlayerState(podcast: $podcast, episode: $episode, queue: $queue, isPlaying: $isPlaying, isBuffering: $isBuffering, position: $position, bufferedPosition: $bufferedPosition, duration: $duration, speed: $speed, sleepTimerRemaining: $sleepTimerRemaining)';
+    return 'PlayerState(podcast: $podcast, episode: $episode, queue: $queue, isPlaying: $isPlaying, isBuffering: $isBuffering, position: $position, bufferedPosition: $bufferedPosition, duration: $duration, speed: $speed, sleepTimerRemaining: $sleepTimerRemaining, volume: $volume, equalizerEnabled: $equalizerEnabled, equalizerAvailable: $equalizerAvailable, equalizerMinDb: $equalizerMinDb, equalizerMaxDb: $equalizerMaxDb, equalizerBands: $equalizerBands)';
 }
 
 
@@ -297,7 +315,7 @@ abstract mixin class _$PlayerStateCopyWith<$Res> implements $PlayerStateCopyWith
   factory _$PlayerStateCopyWith(_PlayerState value, $Res Function(_PlayerState) _then) = __$PlayerStateCopyWithImpl;
 @override @useResult
 $Res call({
- Podcast? podcast, Episode? episode, List<Episode> queue, bool isPlaying, bool isBuffering, Duration position, Duration bufferedPosition, Duration? duration, double speed, Duration? sleepTimerRemaining
+ Podcast? podcast, Episode? episode, List<Episode> queue, bool isPlaying, bool isBuffering, Duration position, Duration bufferedPosition, Duration? duration, double speed, Duration? sleepTimerRemaining, double volume, bool equalizerEnabled, bool equalizerAvailable, double equalizerMinDb, double equalizerMaxDb, List<EqualizerBand> equalizerBands
 });
 
 
@@ -314,7 +332,7 @@ class __$PlayerStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? podcast = freezed,Object? episode = freezed,Object? queue = null,Object? isPlaying = null,Object? isBuffering = null,Object? position = null,Object? bufferedPosition = null,Object? duration = freezed,Object? speed = null,Object? sleepTimerRemaining = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? podcast = freezed,Object? episode = freezed,Object? queue = null,Object? isPlaying = null,Object? isBuffering = null,Object? position = null,Object? bufferedPosition = null,Object? duration = freezed,Object? speed = null,Object? sleepTimerRemaining = freezed,Object? volume = null,Object? equalizerEnabled = null,Object? equalizerAvailable = null,Object? equalizerMinDb = null,Object? equalizerMaxDb = null,Object? equalizerBands = null,}) {
   return _then(_PlayerState(
 podcast: freezed == podcast ? _self.podcast : podcast // ignore: cast_nullable_to_non_nullable
 as Podcast?,episode: freezed == episode ? _self.episode : episode // ignore: cast_nullable_to_non_nullable
@@ -326,7 +344,13 @@ as Duration,bufferedPosition: null == bufferedPosition ? _self.bufferedPosition 
 as Duration,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
 as Duration?,speed: null == speed ? _self.speed : speed // ignore: cast_nullable_to_non_nullable
 as double,sleepTimerRemaining: freezed == sleepTimerRemaining ? _self.sleepTimerRemaining : sleepTimerRemaining // ignore: cast_nullable_to_non_nullable
-as Duration?,
+as Duration?,volume: null == volume ? _self.volume : volume // ignore: cast_nullable_to_non_nullable
+as double,equalizerEnabled: null == equalizerEnabled ? _self.equalizerEnabled : equalizerEnabled // ignore: cast_nullable_to_non_nullable
+as bool,equalizerAvailable: null == equalizerAvailable ? _self.equalizerAvailable : equalizerAvailable // ignore: cast_nullable_to_non_nullable
+as bool,equalizerMinDb: null == equalizerMinDb ? _self.equalizerMinDb : equalizerMinDb // ignore: cast_nullable_to_non_nullable
+as double,equalizerMaxDb: null == equalizerMaxDb ? _self.equalizerMaxDb : equalizerMaxDb // ignore: cast_nullable_to_non_nullable
+as double,equalizerBands: null == equalizerBands ? _self._equalizerBands : equalizerBands // ignore: cast_nullable_to_non_nullable
+as List<EqualizerBand>,
   ));
 }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:audio_service/audio_service.dart' as audio_service;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,6 +15,45 @@ part 'player_view_model.g.dart';
 
 const _tickInterval = Duration(seconds: 1);
 const _ticksPerSave = 5; // salva progresso a cada ~5s, não a cada tick
+
+enum EqualizerPreset { flat, voz, grave, agudo }
+
+/// Ganhos (dB) por banda pra um preset, interpolando uma curva de 5 pontos
+/// pro nº de bandas do device e limitando a `[minDb, maxDb]`. Função pura —
+/// testável sem o handler.
+List<double> equalizerPresetGains(EqualizerPreset preset, int bandCount, double minDb, double maxDb) {
+  if (bandCount <= 0) return const [];
+
+  // Curva de referência (graves → agudos), em "força" -1..1.
+  const shapes = <EqualizerPreset, List<double>>{
+    EqualizerPreset.flat: [0, 0, 0, 0, 0],
+    EqualizerPreset.voz: [-0.4, 0.2, 0.7, 0.4, -0.3],
+    EqualizerPreset.grave: [1.0, 0.6, 0.1, -0.2, -0.4],
+    EqualizerPreset.agudo: [-0.4, -0.2, 0.1, 0.6, 1.0],
+  };
+  final shape = shapes[preset]!;
+  // Escala positiva usa maxDb; negativa usa |minDb|.
+  final up = maxDb <= 0 ? 12.0 : maxDb;
+  final down = minDb >= 0 ? 12.0 : -minDb;
+
+  double sample(double t) {
+    final x = (t * (shape.length - 1)).clamp(0.0, (shape.length - 1).toDouble());
+    final i = x.floor();
+    final f = x - i;
+    final a = shape[i];
+    final b = shape[i + 1 >= shape.length ? shape.length - 1 : i + 1];
+    return a + (b - a) * f;
+  }
+
+  return [
+    for (var i = 0; i < bandCount; i++)
+      () {
+        final strength = sample(bandCount == 1 ? 0.5 : i / (bandCount - 1));
+        final db = strength >= 0 ? strength * up : strength * down;
+        return db.clamp(minDb, maxDb).toDouble();
+      }(),
+  ];
+}
 
 /// ViewModel do player — o único que fala com o [PodcastAudioHandler].
 /// `keepAlive`: o áudio toca em background e o mini-player aparece em
@@ -84,6 +124,10 @@ class PlayerViewModel extends _$PlayerViewModel {
       initialPosition: savedPosition,
       autoPlay: autoPlay,
     );
+
+    // O equalizador do device só fica disponível depois que um áudio foi
+    // carregado. Android apenas.
+    unawaited(_loadEqualizer());
   }
 
   void togglePlayPause() {
@@ -103,6 +147,62 @@ class PlayerViewModel extends _$PlayerViewModel {
   void setSpeed(double speed) {
     _handler.setSpeed(speed);
     state = state.copyWith(speed: speed);
+  }
+
+  Future<void> setVolume(double volume) async {
+    state = state.copyWith(volume: volume);
+    await _handler.setVolume(volume);
+  }
+
+  Future<void> toggleEqualizer(bool enabled) async {
+    state = state.copyWith(equalizerEnabled: enabled);
+    await _handler.setEqualizerEnabled(enabled);
+    if (enabled && state.equalizerBands.isEmpty) await _loadEqualizer();
+  }
+
+  Future<void> setEqualizerBand(int index, double gain) async {
+    final bands = [
+      for (final b in state.equalizerBands)
+        if (b.index == index) (index: b.index, centerHz: b.centerHz, gain: gain) else b,
+    ];
+    state = state.copyWith(equalizerBands: bands);
+    await _handler.setEqualizerBandGain(index, gain);
+  }
+
+  Future<void> applyEqualizerPreset(EqualizerPreset preset) async {
+    final current = state.equalizerBands;
+    if (current.isEmpty) return;
+
+    final gains = equalizerPresetGains(
+      preset,
+      current.length,
+      state.equalizerMinDb,
+      state.equalizerMaxDb,
+    );
+    state = state.copyWith(
+      equalizerBands: [
+        for (var i = 0; i < current.length; i++)
+          (index: current[i].index, centerHz: current[i].centerHz, gain: gains[i]),
+      ],
+    );
+    for (var i = 0; i < current.length; i++) {
+      await _handler.setEqualizerBandGain(current[i].index, gains[i]);
+    }
+  }
+
+  Future<void> _loadEqualizer() async {
+    if (!Platform.isAndroid || state.equalizerBands.isNotEmpty) return;
+    try {
+      final snapshot = await _handler.equalizerSnapshot().timeout(const Duration(seconds: 3));
+      state = state.copyWith(
+        equalizerAvailable: true,
+        equalizerMinDb: snapshot.minDb,
+        equalizerMaxDb: snapshot.maxDb,
+        equalizerBands: snapshot.bands,
+      );
+    } catch (_) {
+      // Device sem equalizador, ou não respondeu — a UI some sozinha.
+    }
   }
 
   Future<void> playNextInQueue() async {

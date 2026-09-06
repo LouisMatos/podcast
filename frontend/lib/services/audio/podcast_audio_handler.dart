@@ -4,6 +4,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'podcast_audio_handler.g.dart';
 
+/// Uma banda do equalizador, sem vazar tipo do `just_audio` pro ViewModel.
+typedef EqualizerBandInfo = ({int index, double centerHz, double gain});
+
+/// Estado do equalizador lido do device (nº de bandas e faixa de ganho
+/// variam por aparelho).
+typedef EqualizerSnapshot = ({double minDb, double maxDb, List<EqualizerBandInfo> bands});
+
 /// Ponte entre o player (`just_audio`) e o sistema (notificação, lockscreen,
 /// Bluetooth). Um `AudioHandler` só existe pra isso — decisão de negócio
 /// (o que tocar, progresso, sleep timer) mora no `PlayerViewModel`.
@@ -15,7 +22,37 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     });
   }
 
-  final just_audio.AudioPlayer _player = just_audio.AudioPlayer();
+  /// Equalizador só funciona no Android (limitação do `just_audio`). No iOS
+  /// o efeito fica no pipeline mas é ignorado; o volume funciona nos dois.
+  final just_audio.AndroidEqualizer _equalizer = just_audio.AndroidEqualizer();
+
+  late final just_audio.AudioPlayer _player = just_audio.AudioPlayer(
+    audioPipeline: just_audio.AudioPipeline(androidAudioEffects: [_equalizer]),
+  );
+
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
+  Future<void> setEqualizerEnabled(bool enabled) => _equalizer.setEnabled(enabled);
+
+  /// Bandas do equalizador do device. Só resolve depois que um áudio foi
+  /// carregado (o `just_audio` só ativa o efeito com o player ativo).
+  Future<EqualizerSnapshot> equalizerSnapshot() async {
+    final params = await _equalizer.parameters;
+    return (
+      minDb: params.minDecibels,
+      maxDb: params.maxDecibels,
+      bands: [
+        for (final b in params.bands)
+          (index: b.index, centerHz: b.centerFrequency, gain: b.gain),
+      ],
+    );
+  }
+
+  Future<void> setEqualizerBandGain(int index, double gain) async {
+    final params = await _equalizer.parameters;
+    if (index < 0 || index >= params.bands.length) return;
+    await params.bands[index].setGain(gain);
+  }
 
   /// Carrega uma fila a partir do item em [startIndex], retomando de
   /// [initialPosition] quando existe progresso salvo (Fase 3).

@@ -10,12 +10,12 @@
 v1 (Fases 0–6) segue completa e intacta. Fase 7 (iOS) continua pausada de
 propósito — só Android por enquanto.
 
-**Fase atual:** 8 — novas features (descoberta, progresso, player)
-**Sub-fase concluída:** 8.3 — selecionar episódio abre a tela de descrição
-(HTML) sem tocar; player minimizado no rodapé; "Abrir player" pra tela
-cheia; auto-avanço no fim da fila mantido. 43 testes (era 39).
-**Próximo passo concreto:** Fase 8.4 — controles de volume + equalizador
-(Android) no player. Ver checklist da 8.4 abaixo.
+**Fase atual:** 8 — CONCLUÍDA. As 7 features novas entregues (8.1→8.4).
+**Sub-fase concluída:** 8.4 — slider de volume + equalizador Android
+(on/off, presets Flat/Voz/Grave/Agudo, sliders por banda) no player.
+49 testes (era 43).
+**Próximo passo concreto:** backlog solto ou Fase 7 (iOS, ainda pausada).
+Nada pendente da Fase 8.
 **Plano completo da Fase 8:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
 
 ## Regra de ouro
@@ -359,20 +359,44 @@ Armadilhas:
   acha o texto; usar `find.byType(HtmlWidget)`. Links da descrição ainda não
   abrem (sem `url_launcher` — backlog).
 
-### Fase 8.4 — Player: volume + equalizador ⬜
+### Fase 8.4 — Player: volume + equalizador ✅
 
 Feature 6.
 
-- [ ] `PodcastAudioHandler`: `AndroidEqualizer` via `AudioPipeline` na
-      construção do `AudioPlayer`; `setVolume`, `setEqualizerEnabled`,
-      `equalizerBands()`, `setEqualizerBandGain`.
-- [ ] `PlayerState`: `volume`, `equalizerEnabled`, `equalizerBands`.
-- [ ] `PlayerViewModel`: `setVolume`, `toggleEqualizer`, `setEqualizerBand`,
-      `applyEqualizerPreset` (Flat/Voz/Grave/Agudo, com clamp).
-- [ ] `PlayerScreen`: slider de volume; `IconButton` de equalizador (só
-      Android) abrindo `_EqualizerSheet`.
-- [ ] Testes: `player_state_test` estendido.
-- [ ] Marcar Fase 8 concluída aqui e no `CLAUDE.md`.
+- [x] `PodcastAudioHandler`: `AndroidEqualizer` via `AudioPipeline` passado na
+      construção do `_player` (`late final`, pipeline não entra depois).
+      `setVolume`, `setEqualizerEnabled`, `equalizerSnapshot()`,
+      `setEqualizerBandGain`. Typedefs `EqualizerBandInfo`/`EqualizerSnapshot`.
+- [x] `PlayerState`: `volume`, `equalizerEnabled`, `equalizerAvailable`,
+      `equalizerMinDb/MaxDb`, `equalizerBands` (`typedef EqualizerBand`).
+- [x] `PlayerViewModel`: `setVolume`, `toggleEqualizer`, `setEqualizerBand`,
+      `applyEqualizerPreset`. `_loadEqualizer()` gated em `Platform.isAndroid`
+      + `.timeout(3s)`, chamado no fim de `playEpisode`. Função pura
+      top-level `equalizerPresetGains(preset, bandCount, minDb, maxDb)`
+      (curva de 5 pontos interpolada + clamp).
+- [x] `PlayerScreen`: `Row` de volume (`Icons.volume_down/up` + `Slider`)
+      abaixo da velocidade; `IconButton(Icons.tune)` nas actions só quando
+      `defaultTargetPlatform == android` → `_showEqualizerSheet`
+      (`showModalBottomSheet`, `Switch` + `ActionChip`s de preset + slider
+      por banda com label de Hz e dB).
+- [x] Testes: `player_state_test` estendido (defaults + `equalizerPresetGains`,
+      6 novos, 49 no total).
+
+Armadilhas:
+
+- **`AudioPipeline` tem que ser passado na construção do `AudioPlayer`** — não
+  dá pra adicionar efeito depois. `_player` virou `late final` com
+  initializer que referencia `_equalizer` (campo não-late, já pronto).
+- **`AndroidEqualizer.parameters` só resolve depois que um áudio foi
+  carregado** (o `just_audio` só ativa o efeito com o player ativo) — por
+  isso `_loadEqualizer` roda no fim de `playEpisode`, não no `build`.
+- **Equalizador é Android-only** no `just_audio`. ViewModel usa
+  `Platform.isAndroid` (host, em `flutter test` = macOS → false, então os
+  testes não travam esperando o device). View usa
+  `defaultTargetPlatform == TargetPlatform.android` (em teste = android, mas
+  o botão fica nas `actions` da AppBar, que a tela ociosa nem monta).
+- Nº de bandas e faixa de dB variam por device — presets são uma curva de 5
+  pontos interpolada pro nº real de bandas, com `clamp(minDb, maxDb)`.
 
 ---
 

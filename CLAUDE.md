@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 8.3 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 8 concluída — 7 features novas entregues; ver `docs/ROADMAP.md`):
 
 ```text
 podcast/
@@ -64,12 +64,13 @@ podcast/
                                   Episódios/Baixados, busca/filtro/ordenação,
                                   progresso no tile), episode_detail/ (descrição
                                   HTML, /episode), settings/,
-                                  player/ (mini-player + tela cheia), downloads/
-                                  (+ widgets/DownloadButton compartilhado)
+                                  player/ (mini-player + tela cheia + volume/
+                                  equalizador), downloads/ (+ widgets/DownloadButton)
                                   — layout completo descrito em "Arquitetura" abaixo
-      services/audio/            PodcastAudioHandler (just_audio + audio_service)
+      services/audio/            PodcastAudioHandler (just_audio + audio_service;
+                                  AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        43 testes — data/sources/, data/repositories/,
+    test/                        49 testes — data/sources/, data/repositories/,
                                   features/discover/, features/podcast_detail/,
                                   features/episode_detail/, features/player/,
                                   widget_test.dart
@@ -281,3 +282,12 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   `TestWidgetsFlutterBinding.ensureInitialized()` (o `just_audio.AudioPlayer`
   do construtor registra method channel handler). `HtmlWidget` vira
   `RichText` — em teste usar `find.byType(HtmlWidget)`, não `textContaining`.
+- **Volume (`setVolume`) funciona nos dois OS; equalizador só Android**
+  (`just_audio`). `AndroidEqualizer` entra no `AudioPipeline` **na construção**
+  do `AudioPlayer` (`_player` é `late final`) — não dá pra adicionar depois.
+  `AndroidEqualizer.parameters` só resolve depois de um áudio carregado, então
+  `PlayerViewModel._loadEqualizer()` roda no fim de `playEpisode`, com guarda
+  `Platform.isAndroid` (host — false em `flutter test`) + `.timeout(3s)`.
+  Presets = `equalizerPresetGains()` (pura, top-level em `player_view_model.dart`).
+  Botão do equalizador na `PlayerScreen` só com
+  `defaultTargetPlatform == TargetPlatform.android`.
