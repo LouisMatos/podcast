@@ -25,8 +25,8 @@ class PillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final (background, foreground) = switch (variant) {
-      PillButtonVariant.primary => (colors.primary, colors.textPrimary),
-      PillButtonVariant.secondary => (colors.secondary, colors.textPrimary),
+      PillButtonVariant.primary => (colors.primary, colors.onAccent),
+      PillButtonVariant.secondary => (colors.secondary, colors.onAccent),
       PillButtonVariant.ghost => (Colors.transparent, colors.textPrimary),
     };
 

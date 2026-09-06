@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'pill_button.dart';
 
-/// Estado vazio ilustrado — usado quando uma lista não tem nada pra mostrar.
+/// Estado vazio ou de erro, ilustrado — usado quando uma lista não tem
+/// nada pra mostrar, ou quando algo falhou. Passe [onRetry] pra oferecer
+/// "tentar de novo" (erros de rede/leitura quase sempre merecem).
 class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.icon, required this.title, this.message});
+  const EmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+    this.onRetry,
+    this.retryLabel = 'Tentar de novo',
+  });
 
   final IconData icon;
   final String title;
   final String? message;
+  final VoidCallback? onRetry;
+  final String retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +38,10 @@ class EmptyState extends StatelessWidget {
             if (message case final msg?) ...[
               const SizedBox(height: 8),
               Text(msg, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+            ],
+            if (onRetry case final retry?) ...[
+              const SizedBox(height: 20),
+              PillButton(label: retryLabel, icon: Icons.refresh, variant: PillButtonVariant.secondary, onPressed: retry),
             ],
           ],
         ),

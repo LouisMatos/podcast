@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/download_status.dart';
 import '../../../data/models/downloaded_episode.dart';
@@ -26,11 +27,18 @@ class DownloadsScreen extends ConsumerWidget {
       body: SafeArea(
         top: false,
         child: downloads.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            children: const [
+              _DownloadTileSkeleton(),
+              SizedBox(height: 12),
+              _DownloadTileSkeleton(),
+            ],
+          ),
           error: (error, _) => EmptyState(
             icon: Icons.error_outline,
             title: 'Não foi possível carregar seus downloads',
-            message: '$error',
+            onRetry: () => ref.invalidate(downloadsViewModelProvider),
           ),
           data: (items) => items.isEmpty
               ? const EmptyState(
@@ -109,6 +117,34 @@ class _DownloadTile extends ConsumerWidget {
             icon: Icon(Icons.delete_outline, color: colors.textMuted),
             tooltip: 'Remover',
             onPressed: () => ref.read(downloadsViewModelProvider.notifier).remove(item.podcastId, item.episodeGuid),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DownloadTileSkeleton extends StatelessWidget {
+  const _DownloadTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      child: Row(
+        children: [
+          const ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                ShimmerBox(height: 16),
+                SizedBox(height: 8),
+                ShimmerBox(width: 100, height: 12),
+                SizedBox(height: 8),
+                ShimmerBox(width: 60, height: 12),
+              ],
+            ),
           ),
         ],
       ),

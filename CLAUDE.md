@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 5 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 6 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -61,8 +61,8 @@ podcast/
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service)
       services/download/         DownloadService (flutter_downloader)
-    test/
-      widget_test.dart           smoke test de navegação (override audioHandlerProvider)
+    test/                        25 testes — data/sources/, features/discover/,
+                                  features/player/, widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
                                   MainActivity estende AudioServiceActivity (Fase 4)
     ios/                         projeto nativo iOS (build só na Fase 7)
@@ -216,3 +216,20 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   top-level (`downloadCallback` em `services/download/download_service.dart`)
   só repassa a mensagem; quem trata de verdade é `DownloadService`, do
   lado de cá.
+- **`AppColors.onAccent`** é a cor certa pra texto/ícone sobre um
+  preenchimento sólido de `primary`/`secondary` (ex: `PillButton`
+  primário/secundário) — nunca `textPrimary` ali. `textPrimary` funciona
+  em cima do `background`/`surface`, mas no tema escuro ele é claro, e
+  claro sobre um pastel também claro não passa em contraste nenhum
+  (medido: 2.5:1, WCAG pede 4.5:1 pra texto normal). Achado testando de
+  verdade, não teórico — ver ROADMAP Fase 6.
+- **Provider `autoDispose` em teste precisa de um listener permanente**:
+  `container.listen(provider, (_, _) {})` no `setUp`. Sem isso, um
+  `container.read(x.notifier)` sozinho não segura o provider vivo — ele é
+  derrubado (e qualquer `Timer` interno, tipo o debounce do
+  `DiscoverViewModel`, cancelado) antes do teste conseguir `await` o
+  efeito. Ver `test/features/discover/discover_view_model_test.dart`.
+- **Widget test de tela real precisa de `MaterialApp(theme:
+  AppTheme.light(), ...)`** — sem isso `Theme.of(context).
+  extension<AppColors>()!` estoura null-check (o `ThemeData()` default do
+  Flutter não carrega nossa extensão).

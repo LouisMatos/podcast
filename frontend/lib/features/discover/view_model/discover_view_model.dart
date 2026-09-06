@@ -33,6 +33,14 @@ class DiscoverViewModel extends _$DiscoverViewModel {
     _debounce = Timer(_debounceDelay, () => _search(query));
   }
 
+  /// Refaz a última busca — usado pelo botão "Tentar de novo" quando
+  /// [DiscoverState.error] está preenchido.
+  void retry() {
+    if (state.query.trim().isEmpty) return;
+    _debounce?.cancel();
+    _search(state.query);
+  }
+
   Future<void> _search(String query) async {
     state = state.copyWith(isLoading: true, error: null);
 

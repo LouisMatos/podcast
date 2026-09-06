@@ -44,9 +44,10 @@ class PodcastDetailScreen extends ConsumerWidget {
             onUnsubscribe: notifier.unsubscribe,
           ),
           error: (error, _) => EmptyState(
-            icon: Icons.error_outline,
+            icon: Icons.wifi_off,
             title: 'Não foi possível carregar os episódios',
-            message: '$error',
+            message: 'Verifique sua conexão e tente de novo.',
+            onRetry: () => ref.invalidate(podcastDetailViewModelProvider(podcast)),
           ),
           data: (state) => _PodcastDetailBody(
             podcast: state.podcast,

@@ -102,6 +102,7 @@ class _Bar extends ConsumerWidget {
                       color: colors.primary,
                       size: 36,
                     ),
+                    tooltip: player.isBuffering ? 'Carregando' : (player.isPlaying ? 'Pausar' : 'Tocar'),
                     onPressed: player.isBuffering
                         ? null
                         : () => ref.read(playerViewModelProvider.notifier).togglePlayPause(),

@@ -45,14 +45,11 @@ class LibraryScreen extends ConsumerWidget {
                   _SubscriptionTileSkeleton(),
                 ],
               ),
-              error: (error, _) => Padding(
+              error: (error, _) => EmptyState(
                 key: const ValueKey('error'),
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Text(
-                  'Não foi possível carregar sua biblioteca.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
+                icon: Icons.error_outline,
+                title: 'Não foi possível carregar sua biblioteca',
+                onRetry: () => ref.invalidate(libraryViewModelProvider),
               ),
               data: (podcasts) => podcasts.isEmpty
                   ? const Padding(

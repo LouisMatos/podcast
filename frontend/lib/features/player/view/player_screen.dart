@@ -84,17 +84,20 @@ class PlayerScreen extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.replay_10),
                     iconSize: 28,
+                    tooltip: 'Voltar 15 segundos',
                     onPressed: () => notifier.skipBackward(const Duration(seconds: 15)),
                   ),
                   IconButton(
                     icon: Icon(player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill),
                     iconSize: 72,
                     color: colors.primary,
+                    tooltip: player.isPlaying ? 'Pausar' : 'Tocar',
                     onPressed: player.isBuffering ? null : notifier.togglePlayPause,
                   ),
                   IconButton(
                     icon: const Icon(Icons.forward_30),
                     iconSize: 28,
+                    tooltip: 'Avançar 30 segundos',
                     onPressed: () => notifier.skipForward(const Duration(seconds: 30)),
                   ),
                 ],
@@ -179,6 +182,7 @@ class _SpeedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<double>(
       initialValue: speed,
+      tooltip: 'Velocidade de reprodução',
       onSelected: onChanged,
       itemBuilder: (context) => [
         for (final s in _speeds) PopupMenuItem(value: s, child: Text('${s}x')),
@@ -203,7 +207,7 @@ class _SleepTimerButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<Duration?>(
       icon: Icon(remaining != null ? Icons.bedtime : Icons.bedtime_outlined),
-      tooltip: 'Sleep timer',
+      tooltip: 'Temporizador para dormir',
       onSelected: (duration) {
         if (duration == null) {
           notifier.cancelSleepTimer();

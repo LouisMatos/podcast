@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/pastel_chip.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/shimmer_box.dart';
@@ -39,7 +40,7 @@ class DiscoverScreen extends ConsumerWidget {
             duration: AppMotion.base,
             switchInCurve: AppMotion.enter,
             switchOutCurve: AppMotion.standard,
-            child: _DiscoverBody(key: ValueKey(_bodyKey(state)), state: state),
+            child: _DiscoverBody(key: ValueKey(_bodyKey(state)), state: state, onRetry: notifier.retry),
           ),
         ],
       ),
@@ -55,9 +56,10 @@ class DiscoverScreen extends ConsumerWidget {
 }
 
 class _DiscoverBody extends StatelessWidget {
-  const _DiscoverBody({super.key, required this.state});
+  const _DiscoverBody({super.key, required this.state, required this.onRetry});
 
   final DiscoverState state;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +86,11 @@ class _DiscoverBody extends StatelessWidget {
     }
 
     if (state.error case final error?) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Text(error, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+      return EmptyState(
+        icon: Icons.wifi_off,
+        title: 'Não foi possível buscar',
+        message: error,
+        onRetry: onRetry,
       );
     }
 

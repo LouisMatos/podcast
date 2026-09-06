@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 6 — Polimento e testes
-**Última coisa concluída:** Fase 5 (download offline) — baixar/remover episódio, tela de Downloads com uso de espaço, player toca local em modo avião
-**Próximo passo concreto:** estados vazios/erro ilustrados com retry, shimmer em todo carregamento, testes unitários dos ViewModels/parser de RSS, revisão de acessibilidade
+**Fase atual:** 7 — iOS e evolução
+**Última coisa concluída:** Fase 6 (polimento e testes) — retry nos estados de erro, shimmer consistente, contraste de texto corrigido, 25 testes automatizados
+**Próximo passo concreto:** instalar Xcode + CocoaPods nesta máquina, depois `UIBackgroundModes: audio` no Info.plist e `scripts/run_ios.sh`
 
 ## Regra de ouro
 
@@ -176,13 +176,44 @@ Notas:
   `completedPathsForPodcast`) só leem `Downloads`, mais rápido e o
   chamador já tem os dados que precisa (o `Episode`/`Podcast` completo).
 
-## Fase 6 — Polimento e testes
+## Fase 6 — Polimento e testes ✅
 
-- [ ] Estados vazios e de erro ilustrados, com retry
-- [ ] Shimmer em todo carregamento
-- [ ] Testes unitários dos ViewModels e do parser de RSS (`mocktail`)
-- [ ] Widget test do player
-- [ ] Acessibilidade: contraste ≥ 4.5:1 no texto, semantics nos controles
+- [x] Estados vazios e de erro ilustrados, com retry (`EmptyState` ganhou
+      `onRetry`/`retryLabel`; usado em Descobrir, Biblioteca, detalhe do
+      podcast e Downloads)
+- [x] Shimmer em todo carregamento (Downloads usava `CircularProgressIndicator`
+      — trocado por skeleton, igual às outras listas)
+- [x] Testes unitários dos ViewModels e do parser de RSS (`mocktail`):
+      `RssFeedParser`, `ItunesSearchApi`, `DiscoverViewModel`
+- [x] Widget test do player (`PlayerScreen`/`MiniPlayer` no estado ocioso)
+- [x] Acessibilidade: contraste ≥ 4.5:1 no texto (`AppColors.onAccent` +
+      `textMuted` mais escuro no tema claro), tooltips nos controles do
+      player que não tinham (replay/play-pause/forward, velocidade, sleep
+      timer, mini-player)
+
+Notas:
+
+- **`AppColors` ganhou `onAccent`**: texto/ícone sobre um preenchimento
+  sólido de `primary`/`secondary` (ex: `PillButton` primário, "Assinar").
+  Medindo contraste real (fórmula WCAG) achei dois problemas de verdade,
+  não hipotéticos: `textMuted` claro (`#8B8493`) tinha só 3.4:1 sobre o
+  fundo (abaixo do mínimo de 4.5:1 pra texto normal), e o botão "Assinar"
+  no tema escuro tinha 2.5:1 (texto `textPrimary` claro sobre um `primary`
+  também claro — a mesma cor de texto que funciona bem no tema claro fica
+  ilegível no escuro quando o fundo é um pastel que não escurece junto).
+  `onAccent` é fixo nos dois temas porque `primary`/`secondary` têm
+  luminância parecida em claro e escuro. Ver `PillButton` e
+  `AppTheme.elevatedButtonTheme`.
+- **`ProviderContainer` em teste + provider `autoDispose` precisa de um
+  listener permanente** — sem isso o container derruba o notifier (e
+  cancela qualquer `Timer` interno, ex: o debounce do `DiscoverViewModel`)
+  assim que o `read()` retorna, antes de qualquer `await` no teste ter
+  chance de ver o efeito. Fix: `container.listen(provider, (_, _) {})` no
+  `setUp`. Ver `discover_view_model_test.dart`.
+- Widget test que monta telas reais (`PlayerScreen`, `MiniPlayer`) precisa
+  de `MaterialApp(theme: AppTheme.light(), ...)` — sem isso,
+  `Theme.of(context).extension<AppColors>()!` estoura `null check operator`
+  (o `ThemeData()` default do Flutter não tem nossa extensão).
 
 ## Fase 7 — iOS e evolução
 
