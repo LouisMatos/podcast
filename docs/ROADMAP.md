@@ -6,9 +6,14 @@
 
 ## Onde parei
 
-**Fase atual:** 7 — iOS e evolução
+**v1 completa e pausada aqui, de propósito.** Fases 0–6 prontas, testadas
+de ponta a ponta no emulador Android, todas commitadas. Decisão do
+usuário: seguir só com Android por enquanto — Fase 7 (iOS) fica em espera
+até essa decisão mudar. Não é bloqueio técnico esquecido, é escolha.
+
+**Fase atual:** 7 — iOS e evolução (pausada — ver acima)
 **Última coisa concluída:** Fase 6 (polimento e testes) — retry nos estados de erro, shimmer consistente, contraste de texto corrigido, 25 testes automatizados
-**Próximo passo concreto:** instalar Xcode + CocoaPods nesta máquina, depois `UIBackgroundModes: audio` no Info.plist e `scripts/run_ios.sh`
+**Próximo passo concreto, quando/se a Fase 7 for retomada:** instalar Xcode + CocoaPods nesta máquina, depois `UIBackgroundModes: audio` no Info.plist e `scripts/run_ios.sh`. Até lá, qualquer trabalho novo é backlog solto (ver Fase 7 abaixo) ou manutenção do que já existe.
 
 ## Regra de ouro
 
