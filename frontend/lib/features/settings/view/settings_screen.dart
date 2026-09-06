@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../view_model/theme_mode_provider.dart';
@@ -47,6 +49,30 @@ class SettingsScreen extends ConsumerWidget {
                   onSelectionChanged: (selection) =>
                       ref.read(themeModeProvider.notifier).set(selection.first),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Armazenamento'),
+          SoftCard(
+            onTap: () => context.push('/settings/downloads'),
+            child: Row(
+              children: [
+                Icon(Icons.download_outlined, color: Theme.of(context).extension<AppColors>()!.primary),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Downloads', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Episódios baixados pra ouvir offline',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
               ],
             ),
           ),

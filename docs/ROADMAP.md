@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 5 — Download offline
-**Última coisa concluída:** Fase 4 (player) — background/lockscreen, velocidade, skip, sleep timer, progresso salvo e retomado
-**Próximo passo concreto:** `services/download/download_service.dart` com `flutter_downloader` + tabela `downloads` (schema já existe desde a Fase 3)
+**Fase atual:** 6 — Polimento e testes
+**Última coisa concluída:** Fase 5 (download offline) — baixar/remover episódio, tela de Downloads com uso de espaço, player toca local em modo avião
+**Próximo passo concreto:** estados vazios/erro ilustrados com retry, shimmer em todo carregamento, testes unitários dos ViewModels/parser de RSS, revisão de acessibilidade
 
 ## Regra de ouro
 
@@ -139,14 +139,42 @@ Notas:
   Standby), não bug do app — reproduzir num device real com "não otimizar
   bateria" ligado pro app antes de investigar mais.
 
-## Fase 5 — Download offline
+## Fase 5 — Download offline ✅
 
-- [ ] `services/download/download_service.dart` com `flutter_downloader`
-- [ ] Fila e progresso persistidos em drift
-- [ ] Player prefere o arquivo local quando existe
-- [ ] Tela de downloads com uso de espaço e remoção
-- [ ] Permissão `POST_NOTIFICATIONS` (Android 13+)
-- [ ] **Pronto quando:** episódio baixado toca em modo avião
+- [x] `services/download/download_service.dart` com `flutter_downloader`
+- [x] Fila e progresso persistidos em drift (`Downloads` ganhou `taskId` +
+      `progress`, migração v1→v2)
+- [x] Player prefere o arquivo local quando existe (`Uri.file(...)` no
+      lugar da URL, resolvido por todo o `queue` de uma vez)
+- [x] Tela de downloads (`/settings/downloads`) com uso de espaço (lido
+      direto do arquivo, `File.lengthSync()`) e remoção
+- [x] Permissão `POST_NOTIFICATIONS` (Android 13+) — já vem embutida no
+      manifesto do próprio plugin `flutter_downloader`, nada a adicionar
+- [x] **Pronto quando:** episódio baixado toca em modo avião
+
+Notas:
+
+- Botão de download só aparece com o podcast assinado — `Downloads` e
+  `EpisodeCache` têm FK em `Subscriptions.id`, então baixar sem assinar
+  não tem onde guardar o episódio.
+- **Bug real achado testando modo avião de verdade** (não só o player —
+  o fluxo inteiro): `PodcastDetailViewModel` sempre buscava o RSS ao
+  vivo, então sem rede a tela de detalhe travava no erro antes mesmo de
+  mostrar a lista — o episódio baixado ficava inacessível pela navegação
+  normal do app. Corrigido com fallback: se o fetch falhar e já existir
+  cache local (`LibraryRepository.cachedEpisodes`), usa o cache; só
+  propaga o erro se não tiver nada salvo. Esse é o tipo de bug que só
+  aparece testando o cenário real (avião + reiniciar o app), não com
+  mocks ou com a rede sempre disponível.
+- `flutter_downloader` roda num isolate de background separado; a
+  comunicação com o isolate principal é via `IsolateNameServer`/
+  `ReceivePort`, não Riverpod — só depois que o evento chega em
+  `DownloadService._onIsolateMessage` é que vira uma escrita no drift
+  (aí sim tudo reativo de novo).
+- `DownloadRepository` nunca faz join contra `Subscriptions`/`EpisodeCache`
+  fora de `watchAll()` — os outros métodos (`watchForEpisode`,
+  `completedPathsForPodcast`) só leem `Downloads`, mais rápido e o
+  chamador já tem os dados que precisa (o `Episode`/`Podcast` completo).
 
 ## Fase 6 — Polimento e testes
 

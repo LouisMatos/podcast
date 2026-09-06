@@ -34,6 +34,19 @@ class LibraryRepository {
     return query.watch().map((rows) => rows.map(_episodeFromRow).toList());
   }
 
+  /// Mesma lista de [watchEpisodes], mas uma leitura só — usada como
+  /// fallback quando o RSS não responde (sem internet, feed fora do ar) e
+  /// já existe cache de uma visita anterior. Sem isso, um episódio baixado
+  /// fica inacessível em modo avião: a tela de detalhe travaria no erro de
+  /// rede antes de sequer mostrar a lista.
+  Future<List<Episode>> cachedEpisodes(int podcastId) async {
+    final query = _db.select(_db.episodeCache)
+      ..where((t) => t.podcastId.equals(podcastId))
+      ..orderBy([(t) => OrderingTerm.desc(t.publishedAt)]);
+    final rows = await query.get();
+    return rows.map(_episodeFromRow).toList();
+  }
+
   Future<void> subscribe(Podcast podcast, List<Episode> episodes) async {
     await _db.into(_db.subscriptions).insertOnConflictUpdate(
           SubscriptionsCompanion.insert(

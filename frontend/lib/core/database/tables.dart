@@ -56,14 +56,19 @@ class PlaybackProgress extends Table {
   Set<Column> get primaryKey => {podcastId, episodeGuid};
 }
 
-/// Estado de download de um episódio. Schema pronto agora; quem escreve
-/// nela é o `DownloadService` da Fase 5.
+/// Estado de download de um episódio. Escrito pelo `DownloadService`
+/// (Fase 5) a partir dos eventos do `flutter_downloader`. `taskId` é o
+/// identificador que o próprio `flutter_downloader` dá à tarefa — é por
+/// ele que encontramos a linha certa quando um evento de progresso chega
+/// (o evento só traz o `taskId`, não `podcastId`/`episodeGuid`).
 @DataClassName('DownloadRow')
 class Downloads extends Table {
   IntColumn get podcastId => integer().references(Subscriptions, #id, onDelete: KeyAction.cascade)();
   TextColumn get episodeGuid => text()();
+  TextColumn get taskId => text().nullable()();
   TextColumn get localPath => text().nullable()();
   TextColumn get status => text().withDefault(const Constant('queued'))();
+  IntColumn get progress => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override

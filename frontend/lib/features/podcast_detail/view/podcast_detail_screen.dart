@@ -12,8 +12,11 @@ import '../../../core/widgets/pastel_chip.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/soft_card.dart';
+import '../../../data/models/download_status.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
+import '../../../services/download/download_service.dart';
+import '../../downloads/view_model/download_status_provider.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view_model/player_view_model.dart';
 import '../view_model/podcast_detail_view_model.dart';
@@ -149,7 +152,7 @@ class _PodcastDetailBody extends ConsumerWidget {
           )
         else
           for (final episode in episodes!) ...[
-            _EpisodeTile(podcast: podcast, episode: episode, queue: episodes!),
+            _EpisodeTile(podcast: podcast, episode: episode, queue: episodes!, isSubscribed: isSubscribed),
             const SizedBox(height: 12),
           ],
       ],
@@ -167,11 +170,17 @@ class _PodcastDetailBody extends ConsumerWidget {
 }
 
 class _EpisodeTile extends ConsumerWidget {
-  const _EpisodeTile({required this.podcast, required this.episode, required this.queue});
+  const _EpisodeTile({
+    required this.podcast,
+    required this.episode,
+    required this.queue,
+    required this.isSubscribed,
+  });
 
   final Podcast podcast;
   final Episode episode;
   final List<Episode> queue;
+  final bool isSubscribed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -213,6 +222,10 @@ class _EpisodeTile extends ConsumerWidget {
               ],
             ),
           ),
+          if (isSubscribed) ...[
+            const SizedBox(width: 8),
+            _DownloadButton(podcast: podcast, episode: episode),
+          ],
         ],
       ),
     );
@@ -237,6 +250,54 @@ class _EpisodeTile extends ConsumerWidget {
     final minutes = duration.inMinutes.remainder(60);
     if (hours > 0) return '${hours}h${minutes.toString().padLeft(2, '0')}min';
     return '${minutes}min';
+  }
+}
+
+/// Botão de download do episódio: baixar, progresso, cancelar ou remover,
+/// dependendo do estado atual em [downloadStatusProvider].
+class _DownloadButton extends ConsumerWidget {
+  const _DownloadButton({required this.podcast, required this.episode});
+
+  final Podcast podcast;
+  final Episode episode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final download = ref.watch(downloadStatusProvider(podcast.id, episode.guid)).value;
+    final service = ref.read(downloadServiceProvider);
+
+    return switch (download?.status) {
+      null || DownloadStatus.failed || DownloadStatus.canceled || DownloadStatus.paused => IconButton(
+          icon: Icon(Icons.download_outlined, color: colors.textMuted),
+          tooltip: 'Baixar',
+          onPressed: () => service.download(podcastId: podcast.id, episode: episode),
+        ),
+      DownloadStatus.queued || DownloadStatus.running => SizedBox(
+          width: 40,
+          height: 40,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: download!.status == DownloadStatus.queued ? null : download.progress / 100,
+                strokeWidth: 2.5,
+                color: colors.primary,
+              ),
+              IconButton(
+                icon: Icon(Icons.close, size: 16, color: colors.textMuted),
+                tooltip: 'Cancelar',
+                onPressed: () => service.cancel(podcastId: podcast.id, episodeGuid: episode.guid),
+              ),
+            ],
+          ),
+        ),
+      DownloadStatus.complete => IconButton(
+          icon: Icon(Icons.offline_pin, color: colors.secondary),
+          tooltip: 'Baixado — toque pra remover',
+          onPressed: () => service.remove(podcastId: podcast.id, episodeGuid: episode.guid),
+        ),
+    };
   }
 }
 

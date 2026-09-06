@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 4 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 5 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -48,15 +48,19 @@ podcast/
       run_android.sh            build + emulador + run (ver Comandos)
       gen.sh                     atalho pro build_runner
     lib/
-      main.dart                  agora async — inicializa AudioService antes do runApp
+      main.dart                  async — inicializa AudioService e FlutterDownloader
+                                  antes do runApp
       app.dart                   ProviderScope/MaterialApp.router
-      core/                      theme/, router/ (+ /player fora das abas), network/,
-                                  database/ (drift), widgets/
-      data/                      models/, sources/, repositories/ (Podcast + Library)
+      core/                      theme/, router/ (+ /player e /settings/downloads
+                                  fora/dentro das abas conforme o caso), network/,
+                                  database/ (drift, schemaVersion 2), widgets/
+      data/                      models/, sources/, repositories/ (Podcast, Library,
+                                  Download)
       features/                  discover/, library/, podcast_detail/, settings/,
-                                  player/ (mini-player + tela cheia)
+                                  player/ (mini-player + tela cheia), downloads/
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service)
+      services/download/         DownloadService (flutter_downloader)
     test/
       widget_test.dart           smoke test de navegação (override audioHandlerProvider)
     android/                     projeto nativo Android (manifests, gradle)
@@ -128,7 +132,7 @@ data/sources/     itunes_search_api, rss_feed_parser, DAOs
 data/repositories/
 features/<nome>/{view,view_model}/   uma pasta por tela
 services/audio/   PodcastAudioHandler (audio_service + just_audio)
-services/download/
+services/download/  DownloadService (flutter_downloader)
 ```
 
 ## Design system
@@ -197,3 +201,18 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
 - Emulador Android mata o `AudioService` por "app idle" depois de ~2m30s
   de tela apagada, mesmo com foreground service + notificação ativos —
   comportamento de energia do emulador, não bug do app (ver ROADMAP Fase 4).
+- **`PodcastDetailViewModel` cai pro cache local (`LibraryRepository.
+  cachedEpisodes`) se o fetch do RSS falhar** — é o que faz um episódio
+  baixado continuar acessível em modo avião. Sem esse fallback a tela de
+  detalhe trava no erro de rede antes de sequer mostrar a lista, mesmo
+  com o episódio já baixado no disco. Qualquer novo fetch de rede numa
+  tela que possa ter cache local deveria seguir esse padrão.
+- **Botão de download só aparece com o podcast assinado**: `Downloads` e
+  `EpisodeCache` têm FK em `Subscriptions.id` — baixar sem assinar não
+  teria onde guardar o episódio.
+- **`flutter_downloader` roda num isolate de background à parte** — a
+  comunicação de volta pro isolate principal é `IsolateNameServer`/
+  `ReceivePort` (não dá pra usar Riverpod ali dentro). O callback
+  top-level (`downloadCallback` em `services/download/download_service.dart`)
+  só repassa a mensagem; quem trata de verdade é `DownloadService`, do
+  lado de cá.

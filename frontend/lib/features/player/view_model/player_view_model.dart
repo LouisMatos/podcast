@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
+import '../../../data/repositories/download_repository.dart';
 import '../../../data/repositories/library_repository.dart';
 import '../../../services/audio/podcast_audio_handler.dart';
 import 'player_state.dart';
@@ -64,7 +65,10 @@ class PlayerViewModel extends _$PlayerViewModel {
     final startIndex = queue.indexWhere((e) => e.guid == episode.guid);
     final savedPosition = await ref.read(libraryRepositoryProvider).playbackPositionFor(podcast.id, episode.guid);
 
-    final items = [for (final e in queue) _toMediaItem(podcast, e)];
+    // Toca do arquivo baixado sempre que existir — é o que faz um episódio
+    // baixado funcionar em modo avião (Fase 5).
+    final localPaths = await ref.read(downloadRepositoryProvider).completedPathsForPodcast(podcast.id);
+    final items = [for (final e in queue) _toMediaItem(podcast, e, localPath: localPaths[e.guid])];
     await _handler.playQueue(
       items,
       startIndex: startIndex < 0 ? 0 : startIndex,
@@ -196,10 +200,11 @@ class PlayerViewModel extends _$PlayerViewModel {
         );
   }
 
-  audio_service.MediaItem _toMediaItem(Podcast podcast, Episode episode) {
+  audio_service.MediaItem _toMediaItem(Podcast podcast, Episode episode, {String? localPath}) {
     final artUrl = episode.imageUrl ?? podcast.artworkUrl;
+    final id = localPath != null ? Uri.file(localPath).toString() : episode.audioUrl;
     return audio_service.MediaItem(
-      id: episode.audioUrl,
+      id: id,
       title: episode.title,
       artist: podcast.author,
       album: podcast.title,

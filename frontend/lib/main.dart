@@ -1,9 +1,11 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'services/audio/podcast_audio_handler.dart';
+import 'services/download/download_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,12 @@ Future<void> main() async {
       androidNotificationChannelName: 'Reprodução',
     ),
   );
+
+  // Também precisa vir antes do runApp — `registerCallback` liga o
+  // isolate de background do flutter_downloader ao `downloadCallback`
+  // top-level (ver services/download/download_service.dart).
+  await FlutterDownloader.initialize();
+  await FlutterDownloader.registerCallback(downloadCallback, step: 1);
 
   runApp(
     ProviderScope(

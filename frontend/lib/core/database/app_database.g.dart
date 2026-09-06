@@ -1457,6 +1457,15 @@ class $DownloadsTable extends Downloads
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _localPathMeta = const VerificationMeta(
     'localPath',
   );
@@ -1478,6 +1487,18 @@ class $DownloadsTable extends Downloads
     requiredDuringInsert: false,
     defaultValue: const Constant('queued'),
   );
+  static const VerificationMeta _progressMeta = const VerificationMeta(
+    'progress',
+  );
+  @override
+  late final GeneratedColumn<int> progress = GeneratedColumn<int>(
+    'progress',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1494,8 +1515,10 @@ class $DownloadsTable extends Downloads
   List<GeneratedColumn> get $columns => [
     podcastId,
     episodeGuid,
+    taskId,
     localPath,
     status,
+    progress,
     updatedAt,
   ];
   @override
@@ -1529,6 +1552,12 @@ class $DownloadsTable extends Downloads
     } else if (isInserting) {
       context.missing(_episodeGuidMeta);
     }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    }
     if (data.containsKey('local_path')) {
       context.handle(
         _localPathMeta,
@@ -1539,6 +1568,12 @@ class $DownloadsTable extends Downloads
       context.handle(
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('progress')) {
+      context.handle(
+        _progressMeta,
+        progress.isAcceptableOrUnknown(data['progress']!, _progressMeta),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -1564,6 +1599,10 @@ class $DownloadsTable extends Downloads
         DriftSqlType.string,
         data['${effectivePrefix}episode_guid'],
       )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      ),
       localPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_path'],
@@ -1571,6 +1610,10 @@ class $DownloadsTable extends Downloads
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
+      )!,
+      progress: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}progress'],
       )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -1588,14 +1631,18 @@ class $DownloadsTable extends Downloads
 class DownloadRow extends DataClass implements Insertable<DownloadRow> {
   final int podcastId;
   final String episodeGuid;
+  final String? taskId;
   final String? localPath;
   final String status;
+  final int progress;
   final DateTime updatedAt;
   const DownloadRow({
     required this.podcastId,
     required this.episodeGuid,
+    this.taskId,
     this.localPath,
     required this.status,
+    required this.progress,
     required this.updatedAt,
   });
   @override
@@ -1603,10 +1650,14 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
     final map = <String, Expression>{};
     map['podcast_id'] = Variable<int>(podcastId);
     map['episode_guid'] = Variable<String>(episodeGuid);
+    if (!nullToAbsent || taskId != null) {
+      map['task_id'] = Variable<String>(taskId);
+    }
     if (!nullToAbsent || localPath != null) {
       map['local_path'] = Variable<String>(localPath);
     }
     map['status'] = Variable<String>(status);
+    map['progress'] = Variable<int>(progress);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -1615,10 +1666,14 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
     return DownloadsCompanion(
       podcastId: Value(podcastId),
       episodeGuid: Value(episodeGuid),
+      taskId: taskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taskId),
       localPath: localPath == null && nullToAbsent
           ? const Value.absent()
           : Value(localPath),
       status: Value(status),
+      progress: Value(progress),
       updatedAt: Value(updatedAt),
     );
   }
@@ -1631,8 +1686,10 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
     return DownloadRow(
       podcastId: serializer.fromJson<int>(json['podcastId']),
       episodeGuid: serializer.fromJson<String>(json['episodeGuid']),
+      taskId: serializer.fromJson<String?>(json['taskId']),
       localPath: serializer.fromJson<String?>(json['localPath']),
       status: serializer.fromJson<String>(json['status']),
+      progress: serializer.fromJson<int>(json['progress']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -1642,8 +1699,10 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
     return <String, dynamic>{
       'podcastId': serializer.toJson<int>(podcastId),
       'episodeGuid': serializer.toJson<String>(episodeGuid),
+      'taskId': serializer.toJson<String?>(taskId),
       'localPath': serializer.toJson<String?>(localPath),
       'status': serializer.toJson<String>(status),
+      'progress': serializer.toJson<int>(progress),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -1651,14 +1710,18 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
   DownloadRow copyWith({
     int? podcastId,
     String? episodeGuid,
+    Value<String?> taskId = const Value.absent(),
     Value<String?> localPath = const Value.absent(),
     String? status,
+    int? progress,
     DateTime? updatedAt,
   }) => DownloadRow(
     podcastId: podcastId ?? this.podcastId,
     episodeGuid: episodeGuid ?? this.episodeGuid,
+    taskId: taskId.present ? taskId.value : this.taskId,
     localPath: localPath.present ? localPath.value : this.localPath,
     status: status ?? this.status,
+    progress: progress ?? this.progress,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   DownloadRow copyWithCompanion(DownloadsCompanion data) {
@@ -1667,8 +1730,10 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
       episodeGuid: data.episodeGuid.present
           ? data.episodeGuid.value
           : this.episodeGuid,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
       localPath: data.localPath.present ? data.localPath.value : this.localPath,
       status: data.status.present ? data.status.value : this.status,
+      progress: data.progress.present ? data.progress.value : this.progress,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -1678,47 +1743,64 @@ class DownloadRow extends DataClass implements Insertable<DownloadRow> {
     return (StringBuffer('DownloadRow(')
           ..write('podcastId: $podcastId, ')
           ..write('episodeGuid: $episodeGuid, ')
+          ..write('taskId: $taskId, ')
           ..write('localPath: $localPath, ')
           ..write('status: $status, ')
+          ..write('progress: $progress, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(podcastId, episodeGuid, localPath, status, updatedAt);
+  int get hashCode => Object.hash(
+    podcastId,
+    episodeGuid,
+    taskId,
+    localPath,
+    status,
+    progress,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DownloadRow &&
           other.podcastId == this.podcastId &&
           other.episodeGuid == this.episodeGuid &&
+          other.taskId == this.taskId &&
           other.localPath == this.localPath &&
           other.status == this.status &&
+          other.progress == this.progress &&
           other.updatedAt == this.updatedAt);
 }
 
 class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
   final Value<int> podcastId;
   final Value<String> episodeGuid;
+  final Value<String?> taskId;
   final Value<String?> localPath;
   final Value<String> status;
+  final Value<int> progress;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const DownloadsCompanion({
     this.podcastId = const Value.absent(),
     this.episodeGuid = const Value.absent(),
+    this.taskId = const Value.absent(),
     this.localPath = const Value.absent(),
     this.status = const Value.absent(),
+    this.progress = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DownloadsCompanion.insert({
     required int podcastId,
     required String episodeGuid,
+    this.taskId = const Value.absent(),
     this.localPath = const Value.absent(),
     this.status = const Value.absent(),
+    this.progress = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : podcastId = Value(podcastId),
@@ -1726,16 +1808,20 @@ class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
   static Insertable<DownloadRow> custom({
     Expression<int>? podcastId,
     Expression<String>? episodeGuid,
+    Expression<String>? taskId,
     Expression<String>? localPath,
     Expression<String>? status,
+    Expression<int>? progress,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (podcastId != null) 'podcast_id': podcastId,
       if (episodeGuid != null) 'episode_guid': episodeGuid,
+      if (taskId != null) 'task_id': taskId,
       if (localPath != null) 'local_path': localPath,
       if (status != null) 'status': status,
+      if (progress != null) 'progress': progress,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1744,16 +1830,20 @@ class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
   DownloadsCompanion copyWith({
     Value<int>? podcastId,
     Value<String>? episodeGuid,
+    Value<String?>? taskId,
     Value<String?>? localPath,
     Value<String>? status,
+    Value<int>? progress,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
     return DownloadsCompanion(
       podcastId: podcastId ?? this.podcastId,
       episodeGuid: episodeGuid ?? this.episodeGuid,
+      taskId: taskId ?? this.taskId,
       localPath: localPath ?? this.localPath,
       status: status ?? this.status,
+      progress: progress ?? this.progress,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1768,11 +1858,17 @@ class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
     if (episodeGuid.present) {
       map['episode_guid'] = Variable<String>(episodeGuid.value);
     }
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
     if (localPath.present) {
       map['local_path'] = Variable<String>(localPath.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
+    }
+    if (progress.present) {
+      map['progress'] = Variable<int>(progress.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
@@ -1788,8 +1884,10 @@ class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
     return (StringBuffer('DownloadsCompanion(')
           ..write('podcastId: $podcastId, ')
           ..write('episodeGuid: $episodeGuid, ')
+          ..write('taskId: $taskId, ')
           ..write('localPath: $localPath, ')
           ..write('status: $status, ')
+          ..write('progress: $progress, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3119,16 +3217,20 @@ typedef $$PlaybackProgressTableProcessedTableManager =
 typedef $$DownloadsTableCreateCompanionBuilder = DownloadsCompanion Function({
   required int podcastId,
   required String episodeGuid,
+  Value<String?> taskId,
   Value<String?> localPath,
   Value<String> status,
+  Value<int> progress,
   Value<DateTime> updatedAt,
   Value<int> rowid,
 });
 typedef $$DownloadsTableUpdateCompanionBuilder = DownloadsCompanion Function({
   Value<int> podcastId,
   Value<String> episodeGuid,
+  Value<String?> taskId,
   Value<String?> localPath,
   Value<String> status,
+  Value<int> progress,
   Value<DateTime> updatedAt,
   Value<int> rowid,
 });
@@ -3169,6 +3271,11 @@ class $$DownloadsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get localPath => $composableBuilder(
     column: $table.localPath,
     builder: (column) => ColumnFilters(column),
@@ -3176,6 +3283,11 @@ class $$DownloadsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get progress => $composableBuilder(
+    column: $table.progress,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3222,6 +3334,11 @@ class $$DownloadsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get localPath => $composableBuilder(
     column: $table.localPath,
     builder: (column) => ColumnOrderings(column),
@@ -3229,6 +3346,11 @@ class $$DownloadsTableOrderingComposer
 
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get progress => $composableBuilder(
+    column: $table.progress,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3275,11 +3397,17 @@ class $$DownloadsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+
   GeneratedColumn<String> get localPath =>
       $composableBuilder(column: $table.localPath, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get progress =>
+      $composableBuilder(column: $table.progress, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -3338,15 +3466,19 @@ class $$DownloadsTableTableManager
               ({
                 Value<int> podcastId = const Value.absent(),
                 Value<String> episodeGuid = const Value.absent(),
+                Value<String?> taskId = const Value.absent(),
                 Value<String?> localPath = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> progress = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DownloadsCompanion(
                 podcastId: podcastId,
                 episodeGuid: episodeGuid,
+                taskId: taskId,
                 localPath: localPath,
                 status: status,
+                progress: progress,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -3354,15 +3486,19 @@ class $$DownloadsTableTableManager
               ({
                 required int podcastId,
                 required String episodeGuid,
+                Value<String?> taskId = const Value.absent(),
                 Value<String?> localPath = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> progress = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DownloadsCompanion.insert(
                 podcastId: podcastId,
                 episodeGuid: episodeGuid,
+                taskId: taskId,
                 localPath: localPath,
                 status: status,
+                progress: progress,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

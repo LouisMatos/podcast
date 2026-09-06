@@ -19,8 +19,17 @@ class PodcastDetailViewModel extends _$PodcastDetailViewModel {
   @override
   Future<PodcastDetailState> build(Podcast podcast) async {
     final repository = ref.watch(podcastRepositoryProvider);
-    final episodes = await repository.episodesFor(podcast);
-    return PodcastDetailState(podcast: podcast, episodes: episodes);
+    try {
+      final episodes = await repository.episodesFor(podcast);
+      return PodcastDetailState(podcast: podcast, episodes: episodes);
+    } catch (error) {
+      // Sem rede (ou feed fora do ar): se já tem cache de uma visita
+      // anterior — o caso normal de um podcast assinado —, usa ele. É o
+      // que faz um episódio baixado continuar acessível em modo avião.
+      final cached = await ref.read(libraryRepositoryProvider).cachedEpisodes(podcast.id);
+      if (cached.isEmpty) rethrow;
+      return PodcastDetailState(podcast: podcast, episodes: cached);
+    }
   }
 
   Future<void> subscribe() async {

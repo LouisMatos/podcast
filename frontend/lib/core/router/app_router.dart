@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/podcast.dart';
 import '../../features/discover/view/discover_screen.dart';
+import '../../features/downloads/view/downloads_screen.dart';
 import '../../features/library/view/library_screen.dart';
 import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
@@ -54,6 +55,12 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/settings',
               pageBuilder: (context, state) => _fadeSlidePage(state, const SettingsScreen()),
+              routes: [
+                GoRoute(
+                  path: 'downloads',
+                  pageBuilder: (context, state) => _fadeSlidePage(state, const DownloadsScreen()),
+                ),
+              ],
             ),
           ],
         ),

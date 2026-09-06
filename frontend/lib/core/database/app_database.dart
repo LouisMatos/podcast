@@ -11,7 +11,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // v1 -> v2 (Fase 5): download ganhou taskId (pra casar o evento
+          // do flutter_downloader com a linha certa) e progress (0-100).
+          if (from < 2) {
+            await m.addColumn(downloads, downloads.taskId);
+            await m.addColumn(downloads, downloads.progress);
+          }
+        },
+      );
 }
 
 /// `keepAlive`: a conexão com o banco vive pelo tempo do app — recriar a
