@@ -1,40 +1,27 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
+import '../../../data/models/podcast.dart';
+import '../view_model/library_view_model.dart';
 
-class _MockSubscription {
-  const _MockSubscription(this.title, this.newEpisodes);
-
-  final String title;
-  final int newEpisodes;
-}
-
-const _mockSubscriptions = <_MockSubscription>[
-  _MockSubscription('Café com Código', 2),
-  _MockSubscription('Mente Tranquila', 0),
-  _MockSubscription('Ciência Sem Filtro', 1),
-];
-
-/// Biblioteca do usuário — mockada até a Fase 3, quando as assinaturas
-/// passam a vir do SQLite local (drift) via `LibraryRepository`.
-class LibraryScreen extends StatelessWidget {
+/// Biblioteca do usuário — assinaturas reais, vindas do SQLite local via
+/// `LibraryViewModel`. Atualiza sozinha quando o usuário assina/desassina
+/// em qualquer tela, porque o ViewModel observa um `Stream` do drift.
+class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    if (_mockSubscriptions.isEmpty) {
-      return const EmptyState(
-        icon: Icons.library_music_outlined,
-        title: 'Nenhuma assinatura ainda',
-        message: 'Podcasts que você assinar aparecem aqui.',
-      );
-    }
-
-    final colors = Theme.of(context).extension<AppColors>()!;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subscriptions = ref.watch(libraryViewModelProvider);
 
     return SafeArea(
       child: ListView(
@@ -45,39 +32,144 @@ class LibraryScreen extends StatelessWidget {
           Text('Seus podcasts assinados', style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 24),
           const SectionHeader(title: 'Assinaturas'),
-          for (final sub in _mockSubscriptions) ...[
-            SoftCard(
-              onTap: () {},
-              child: Row(
+          AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.enter,
+            switchOutCurve: AppMotion.standard,
+            child: subscriptions.when(
+              loading: () => const Column(
+                key: ValueKey('loading'),
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: colors.secondary.withValues(alpha: 0.5),
-                      borderRadius: AppRadii.smAll,
-                    ),
-                    child: Icon(Icons.podcasts, color: colors.textPrimary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(child: Text(sub.title, style: Theme.of(context).textTheme.titleMedium)),
-                  if (sub.newEpisodes > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(AppRadii.pill),
-                      ),
-                      child: Text(
-                        sub.newEpisodes == 1 ? '1 novo' : '${sub.newEpisodes} novos',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.textPrimary),
-                      ),
-                    ),
+                  _SubscriptionTileSkeleton(),
+                  SizedBox(height: 12),
+                  _SubscriptionTileSkeleton(),
                 ],
               ),
+              error: (error, _) => Padding(
+                key: const ValueKey('error'),
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Text(
+                  'Não foi possível carregar sua biblioteca.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              data: (podcasts) => podcasts.isEmpty
+                  ? const Padding(
+                      key: ValueKey('empty'),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: EmptyState(
+                        icon: Icons.library_music_outlined,
+                        title: 'Nenhuma assinatura ainda',
+                        message: 'Podcasts que você assinar aparecem aqui.',
+                      ),
+                    )
+                  : Column(
+                      key: ValueKey('subscriptions-${podcasts.length}'),
+                      children: [
+                        for (final podcast in podcasts) ...[
+                          _SubscriptionTile(podcast: podcast),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
             ),
-            const SizedBox(height: 12),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubscriptionTile extends ConsumerWidget {
+  const _SubscriptionTile({required this.podcast});
+
+  final Podcast podcast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return SoftCard(
+      onTap: () => context.push('/library/podcast', extra: podcast),
+      child: Row(
+        children: [
+          Hero(
+            tag: 'podcast-artwork-${podcast.id}',
+            child: ClipRRect(
+              borderRadius: AppRadii.smAll,
+              child: podcast.artworkUrl == null
+                  ? _artworkFallback(colors)
+                  : CachedNetworkImage(
+                      imageUrl: podcast.artworkUrl!,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const ShimmerBox(width: 48, height: 48),
+                      errorWidget: (context, url, error) => _artworkFallback(colors),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  podcast.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Text(
+                  podcast.author,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.favorite, color: colors.primary),
+            tooltip: 'Desassinar',
+            onPressed: () => ref.read(libraryViewModelProvider.notifier).unsubscribe(podcast.id),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _artworkFallback(AppColors colors) {
+    return Container(
+      width: 48,
+      height: 48,
+      color: colors.secondary.withValues(alpha: 0.5),
+      child: Icon(Icons.podcasts, color: colors.textPrimary),
+    );
+  }
+}
+
+class _SubscriptionTileSkeleton extends StatelessWidget {
+  const _SubscriptionTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      child: Row(
+        children: [
+          const ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                ShimmerBox(height: 16),
+                SizedBox(height: 8),
+                ShimmerBox(width: 120, height: 12),
+              ],
+            ),
+          ),
         ],
       ),
     );

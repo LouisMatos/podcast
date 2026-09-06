@@ -7,9 +7,11 @@ import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/pastel_chip.dart';
 import '../../../core/widgets/shimmer_box.dart';
+import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
+import '../../library/view_model/is_subscribed_provider.dart';
 import '../view_model/podcast_detail_view_model.dart';
 
 class PodcastDetailScreen extends ConsumerWidget {
@@ -21,35 +23,57 @@ class PodcastDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(podcastDetailViewModelProvider(podcast));
 
+    final notifier = ref.read(podcastDetailViewModelProvider(podcast).notifier);
+
     return Scaffold(
       appBar: AppBar(title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: SafeArea(
         top: false,
         child: detail.when(
-          loading: () => _PodcastDetailBody(podcast: podcast, episodes: null),
+          loading: () => _PodcastDetailBody(
+            podcast: podcast,
+            episodes: null,
+            onSubscribe: notifier.subscribe,
+            onUnsubscribe: notifier.unsubscribe,
+          ),
           error: (error, _) => EmptyState(
             icon: Icons.error_outline,
             title: 'Não foi possível carregar os episódios',
             message: '$error',
           ),
-          data: (state) => _PodcastDetailBody(podcast: state.podcast, episodes: state.episodes),
+          data: (state) => _PodcastDetailBody(
+            podcast: state.podcast,
+            episodes: state.episodes,
+            onSubscribe: notifier.subscribe,
+            onUnsubscribe: notifier.unsubscribe,
+          ),
         ),
       ),
     );
   }
 }
 
-class _PodcastDetailBody extends StatelessWidget {
-  const _PodcastDetailBody({required this.podcast, required this.episodes});
+class _PodcastDetailBody extends ConsumerWidget {
+  const _PodcastDetailBody({
+    required this.podcast,
+    required this.episodes,
+    required this.onSubscribe,
+    required this.onUnsubscribe,
+  });
 
   final Podcast podcast;
 
   /// `null` enquanto carrega — usado pra mostrar o skeleton.
   final List<Episode>? episodes;
 
+  final Future<void> Function() onSubscribe;
+  final Future<void> Function() onUnsubscribe;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final isSubscribedAsync = ref.watch(isSubscribedProvider(podcast.id));
+    final isSubscribed = isSubscribedAsync.value ?? false;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -97,6 +121,13 @@ class _PodcastDetailBody extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        PillButton(
+          label: isSubscribed ? 'Assinado' : 'Assinar',
+          icon: isSubscribed ? Icons.check : Icons.add,
+          variant: isSubscribed ? PillButtonVariant.secondary : PillButtonVariant.primary,
+          onPressed: isSubscribed ? onUnsubscribe : onSubscribe,
         ),
         const SizedBox(height: 24),
         Text('Episódios', style: Theme.of(context).textTheme.titleMedium),

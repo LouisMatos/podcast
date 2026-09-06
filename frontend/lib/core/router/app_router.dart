@@ -38,6 +38,13 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/library',
               pageBuilder: (context, state) => _fadeSlidePage(state, const LibraryScreen()),
+              routes: [
+                GoRoute(
+                  path: 'podcast',
+                  pageBuilder: (context, state) =>
+                      _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
+                ),
+              ],
             ),
           ],
         ),

@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 2 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 3 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -49,8 +49,8 @@ podcast/
       gen.sh                     atalho pro build_runner
     lib/
       main.dart, app.dart        bootstrap + ProviderScope/MaterialApp.router
-      core/                      theme/, router/, network/, widgets/ (Fase 1-2)
-      data/                      models/, sources/, repositories/ (Fase 2)
+      core/                      theme/, router/, network/, database/ (drift), widgets/
+      data/                      models/, sources/, repositories/ (Podcast + Library)
       features/                  discover/, library/, podcast_detail/, settings/
                                   — layout completo descrito em "Arquitetura" abaixo
     test/
@@ -168,3 +168,13 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   decodifica isso. `ItunesSearchApi` pede `ResponseType.plain` e decodifica
   com `jsonDecode` na mão; seguir esse padrão pra qualquer API nova que não
   declare `application/json` corretamente.
+- **Toda classe gerada pelo drift (`core/database/tables.dart`) termina em
+  `Row`** (`SubscriptionRow`, `EpisodeCacheRow`, ...) via `@DataClassName`.
+  Não tirar esse sufixo — sem ele, uma tabela como `EpisodeCache` geraria a
+  classe `Episode`, colidindo com o modelo de domínio `Episode` em
+  `data/models/`. Repositórios (`LibraryRepository`) só devolvem/recebem os
+  modelos de domínio, nunca essas `*Row`.
+- **Coluna primária int sem `.autoIncrement()` ainda é opcional no
+  `.insert()` gerado pelo drift** (`Value.absent()` por padrão) — para
+  `Subscriptions.id` (o `collectionId` da iTunes, não autogerado), sempre
+  passar `Value(podcast.id)` explícito, não o `int` cru.

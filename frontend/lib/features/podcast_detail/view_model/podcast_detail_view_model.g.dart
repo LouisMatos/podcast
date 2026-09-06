@@ -11,6 +11,10 @@ part of 'podcast_detail_view_model.dart';
 /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
 /// já vem completo da busca, então carregar os episódios é a única
 /// dependência assíncrona real.
+///
+/// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+/// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+/// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
 
 @ProviderFor(PodcastDetailViewModel)
 final podcastDetailViewModelProvider = PodcastDetailViewModelFamily._();
@@ -18,11 +22,19 @@ final podcastDetailViewModelProvider = PodcastDetailViewModelFamily._();
 /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
 /// já vem completo da busca, então carregar os episódios é a única
 /// dependência assíncrona real.
+///
+/// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+/// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+/// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
 final class PodcastDetailViewModelProvider
     extends $AsyncNotifierProvider<PodcastDetailViewModel, PodcastDetailState> {
   /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
   /// já vem completo da busca, então carregar os episódios é a única
   /// dependência assíncrona real.
+  ///
+  /// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+  /// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+  /// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
   PodcastDetailViewModelProvider._({
     required PodcastDetailViewModelFamily super.from,
     required Podcast super.argument,
@@ -61,11 +73,15 @@ final class PodcastDetailViewModelProvider
 }
 
 String _$podcastDetailViewModelHash() =>
-    r'6e477d51ce41cd4edd75a22919b21bb1fbd2c83b';
+    r'5c2ae883679d1b6a8b3e4c67ac2e9908510502d4';
 
 /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
 /// já vem completo da busca, então carregar os episódios é a única
 /// dependência assíncrona real.
+///
+/// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+/// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+/// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
 
 final class PodcastDetailViewModelFamily extends $Family
     with
@@ -88,6 +104,10 @@ final class PodcastDetailViewModelFamily extends $Family
   /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
   /// já vem completo da busca, então carregar os episódios é a única
   /// dependência assíncrona real.
+  ///
+  /// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+  /// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+  /// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
 
   PodcastDetailViewModelProvider call(Podcast podcast) =>
       PodcastDetailViewModelProvider._(argument: podcast, from: this);
@@ -99,6 +119,10 @@ final class PodcastDetailViewModelFamily extends $Family
 /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
 /// já vem completo da busca, então carregar os episódios é a única
 /// dependência assíncrona real.
+///
+/// O status de assinatura NÃO mora nesse estado de propósito: ele vem de
+/// `isSubscribedProvider`, que a View observa direto. Se estivesse aqui,
+/// assinar/desassinar refaria o fetch inteiro do RSS a cada toque.
 
 abstract class _$PodcastDetailViewModel
     extends $AsyncNotifier<PodcastDetailState> {

@@ -6,9 +6,9 @@
 
 ## Onde parei
 
-**Fase atual:** 3 — Persistência local
-**Última coisa concluída:** Fase 2 (descoberta + detalhe) — busca real na iTunes Search API, feed RSS parseado, episódios reais na tela de detalhe
-**Próximo passo concreto:** schema drift (`subscriptions`, `episodes`, `playback_progress`, `downloads`) em `core/database/`
+**Fase atual:** 4 — Player
+**Última coisa concluída:** Fase 3 (persistência local) — assinar/desassinar com SQLite via drift, sobrevive ao restart do app, biblioteca 100% reativa
+**Próximo passo concreto:** `services/audio/podcast_audio_handler.dart` (`BaseAudioHandler` + `just_audio`) e config do manifesto Android pra player em background
 
 ## Regra de ouro
 
@@ -70,13 +70,33 @@ Notas:
   MMM yyyy HH:mm:ss Z', 'en_US')`; falha vira `null` (episódio sem data),
   não trava a tela.
 
-## Fase 3 — Persistência local
+## Fase 3 — Persistência local ✅
 
-- [ ] Schema drift: `subscriptions`, `episodes`, `playback_progress`, `downloads`
-- [ ] DAOs + `LibraryRepository`
-- [ ] Assinar / desassinar
-- [ ] Biblioteca reativa (`Stream` do drift → `StreamNotifier`)
-- [ ] **Pronto quando:** assinatura e posição de escuta sobrevivem ao fechar o app
+- [x] Schema drift: `Subscriptions`, `EpisodeCache`, `PlaybackProgress`, `Downloads`
+      (`core/database/tables.dart` + `app_database.dart`)
+- [x] `LibraryRepository` (só usa `SubscriptionRow`/`EpisodeCacheRow` — nunca
+      vaza tipo do drift pra fora; devolve/recebe `Podcast`/`Episode`)
+- [x] Assinar / desassinar, com cache dos episódios na assinatura
+- [x] Biblioteca reativa (`LibraryViewModel`, `Stream` do drift → `StreamNotifier`)
+- [x] Botão assinar/desassinar no detalhe do podcast (`isSubscribedProvider`,
+      reativo entre telas — desassinar pela Biblioteca atualiza o detalhe sozinho)
+- [x] **Pronto quando:** assinatura sobrevive ao fechar o app
+
+Notas:
+
+- `playback_progress` e `downloads` só têm o schema pronto — ninguém
+  escreve neles ainda. Ficam pra Fase 4 (player) e Fase 5 (download).
+  "Posição de escuta sobrevive ao restart" do critério original fica
+  adiado pra Fase 4, quando existir um player que gere essa posição.
+- Tabelas com FK em `Subscriptions.id` (`EpisodeCache`, `PlaybackProgress`,
+  `Downloads`) usam `onDelete: KeyAction.cascade` — desassinar já limpa o
+  cache de episódios sozinho, sem `DELETE` manual em cada tabela.
+- Toda classe gerada pelo drift termina em `Row` (`SubscriptionRow`,
+  `EpisodeCacheRow`) de propósito — sem isso, o nome gerado da tabela
+  `EpisodeCache` colidiria com o modelo de domínio `Episode`.
+- Coluna `id` de `Subscriptions` não é `autoIncrement()`, mas o
+  `.insert()` gerado ainda trata como opcional (`Value.absent()` por
+  padrão) — sempre passar `Value(podcast.id)` explícito.
 
 ## Fase 4 — Player
 
