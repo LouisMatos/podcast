@@ -11,12 +11,12 @@ v1 (Fases 0–6) segue completa e intacta. Fase 7 (iOS) continua pausada de
 propósito — só Android por enquanto.
 
 **Fase atual:** 8 — novas features (descoberta, progresso, player)
-**Sub-fase concluída:** 8.1 — carrossel "Mais ouvidos no Brasil" + grade de
-categorias na tela Descobrir (Apple Charts + iTunes lookup, sem backend).
-32 testes (era 25).
-**Próximo passo concreto:** Fase 8.2 — barra de progresso + "ouvido" no tile
-de episódio, busca/filtro/ordenação e aba "Baixados" na tela de detalhe.
-Ver checklist da 8.2 abaixo.
+**Sub-fase concluída:** 8.2 — barra de progresso + selo "Ouvido" no tile de
+episódio; abas "Episódios"/"Baixados" no detalhe com busca, filtro
+(ouvido/não) e ordenação. 39 testes (era 32).
+**Próximo passo concreto:** Fase 8.3 — sem autoplay ao selecionar episódio +
+tela de descrição do episódio (HTML) com player minimizado. Ver checklist
+da 8.3 abaixo.
 **Plano completo da Fase 8:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
 
 ## Regra de ouro
@@ -278,21 +278,44 @@ Armadilhas:
 - Estado de erro do carrossel é um card compacto (`_CarouselError`), **não**
   `EmptyState` — `EmptyState` estoura o `SizedBox` de 232px de altura.
 
-### Fase 8.2 — Detalhe: progresso + busca/filtro/ordenação + aba Baixados ⬜
+### Fase 8.2 — Detalhe: progresso + busca/filtro/ordenação + aba Baixados ✅
 
 Features 3 e 4.
 
-- [ ] `LibraryRepository.watchProgressForPodcast(id)` →
-      `Stream<Map<String, ({int positionSeconds, bool completed})>>`.
-- [ ] Provider `episodeProgress(podcastId)`; `_EpisodeTile` ganha barra de
-      progresso + selo "Ouvido".
-- [ ] `episode_list_controls.dart` — enums `EpisodeFilter`/`EpisodeSort`,
-      state Freezed, `@riverpod` family, função pura `applyEpisodeControls`.
-- [ ] `PodcastDetailScreen` vira `DefaultTabController` de 2 abas
-      ["Episódios", "Baixados"]; `TabBar` sem divisória dura.
-- [ ] Aba Episódios: `SearchField` + chips de filtro + `PopupMenuButton` de ordenação.
-- [ ] `DownloadRepository.watchForPodcast(id)` + provider + aba Baixados.
-- [ ] Testes: `library_repository_test` (drift in-memory), `episode_list_controls_test`.
+- [x] `LibraryRepository.watchProgressForPodcast(id)` →
+      `Stream<Map<String, EpisodeProgress>>` (`EpisodeProgress = ({int
+      positionSeconds, bool completed})`). Provider `episodeProgress(id)`.
+- [x] `LibraryRepository.watchDownloadedEpisodes(id)` → `Stream<List<Episode>>`
+      (join `episodeCache` × `downloads` status complete). Provider
+      `downloadedEpisodes(id)`.
+- [x] `_EpisodeTile` ganha `progress` opcional → `_EpisodeProgressLine`
+      (selo "Ouvido" se completo; barra fina + "Faltam Xmin" se começado).
+- [x] `episode_list_controls.dart` — enums `EpisodeFilter`/`EpisodeSort`,
+      state Freezed, `@riverpod` family `episodeListControls(podcastId)`,
+      função pura `applyEpisodeControls(episodes, controls, progress)`.
+- [x] `PodcastDetailScreen`: header + `PillButton` acima, `DefaultTabController`
+      de 2 abas ["Episódios", "Baixados"], `TabBar(dividerColor: transparent)`.
+- [x] Aba Episódios: `SearchField` + `_SelectableChip`s de filtro +
+      `_SortButton` (`PopupMenuButton`), lista via `applyEpisodeControls`.
+- [x] Aba Baixados: reusa `_EpisodeTile` (com o botão já no estado "remover").
+- [x] Testes: `library_repository_test` (drift `NativeDatabase.memory()`),
+      `episode_list_controls_test` (7 novos, 39 no total).
+
+Armadilhas:
+
+- **`_EpisodeTile` foi movido pra `_EpisodesTab`/`_DownloadsTab`** dentro de
+  `podcast_detail_screen.dart`. O corpo do detalhe agora é
+  `DefaultTabController` > `Column` [header, `TabBar`, `Expanded(TabBarView)`]
+  — não mais um `ListView` único. Cada aba tem seu próprio `ListView`.
+- `TabBar` traz divisória e indicador padrão — sempre setar
+  `dividerColor: Colors.transparent` + `indicatorSize: TabBarIndicatorSize.label`
+  pra respeitar o design (sem borda dura).
+- Progresso (`playbackProgress`) só existe pra podcast **assinado** (FK em
+  `Subscriptions`) — a aba de episódios de um podcast não assinado mostra
+  os tiles sem `_EpisodeProgressLine`, e é o esperado.
+- Teste de repositório com drift: `AppDatabase(NativeDatabase.memory())`
+  (`package:drift/native.dart`), `tearDown(() => db.close())`. Inserir a
+  `Subscriptions` antes de qualquer coisa com FK.
 
 ### Fase 8.3 — Sem autoplay ao selecionar + tela de episódio ⬜
 

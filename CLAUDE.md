@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 8.1 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 8.2 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -60,13 +60,16 @@ podcast/
                                   apple_charts_api, rss_feed_parser, DAOs),
                                   repositories/ (Podcast, Library, Download)
       features/                  discover/ (busca + carrossel Top 20 + categorias),
-                                  category/, library/, podcast_detail/, settings/,
+                                  category/, library/, podcast_detail/ (abas
+                                  Episódios/Baixados, busca/filtro/ordenação,
+                                  progresso no tile), settings/,
                                   player/ (mini-player + tela cheia), downloads/
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service)
       services/download/         DownloadService (flutter_downloader)
-    test/                        32 testes — data/sources/, data/repositories/,
-                                  features/discover/, features/player/, widget_test.dart
+    test/                        39 testes — data/sources/, data/repositories/,
+                                  features/discover/, features/podcast_detail/,
+                                  features/player/, widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
                                   MainActivity estende AudioServiceActivity (Fase 4)
     ios/                         projeto nativo iOS (build só na Fase 7)
@@ -248,3 +251,17 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   `EmptyState`** — ele tem altura natural maior que o `SizedBox` do
   carrossel e estoura RenderFlex. Usar um card compacto (ver `_CarouselError`
   em `discover_screen.dart`).
+- **`PodcastDetailScreen` usa `DefaultTabController` de 2 abas** (Episódios /
+  Baixados). Corpo = `Column` [header + `PillButton`, `TabBar`,
+  `Expanded(TabBarView)`], cada aba com `ListView` próprio — não é mais um
+  `ListView` único. `TabBar` sempre com `dividerColor: Colors.transparent` +
+  `indicatorSize: TabBarIndicatorSize.label` (design sem borda dura).
+- **Progresso de episódio (`playbackProgress`) só existe pra podcast
+  assinado** (FK em `Subscriptions`). Filtro/ordenação da lista é função
+  pura `applyEpisodeControls` (`episode_list_controls.dart`, sem Flutter,
+  testável). Aba "Baixados" vem de `LibraryRepository.watchDownloadedEpisodes`
+  e reusa o mesmo `_EpisodeTile`.
+- **Teste de repositório drift**: `AppDatabase(NativeDatabase.memory())`
+  (`package:drift/native.dart`) + `tearDown(() => db.close())`. Inserir a
+  `Subscriptions` antes de qualquer linha com FK (`playbackProgress`,
+  `downloads`, `episodeCache`).

@@ -7,18 +7,24 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/pastel_chip.dart';
-import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/pill_button.dart';
+import '../../../core/widgets/search_field.dart';
+import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/download_status.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
+import '../../../data/repositories/library_repository.dart';
 import '../../../services/download/download_service.dart';
 import '../../downloads/view_model/download_status_provider.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view_model/player_view_model.dart';
+import '../view_model/downloaded_episodes_provider.dart';
+import '../view_model/episode_list_controls.dart';
+import '../view_model/episode_progress_provider.dart';
 import '../view_model/podcast_detail_view_model.dart';
 
 class PodcastDetailScreen extends ConsumerWidget {
@@ -29,7 +35,6 @@ class PodcastDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(podcastDetailViewModelProvider(podcast));
-
     final notifier = ref.read(podcastDetailViewModelProvider(podcast).notifier);
 
     return Scaffold(
@@ -80,11 +85,64 @@ class _PodcastDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final isSubscribedAsync = ref.watch(isSubscribedProvider(podcast.id));
-    final isSubscribed = isSubscribedAsync.value ?? false;
+    final isSubscribed = ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: _Header(
+              podcast: podcast,
+              isSubscribed: isSubscribed,
+              onSubscribe: onSubscribe,
+              onUnsubscribe: onUnsubscribe,
+            ),
+          ),
+          TabBar(
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorColor: colors.primary,
+            labelColor: colors.textPrimary,
+            unselectedLabelColor: colors.textMuted,
+            tabs: const [Tab(text: 'Episódios'), Tab(text: 'Baixados')],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _EpisodesTab(podcast: podcast, episodes: episodes, isSubscribed: isSubscribed),
+                _DownloadsTab(podcast: podcast),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.podcast,
+    required this.isSubscribed,
+    required this.onSubscribe,
+    required this.onUnsubscribe,
+  });
+
+  final Podcast podcast;
+  final bool isSubscribed;
+  final Future<void> Function() onSubscribe;
+  final Future<void> Function() onUnsubscribe;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +178,9 @@ class _PodcastDetailBody extends ConsumerWidget {
                     children: [
                       if (podcast.genre case final genre?) PastelChip(label: genre),
                       PastelChip(
-                        label: podcast.episodeCount == 1 ? '1 episódio' : '${podcast.episodeCount} episódios',
+                        label: podcast.episodeCount == 1
+                            ? '1 episódio'
+                            : '${podcast.episodeCount} episódios',
                         color: colors.secondary,
                       ),
                     ],
@@ -137,37 +197,217 @@ class _PodcastDetailBody extends ConsumerWidget {
           variant: isSubscribed ? PillButtonVariant.secondary : PillButtonVariant.primary,
           onPressed: isSubscribed ? onUnsubscribe : onSubscribe,
         ),
-        const SizedBox(height: 24),
-        Text('Episódios', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        if (episodes == null)
+      ],
+    );
+  }
+}
+
+class _EpisodesTab extends ConsumerWidget {
+  const _EpisodesTab({required this.podcast, required this.episodes, required this.isSubscribed});
+
+  final Podcast podcast;
+  final List<Episode>? episodes;
+  final bool isSubscribed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (episodes == null) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
           for (var i = 0; i < 4; i++) ...[
             const _EpisodeSkeleton(),
             const SizedBox(height: 12),
-          ]
-        else if (episodes!.isEmpty)
-          const EmptyState(
-            icon: Icons.podcasts_outlined,
-            title: 'Nenhum episódio encontrado',
-            message: 'Esse feed não trouxe episódios dessa vez.',
+          ],
+        ],
+      );
+    }
+
+    if (episodes!.isEmpty) {
+      return const EmptyState(
+        icon: Icons.podcasts_outlined,
+        title: 'Nenhum episódio encontrado',
+        message: 'Esse feed não trouxe episódios dessa vez.',
+      );
+    }
+
+    final controls = ref.watch(episodeListControlsProvider(podcast.id));
+    final controlsNotifier = ref.read(episodeListControlsProvider(podcast.id).notifier);
+    final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
+    final visible = applyEpisodeControls(episodes!, controls, progress);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        SearchField(
+          hintText: 'Buscar episódio',
+          onChanged: controlsNotifier.setQuery,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final f in EpisodeFilter.values) ...[
+                      _SelectableChip(
+                        label: _filterLabel(f),
+                        selected: controls.filter == f,
+                        onTap: () => controlsNotifier.setFilter(f),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            _SortButton(current: controls.sort, onSelected: controlsNotifier.setSort),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Text(
+              'Nenhum episódio com esse filtro.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           )
         else
-          for (final episode in episodes!) ...[
-            _EpisodeTile(podcast: podcast, episode: episode, queue: episodes!, isSubscribed: isSubscribed),
+          for (final episode in visible) ...[
+            _EpisodeTile(
+              podcast: podcast,
+              episode: episode,
+              queue: visible,
+              isSubscribed: isSubscribed,
+              progress: progress[episode.guid],
+            ),
             const SizedBox(height: 12),
           ],
       ],
     );
   }
 
-  Widget _artworkFallback(AppColors colors, {required double size}) {
-    return Container(
-      width: size,
-      height: size,
-      color: colors.primary.withValues(alpha: 0.5),
-      child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  String _filterLabel(EpisodeFilter f) => switch (f) {
+        EpisodeFilter.todos => 'Todos',
+        EpisodeFilter.naoOuvidos => 'Não ouvidos',
+        EpisodeFilter.ouvidos => 'Ouvidos',
+      };
+}
+
+class _DownloadsTab extends ConsumerWidget {
+  const _DownloadsTab({required this.podcast});
+
+  final Podcast podcast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final downloaded = ref.watch(downloadedEpisodesProvider(podcast.id));
+    final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
+
+    return downloaded.when(
+      loading: () => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: const [_EpisodeSkeleton(), SizedBox(height: 12), _EpisodeSkeleton()],
+      ),
+      error: (_, _) => const EmptyState(
+        icon: Icons.error_outline,
+        title: 'Não foi possível carregar',
+        message: 'Os downloads desse podcast não vieram agora.',
+      ),
+      data: (episodes) {
+        if (episodes.isEmpty) {
+          return const EmptyState(
+            icon: Icons.download_outlined,
+            title: 'Nenhum episódio baixado',
+            message: 'Baixe um episódio na aba ao lado pra ouvir sem internet.',
+          );
+        }
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            for (final episode in episodes) ...[
+              _EpisodeTile(
+                podcast: podcast,
+                episode: episode,
+                queue: episodes,
+                isSubscribed: true,
+                progress: progress[episode.guid],
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      },
     );
   }
+}
+
+class _SelectableChip extends StatelessWidget {
+  const _SelectableChip({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        curve: AppMotion.standard,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? colors.primary : colors.surface,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          boxShadow: selected
+              ? null
+              : [BoxShadow(color: colors.shadow, blurRadius: 16, offset: const Offset(0, 4))],
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: selected ? colors.onAccent : colors.textMuted,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SortButton extends StatelessWidget {
+  const _SortButton({required this.current, required this.onSelected});
+
+  final EpisodeSort current;
+  final ValueChanged<EpisodeSort> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return PopupMenuButton<EpisodeSort>(
+      initialValue: current,
+      tooltip: 'Ordenar episódios',
+      icon: Icon(Icons.sort, color: colors.textMuted),
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final s in EpisodeSort.values)
+          PopupMenuItem(value: s, child: Text(_sortLabel(s))),
+      ],
+    );
+  }
+
+  String _sortLabel(EpisodeSort s) => switch (s) {
+        EpisodeSort.recentes => 'Mais recentes',
+        EpisodeSort.antigos => 'Mais antigos',
+        EpisodeSort.maisLongos => 'Mais longos',
+      };
 }
 
 class _EpisodeTile extends ConsumerWidget {
@@ -176,12 +416,14 @@ class _EpisodeTile extends ConsumerWidget {
     required this.episode,
     required this.queue,
     required this.isSubscribed,
+    this.progress,
   });
 
   final Podcast podcast;
   final Episode episode;
   final List<Episode> queue;
   final bool isSubscribed;
+  final EpisodeProgress? progress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -195,7 +437,9 @@ class _EpisodeTile extends ConsumerWidget {
         // playEpisode terminar antes de navegar deixaria o toque parecendo
         // sem resposta enquanto o áudio carrega.
         if (!isCurrent) {
-          unawaited(ref.read(playerViewModelProvider.notifier).playEpisode(podcast, episode, queue: queue));
+          unawaited(
+            ref.read(playerViewModelProvider.notifier).playEpisode(podcast, episode, queue: queue),
+          );
         }
         context.push('/player');
       },
@@ -220,6 +464,10 @@ class _EpisodeTile extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(_meta(episode), style: Theme.of(context).textTheme.bodyMedium),
+                if (progress case final p?) ...[
+                  const SizedBox(height: 8),
+                  _EpisodeProgressLine(progress: p, duration: episode.duration),
+                ],
               ],
             ),
           ),
@@ -251,6 +499,63 @@ class _EpisodeTile extends ConsumerWidget {
     final minutes = duration.inMinutes.remainder(60);
     if (hours > 0) return '${hours}h${minutes.toString().padLeft(2, '0')}min';
     return '${minutes}min';
+  }
+}
+
+/// Barra de progresso + selo "ouvido" abaixo do meta do episódio. Só
+/// aparece quando existe progresso salvo (podcast assinado + já tocado).
+class _EpisodeProgressLine extends StatelessWidget {
+  const _EpisodeProgressLine({required this.progress, required this.duration});
+
+  final EpisodeProgress progress;
+  final Duration? duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.secondary);
+
+    if (progress.completed) {
+      return Row(
+        children: [
+          Icon(Icons.check_circle, size: 14, color: colors.secondary),
+          const SizedBox(width: 4),
+          Text('Ouvido', style: style),
+        ],
+      );
+    }
+
+    if (progress.positionSeconds <= 0) return const SizedBox.shrink();
+
+    final total = duration?.inSeconds ?? 0;
+    final fraction = total > 0 ? (progress.positionSeconds / total).clamp(0.0, 1.0) : null;
+    final remaining = total > 0 ? Duration(seconds: total - progress.positionSeconds) : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          child: LinearProgressIndicator(
+            value: fraction,
+            minHeight: 3,
+            backgroundColor: colors.background,
+            valueColor: AlwaysStoppedAnimation(colors.secondary),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          remaining == null ? 'Começado' : 'Faltam ${_minutes(remaining)}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+        ),
+      ],
+    );
+  }
+
+  String _minutes(Duration d) {
+    final m = d.inMinutes;
+    if (m >= 60) return '${d.inHours}h${(m % 60).toString().padLeft(2, '0')}min';
+    return '${m}min';
   }
 }
 
@@ -326,4 +631,13 @@ class _EpisodeSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _artworkFallback(AppColors colors, {required double size}) {
+  return Container(
+    width: size,
+    height: size,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }

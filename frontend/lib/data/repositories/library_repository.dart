@@ -1,11 +1,16 @@
-import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value;
+import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value, innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
+import '../models/download_status.dart';
 import '../models/episode.dart';
 import '../models/podcast.dart';
 
 part 'library_repository.g.dart';
+
+/// Progresso de escuta de um episódio, do jeito que a lista de episódios
+/// precisa: posição atual e se já foi ouvido até o fim.
+typedef EpisodeProgress = ({int positionSeconds, bool completed});
 
 /// Biblioteca do usuário: assinaturas e o cache local de episódios, tudo em
 /// SQLite via drift. Um ViewModel nunca fala com `AppDatabase` direto — só
@@ -76,6 +81,35 @@ class LibraryRepository {
     final row = await query.getSingleOrNull();
     if (row == null) return null;
     return Duration(seconds: row.positionSeconds);
+  }
+
+  /// Progresso de escuta de todos os episódios de um podcast, ao vivo —
+  /// pra lista de episódios mostrar barra de progresso e selo "ouvido".
+  /// Mapa por `episodeGuid`; um guid ausente = nunca tocou.
+  Stream<Map<String, EpisodeProgress>> watchProgressForPodcast(int podcastId) {
+    final query = _db.select(_db.playbackProgress)..where((t) => t.podcastId.equals(podcastId));
+    return query.watch().map((rows) => {
+          for (final row in rows)
+            row.episodeGuid: (positionSeconds: row.positionSeconds, completed: row.completed),
+        });
+  }
+
+  /// Episódios de um podcast com download concluído, ao vivo — pra aba
+  /// "Baixados" do detalhe. Devolve o [Episode] completo (do cache), então
+  /// dá pra tocar e reusar o mesmo tile da aba de episódios.
+  Stream<List<Episode>> watchDownloadedEpisodes(int podcastId) {
+    final query = _db.select(_db.episodeCache).join([
+      innerJoin(
+        _db.downloads,
+        _db.downloads.podcastId.equalsExp(_db.episodeCache.podcastId) &
+            _db.downloads.episodeGuid.equalsExp(_db.episodeCache.guid) &
+            _db.downloads.status.equals(DownloadStatus.complete.name),
+      ),
+    ])
+      ..orderBy([OrderingTerm.desc(_db.episodeCache.publishedAt)]);
+    return query
+        .watch()
+        .map((rows) => rows.map((r) => _episodeFromRow(r.readTable(_db.episodeCache))).toList());
   }
 
   Future<void> savePlaybackPosition({
