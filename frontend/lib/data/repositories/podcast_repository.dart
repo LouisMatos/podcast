@@ -8,24 +8,63 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/network/dio_client.dart';
 import '../models/episode.dart';
 import '../models/podcast.dart';
+import '../sources/apple_charts_api.dart';
 import '../sources/itunes_search_api.dart';
 import '../sources/rss_feed_parser.dart';
 
 part 'podcast_repository.g.dart';
 
-/// Unifica busca (iTunes Search API) e feed (RSS) por trás de uma API só.
-/// Um ViewModel nunca fala com `ItunesSearchApi`/`RssFeedParser` direto.
+/// Um podcast do ranking, junto da sua posição (1 = mais ouvido).
+typedef RankedPodcast = ({int rank, Podcast podcast});
+
+/// Unifica busca (iTunes Search API), rankings (Apple Charts) e feed (RSS)
+/// por trás de uma API só. Um ViewModel nunca fala com os sources direto.
 class PodcastRepository {
-  PodcastRepository({required ItunesSearchApi searchApi, required RssFeedParser feedParser})
-      : _searchApi = searchApi,
-        _feedParser = feedParser;
+  PodcastRepository({
+    required ItunesSearchApi searchApi,
+    required RssFeedParser feedParser,
+    required AppleChartsApi chartsApi,
+  })  : _searchApi = searchApi,
+        _feedParser = feedParser,
+        _chartsApi = chartsApi;
 
   final ItunesSearchApi _searchApi;
   final RssFeedParser _feedParser;
+  final AppleChartsApi _chartsApi;
 
   Future<List<Podcast>> search(String term) => _searchApi.search(term);
 
   Future<List<Episode>> episodesFor(Podcast podcast) => _feedParser.fetchEpisodes(podcast.feedUrl);
+
+  /// Os [limit] podcasts mais ouvidos no Brasil, em ordem de ranking.
+  Future<List<RankedPodcast>> topPodcasts({int limit = 20}) async {
+    final ids = await _chartsApi.topPodcastIds(limit: limit);
+    return _resolveRanked(ids);
+  }
+
+  /// Os podcasts mais ouvidos no Brasil dentro de uma categoria (genreId da
+  /// Apple), em ordem de ranking.
+  Future<List<Podcast>> podcastsByGenre(int genreId, {int limit = 50}) async {
+    final ids = await _chartsApi.topPodcastIds(limit: limit, genreId: genreId);
+    final ranked = await _resolveRanked(ids);
+    return ranked.map((r) => r.podcast).toList();
+  }
+
+  /// Resolve ids em [Podcast]s e reordena pela posição original — o
+  /// `/lookup` não devolve na ordem pedida, e ids sem `feedUrl` somem.
+  Future<List<RankedPodcast>> _resolveRanked(List<int> ids) async {
+    if (ids.isEmpty) return const [];
+
+    final podcasts = await _searchApi.lookup(ids);
+    final byId = {for (final p in podcasts) p.id: p};
+
+    final ranked = <RankedPodcast>[];
+    for (var i = 0; i < ids.length; i++) {
+      final podcast = byId[ids[i]];
+      if (podcast != null) ranked.add((rank: i + 1, podcast: podcast));
+    }
+    return ranked;
+  }
 }
 
 @riverpod
@@ -34,5 +73,6 @@ PodcastRepository podcastRepository(Ref ref) {
   return PodcastRepository(
     searchApi: ItunesSearchApi(dio),
     feedParser: RssFeedParser(dio),
+    chartsApi: AppleChartsApi(dio),
   );
 }

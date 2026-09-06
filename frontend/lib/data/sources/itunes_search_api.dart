@@ -36,6 +36,28 @@ class ItunesSearchApi {
     return results.map(_toPodcast).nonNulls.toList();
   }
 
+  /// Resolve uma lista de `collectionId` em [Podcast]s completos (com
+  /// `feedUrl`) numa única chamada ao endpoint `/lookup`.
+  ///
+  /// O `/lookup` **não** garante devolver na ordem pedida — o chamador que
+  /// depende de ranking deve reordenar por [ids].
+  Future<List<Podcast>> lookup(List<int> ids) async {
+    if (ids.isEmpty) return const [];
+
+    final response = await _dio.get<String>(
+      'https://itunes.apple.com/lookup',
+      queryParameters: {'id': ids.join(','), 'entity': 'podcast'},
+      options: Options(responseType: ResponseType.plain),
+    );
+
+    final body = response.data;
+    if (body == null || body.isEmpty) return const [];
+
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final results = json['results'] as List<dynamic>? ?? const [];
+    return results.map(_toPodcast).nonNulls.toList();
+  }
+
   Podcast? _toPodcast(dynamic json) {
     if (json is! Map<String, dynamic>) return null;
 

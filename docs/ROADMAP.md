@@ -6,14 +6,18 @@
 
 ## Onde parei
 
-**v1 completa e pausada aqui, de propósito.** Fases 0–6 prontas, testadas
-de ponta a ponta no emulador Android, todas commitadas. Decisão do
-usuário: seguir só com Android por enquanto — Fase 7 (iOS) fica em espera
-até essa decisão mudar. Não é bloqueio técnico esquecido, é escolha.
+**Fase 8 em andamento** — 7 features novas, faseadas (ver "Fase 8" abaixo).
+v1 (Fases 0–6) segue completa e intacta. Fase 7 (iOS) continua pausada de
+propósito — só Android por enquanto.
 
-**Fase atual:** 7 — iOS e evolução (pausada — ver acima)
-**Última coisa concluída:** Fase 6 (polimento e testes) — retry nos estados de erro, shimmer consistente, contraste de texto corrigido, 25 testes automatizados
-**Próximo passo concreto, quando/se a Fase 7 for retomada:** instalar Xcode + CocoaPods nesta máquina, depois `UIBackgroundModes: audio` no Info.plist e `scripts/run_ios.sh`. Até lá, qualquer trabalho novo é backlog solto (ver Fase 7 abaixo) ou manutenção do que já existe.
+**Fase atual:** 8 — novas features (descoberta, progresso, player)
+**Sub-fase concluída:** 8.1 — carrossel "Mais ouvidos no Brasil" + grade de
+categorias na tela Descobrir (Apple Charts + iTunes lookup, sem backend).
+32 testes (era 25).
+**Próximo passo concreto:** Fase 8.2 — barra de progresso + "ouvido" no tile
+de episódio, busca/filtro/ordenação e aba "Baixados" na tela de detalhe.
+Ver checklist da 8.2 abaixo.
+**Plano completo da Fase 8:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
 
 ## Regra de ouro
 
@@ -226,7 +230,99 @@ Notas:
 - [ ] `UIBackgroundModes: audio` no `Info.plist`
 - [ ] Testar no simulador iOS
 - [ ] `scripts/run_ios.sh`
-- [ ] Backlog: OPML import/export, fila de reprodução, busca por categoria, sync entre aparelhos
+- [ ] Backlog: OPML import/export, fila de reprodução, sync entre aparelhos
+
+---
+
+## Fase 8 — Novas features (descoberta, progresso, player)
+
+7 features do usuário, quebradas em 4 sub-fases pausáveis. Cada sub-fase
+termina com `flutter analyze` limpo + `flutter test` verde +
+`./scripts/run_android.sh` + commit `feat: fase 8.x — ...` + esta seção e o
+`CLAUDE.md` atualizados.
+
+Decisões (brainstorm): charts via Apple Marketing Tools RSS + iTunes lookup
+(sem backend); descrição de episódio em HTML rico (pacote novo); selecionar
+episódio não dá autoplay, mas auto-avanço ao fim de um episódio na fila
+continua; equalizador só Android + slider de volume nos dois.
+
+### Fase 8.1 — Descobrir: carrossel Top 20 BR + categorias ✅
+
+- [x] `data/sources/apple_charts_api.dart` — `topPodcastIds({limit, genreId})`,
+      Marketing Tools RSS (geral) / RSS legado por gênero. Decode manual.
+- [x] `ItunesSearchApi.lookup(ids)` — resolve ids em `Podcast` completos numa
+      chamada; **não preserva ordem**, quem chama reordena.
+- [x] `PodcastRepository.topPodcasts()` / `.podcastsByGenre(genreId)` +
+      `RankedPodcast = ({int rank, Podcast podcast})`.
+- [x] `features/discover/podcast_genres.dart` — 14 categorias pt-BR → genreId Apple.
+- [x] `FeaturedViewModel` (keepAlive) e `CategoryViewModel` (family em genreId).
+- [x] Widgets compartilhados extraídos: `core/widgets/search_field.dart`,
+      `core/widgets/podcast_list_tile.dart` (+ skeleton).
+- [x] `DiscoverScreen`: carrossel horizontal com badge de rank + grade de
+      categorias quando a busca está vazia; resultados de busca inalterados.
+- [x] `features/category/` — `CategoryScreen` + rota `/discover/category`
+      (`extra` = `({int id, String label})`).
+- [x] Testes: `apple_charts_api_test`, `podcast_repository_test` (7 novos).
+
+Armadilhas:
+
+- **iTunes `/lookup` não devolve na ordem dos ids** — `PodcastRepository.
+  _resolveRanked` reordena pelo índice pedido e descarta id sem `feedUrl`.
+- Endpoints de charts (Marketing Tools e RSS legado) não mandam
+  `application/json` confiável — mesmo tratamento da Search API
+  (`ResponseType.plain` + `jsonDecode` manual).
+- Dois formatos de JSON de charts: novo (`feed.results[].id` string) e legado
+  (`feed.entry[].id.attributes["im:id"]`) — `AppleChartsApi._idOf` cobre os dois.
+- genreIds das categorias são hardcoded em `podcast_genres.dart` (1489
+  Notícias, 1303 Comédia, ...). Lista curada, não vem de API.
+- Estado de erro do carrossel é um card compacto (`_CarouselError`), **não**
+  `EmptyState` — `EmptyState` estoura o `SizedBox` de 232px de altura.
+
+### Fase 8.2 — Detalhe: progresso + busca/filtro/ordenação + aba Baixados ⬜
+
+Features 3 e 4.
+
+- [ ] `LibraryRepository.watchProgressForPodcast(id)` →
+      `Stream<Map<String, ({int positionSeconds, bool completed})>>`.
+- [ ] Provider `episodeProgress(podcastId)`; `_EpisodeTile` ganha barra de
+      progresso + selo "Ouvido".
+- [ ] `episode_list_controls.dart` — enums `EpisodeFilter`/`EpisodeSort`,
+      state Freezed, `@riverpod` family, função pura `applyEpisodeControls`.
+- [ ] `PodcastDetailScreen` vira `DefaultTabController` de 2 abas
+      ["Episódios", "Baixados"]; `TabBar` sem divisória dura.
+- [ ] Aba Episódios: `SearchField` + chips de filtro + `PopupMenuButton` de ordenação.
+- [ ] `DownloadRepository.watchForPodcast(id)` + provider + aba Baixados.
+- [ ] Testes: `library_repository_test` (drift in-memory), `episode_list_controls_test`.
+
+### Fase 8.3 — Sem autoplay ao selecionar + tela de episódio ⬜
+
+Features 5 e 7.
+
+- [ ] `PodcastAudioHandler.playQueue`/`skipToQueueItem` ganham `autoPlay`
+      (default `true`); `_onEpisodeCompleted` mantém `true`.
+- [ ] `PlayerViewModel.playEpisode(..., {bool autoPlay = false})`.
+- [ ] pubspec: `flutter_widget_from_html_core` (fallback `_stripHtml` se
+      conflitar com analyzer/intl).
+- [ ] `features/episode_detail/` — `EpisodeDetailScreen` com `MiniPlayer` no
+      rodapé, descrição em HTML, botões "Tocar"/"Pausar" e "Abrir player".
+- [ ] Rota `/episode` (root nav), `extra` = `({Podcast, Episode, List<Episode>})`.
+- [ ] `_EpisodeTile.onTap` → `/episode` (sem disparar play).
+- [ ] Testes: `player_view_model_test` (autoPlay), `episode_detail_screen_test`.
+
+### Fase 8.4 — Player: volume + equalizador ⬜
+
+Feature 6.
+
+- [ ] `PodcastAudioHandler`: `AndroidEqualizer` via `AudioPipeline` na
+      construção do `AudioPlayer`; `setVolume`, `setEqualizerEnabled`,
+      `equalizerBands()`, `setEqualizerBandGain`.
+- [ ] `PlayerState`: `volume`, `equalizerEnabled`, `equalizerBands`.
+- [ ] `PlayerViewModel`: `setVolume`, `toggleEqualizer`, `setEqualizerBand`,
+      `applyEqualizerPreset` (Flat/Voz/Grave/Agudo, com clamp).
+- [ ] `PlayerScreen`: slider de volume; `IconButton` de equalizador (só
+      Android) abrindo `_EqualizerSheet`.
+- [ ] Testes: `player_state_test` estendido.
+- [ ] Marcar Fase 8 concluída aqui e no `CLAUDE.md`.
 
 ---
 

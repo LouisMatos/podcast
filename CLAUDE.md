@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 6 concluída — ver `docs/ROADMAP.md` pra fase corrente):
+Estado atual (Fase 8.1 concluída — ver `docs/ROADMAP.md` pra fase corrente):
 
 ```text
 podcast/
@@ -52,17 +52,21 @@ podcast/
                                   antes do runApp
       app.dart                   ProviderScope/MaterialApp.router
       core/                      theme/, router/ (+ /player e /settings/downloads
-                                  fora/dentro das abas conforme o caso), network/,
-                                  database/ (drift, schemaVersion 2), widgets/
-      data/                      models/, sources/, repositories/ (Podcast, Library,
-                                  Download)
-      features/                  discover/, library/, podcast_detail/, settings/,
+                                  fora/dentro das abas, /discover/category dentro),
+                                  network/, database/ (drift, schemaVersion 2),
+                                  widgets/ (SoftCard, PillButton, SearchField,
+                                  PodcastListTile, ...)
+      data/                      models/, sources/ (itunes_search_api,
+                                  apple_charts_api, rss_feed_parser, DAOs),
+                                  repositories/ (Podcast, Library, Download)
+      features/                  discover/ (busca + carrossel Top 20 + categorias),
+                                  category/, library/, podcast_detail/, settings/,
                                   player/ (mini-player + tela cheia), downloads/
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service)
       services/download/         DownloadService (flutter_downloader)
-    test/                        25 testes — data/sources/, features/discover/,
-                                  features/player/, widget_test.dart
+    test/                        32 testes — data/sources/, data/repositories/,
+                                  features/discover/, features/player/, widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
                                   MainActivity estende AudioServiceActivity (Fase 4)
     ios/                         projeto nativo iOS (build só na Fase 7)
@@ -233,3 +237,14 @@ de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
   AppTheme.light(), ...)`** — sem isso `Theme.of(context).
   extension<AppColors>()!` estoura null-check (o `ThemeData()` default do
   Flutter não carrega nossa extensão).
+- **iTunes `/lookup` não devolve na ordem dos ids pedidos** —
+  `PodcastRepository._resolveRanked` reordena pelo índice original (o rank
+  do carrossel "Mais ouvidos") e descarta id sem `feedUrl`. Rankings vêm de
+  `AppleChartsApi` (Marketing Tools RSS geral / RSS legado por gênero),
+  ambos com o mesmo content-type ruim da Search API (`ResponseType.plain` +
+  `jsonDecode` na mão). genreIds de categoria são hardcoded em
+  `lib/features/discover/podcast_genres.dart`.
+- **Estado de erro dentro de um carrossel de altura fixa não pode ser
+  `EmptyState`** — ele tem altura natural maior que o `SizedBox` do
+  carrossel e estoura RenderFlex. Usar um card compacto (ver `_CarouselError`
+  em `discover_screen.dart`).

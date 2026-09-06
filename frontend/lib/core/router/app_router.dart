@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/podcast.dart';
+import '../../features/category/view/category_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
 import '../../features/downloads/view/downloads_screen.dart';
 import '../../features/library/view/library_screen.dart';
@@ -30,6 +31,16 @@ final GoRouter appRouter = GoRouter(
                   path: 'podcast',
                   pageBuilder: (context, state) =>
                       _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
+                ),
+                GoRoute(
+                  path: 'category',
+                  pageBuilder: (context, state) {
+                    final args = state.extra! as ({int id, String label});
+                    return _fadeSlidePage(
+                      state,
+                      CategoryScreen(genreId: args.id, label: args.label),
+                    );
+                  },
                 ),
               ],
             ),
