@@ -31,7 +31,7 @@ cada fase. Trabalho novo = uma fase do `ROADMAP_V2.md`.
 
 ## Mapa do repositório
 
-Estado atual (v1 completa; v2 Fase 10 concluída — ver `docs/ROADMAP_V2.md`):
+Estado atual (v1 completa; v2 Fase 13 concluída — ver `docs/ROADMAP_V2.md`):
 
 ```text
 podcast/
@@ -56,7 +56,7 @@ podcast/
       core/                      theme/, router/ (4 abas: Início/Descobrir/
                                   Biblioteca/Ajustes; /podcast /episode /player
                                   são rotas de topo fora da casca),
-                                  network/, database/ (drift, schemaVersion 4),
+                                  network/, database/ (drift, schemaVersion 5),
                                   prefs/ (PreferencesStore, shared_preferences),
                                   widgets/ (SoftCard, PillButton, SearchField,
                                   PodcastListTile, ...)
@@ -77,11 +77,13 @@ podcast/
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
-      services/download/         DownloadService (flutter_downloader)
+      services/download/         DownloadService (flutter_downloader) +
+                                  AutoDownloadService (auto-download/limpeza,
+                                  connectivity_plus)
       services/notifications/    NotificationService (flutter_local_notifications)
       services/sync/             background_sync (callbackDispatcher do
                                   WorkManager) + FeedSyncScheduler
-    test/                        84 testes — core/prefs/, core/database/ (migração),
+    test/                        95 testes — core/prefs/, core/database/ (migração),
                                   data/sources/, data/repositories/, features/discover/,
                                   features/podcast_detail/, features/episode_detail/,
                                   features/player/, support/ (helpers), widget_test.dart
@@ -179,7 +181,8 @@ just_audio + audio_service para player em background/lockscreen,
 flutter_downloader, `shared_preferences` para preferências,
 `flutter_widget_from_html_core` para a descrição do episódio,
 `workmanager` + `flutter_local_notifications` para refresh em background e
-aviso de episódio novo). Projeto
+aviso de episódio novo, `connectivity_plus` pra política "só no Wi-Fi" do
+auto-download). Projeto
 requer Flutter stable atual (3.47.2+ / Dart 3.13.2+) — versões mais antigas
 não resolvem freezed 4 + riverpod_generator 4 + drift_dev 2.34 juntos.
 
@@ -239,6 +242,18 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   `PreferencesStore.newEpisodeNotifications`; o dispatcher checa
   `backgroundRefreshEnabled` antes de qualquer coisa. `main.dart` inicializa
   os três (Workmanager, NotificationService, scheduler) antes do `runApp`.
+- **Gestão de episódios (v2 Fase 13)**: schema **v5** —
+  `EpisodeCache.archived` + `Subscriptions.autoDownload`/`autoDownloadLimit`/
+  `autoDeletePlayedDays`/`playbackSpeedOverride` (defaults constantes = nada
+  automático). Arquivado some das listas (`watchEpisodes`/`watchRecentEpisodes`/
+  `watchContinueListening` filtram `archived == false`); a lista do detalhe vem
+  do RSS, então o filtro usa `watchArchivedGuids` + `applyEpisodeControls
+  (archivedGuids, showArchived)`. `AutoDownloadService.run()` roda ao fim de
+  `startupFeedRefreshProvider` (main isolate — `flutter_downloader` não vive no
+  isolate do WorkManager). Ajustes por podcast = engrenagem no AppBar do
+  detalhe (`subscription_settings_sheet.dart`), escreve direto no
+  `LibraryRepository`. `playbackSpeedOverride` aplicado em
+  `PlayerViewModel._applyPodcastSpeed`.
 - **`ADD COLUMN NOT NULL` com default de expressão trava o app** — SQLite
   não aceita, a migração drift lança e o banco nunca abre (tela fica no
   shimmer pra sempre, sem erro visível). Coluna nova numa tabela existente:

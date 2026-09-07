@@ -195,4 +195,99 @@ void main() {
       expect(items.map((i) => i.podcast.id), [1, 2, 1]);
     });
   });
+
+  group('Fase 13 — gestão de episódios', () {
+    Episode ep(String guid, {DateTime? added, DateTime? published}) => Episode(
+          guid: guid,
+          title: guid,
+          audioUrl: 'u-$guid',
+          publishedAt: published,
+        );
+
+    test('setEpisodeArchived tira o episódio de watchEpisodes / watchRecentEpisodes', () async {
+      await repo.subscribe(podcast, [
+        ep('a', published: DateTime(2026, 1, 1)),
+        ep('b', published: DateTime(2026, 2, 1)),
+      ]);
+
+      await repo.setEpisodeArchived(1, 'b', true);
+
+      expect((await repo.watchEpisodes(1).first).map((e) => e.guid), ['a']);
+      expect((await repo.watchEpisodes(1, includeArchived: true).first).map((e) => e.guid).toSet(),
+          {'a', 'b'});
+      expect(await repo.watchArchivedGuids(1).first, {'b'});
+      expect((await repo.watchRecentEpisodes().first).map((e) => e.episode.guid), ['a']);
+
+      await repo.setEpisodeArchived(1, 'b', false);
+      expect(await repo.watchArchivedGuids(1).first, isEmpty);
+    });
+
+    test('setEpisodeCompleted marca / desmarca ouvido', () async {
+      await repo.subscribe(podcast, [ep('a')]);
+
+      await repo.setEpisodeCompleted(1, 'a', true);
+      expect((await repo.watchProgressForPodcast(1).first)['a']?.completed, isTrue);
+
+      await repo.setEpisodeCompleted(1, 'a', false);
+      final p = (await repo.watchProgressForPodcast(1).first)['a'];
+      expect(p?.completed, isFalse);
+      expect(p?.positionSeconds, 0);
+    });
+
+    test('updateAutoManagement + watchSubscriptionSettings', () async {
+      await repo.subscribe(podcast, [ep('a')]);
+      expect((await repo.watchSubscriptionSettings(1).first).autoDownload, AutoDownloadMode.never);
+
+      await repo.updateAutoManagement(1,
+          autoDownload: AutoDownloadMode.wifi, autoDownloadLimit: 5, autoDeletePlayedDays: 14);
+      await repo.setPlaybackSpeedOverride(1, 1.5);
+
+      final s = await repo.watchSubscriptionSettings(1).first;
+      expect(s.autoDownload, AutoDownloadMode.wifi);
+      expect(s.autoDownloadLimit, 5);
+      expect(s.autoDeletePlayedDays, 14);
+      expect(s.playbackSpeedOverride, 1.5);
+
+      await repo.setPlaybackSpeedOverride(1, null);
+      expect((await repo.watchSubscriptionSettings(1).first).playbackSpeedOverride, null);
+    });
+
+    test('recentUndownloadedEpisodes: recentes, não baixados, respeita limite', () async {
+      await repo.subscribe(podcast, [ep('a'), ep('b'), ep('c')]);
+      // `subscribe` grava addedAt = agora nos três.
+      await db.into(db.downloads).insert(DownloadsCompanion.insert(
+            podcastId: 1,
+            episodeGuid: 'a',
+            status: const Value('complete'),
+          ));
+
+      final out = await repo.recentUndownloadedEpisodes(1, limit: 5);
+      expect(out.map((e) => e.guid).toSet(), {'b', 'c'});
+
+      expect(await repo.recentUndownloadedEpisodes(1, limit: 1), hasLength(1));
+      expect(await repo.recentUndownloadedEpisodes(1, limit: 0), isEmpty);
+    });
+
+    test('playedDownloadsToPrune: só download completo + ouvido + antigo', () async {
+      await repo.subscribe(podcast, [ep('velho'), ep('novo'), ep('naoouvido')]);
+      for (final g in ['velho', 'novo', 'naoouvido']) {
+        await db.into(db.downloads).insert(DownloadsCompanion.insert(
+              podcastId: 1,
+              episodeGuid: g,
+              status: const Value('complete'),
+            ));
+      }
+      // 'velho' ouvido há 40 dias, 'novo' ouvido agora, 'naoouvido' sem progresso.
+      await db.into(db.playbackProgress).insert(PlaybackProgressCompanion.insert(
+            podcastId: 1,
+            episodeGuid: 'velho',
+            completed: const Value(true),
+            updatedAt: Value(DateTime.now().subtract(const Duration(days: 40))),
+          ));
+      await repo.setEpisodeCompleted(1, 'novo', true);
+
+      final prune = await repo.playedDownloadsToPrune(1, const Duration(days: 14));
+      expect(prune, ['velho']);
+    });
+  });
 }

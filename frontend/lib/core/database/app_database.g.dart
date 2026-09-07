@@ -103,6 +103,52 @@ class $SubscriptionsTable extends Subscriptions
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _autoDownloadMeta = const VerificationMeta(
+    'autoDownload',
+  );
+  @override
+  late final GeneratedColumn<String> autoDownload = GeneratedColumn<String>(
+    'auto_download',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('never'),
+  );
+  static const VerificationMeta _autoDownloadLimitMeta = const VerificationMeta(
+    'autoDownloadLimit',
+  );
+  @override
+  late final GeneratedColumn<int> autoDownloadLimit = GeneratedColumn<int>(
+    'auto_download_limit',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
+  static const VerificationMeta _autoDeletePlayedDaysMeta =
+      const VerificationMeta('autoDeletePlayedDays');
+  @override
+  late final GeneratedColumn<int> autoDeletePlayedDays = GeneratedColumn<int>(
+    'auto_delete_played_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _playbackSpeedOverrideMeta =
+      const VerificationMeta('playbackSpeedOverride');
+  @override
+  late final GeneratedColumn<double> playbackSpeedOverride =
+      GeneratedColumn<double>(
+        'playback_speed_override',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -114,6 +160,10 @@ class $SubscriptionsTable extends Subscriptions
     episodeCount,
     subscribedAt,
     lastRefreshedAt,
+    autoDownload,
+    autoDownloadLimit,
+    autoDeletePlayedDays,
+    playbackSpeedOverride,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -193,6 +243,42 @@ class $SubscriptionsTable extends Subscriptions
         ),
       );
     }
+    if (data.containsKey('auto_download')) {
+      context.handle(
+        _autoDownloadMeta,
+        autoDownload.isAcceptableOrUnknown(
+          data['auto_download']!,
+          _autoDownloadMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_download_limit')) {
+      context.handle(
+        _autoDownloadLimitMeta,
+        autoDownloadLimit.isAcceptableOrUnknown(
+          data['auto_download_limit']!,
+          _autoDownloadLimitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_delete_played_days')) {
+      context.handle(
+        _autoDeletePlayedDaysMeta,
+        autoDeletePlayedDays.isAcceptableOrUnknown(
+          data['auto_delete_played_days']!,
+          _autoDeletePlayedDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('playback_speed_override')) {
+      context.handle(
+        _playbackSpeedOverrideMeta,
+        playbackSpeedOverride.isAcceptableOrUnknown(
+          data['playback_speed_override']!,
+          _playbackSpeedOverrideMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -238,6 +324,22 @@ class $SubscriptionsTable extends Subscriptions
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_refreshed_at'],
       ),
+      autoDownload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}auto_download'],
+      )!,
+      autoDownloadLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}auto_download_limit'],
+      )!,
+      autoDeletePlayedDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}auto_delete_played_days'],
+      )!,
+      playbackSpeedOverride: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}playback_speed_override'],
+      ),
     );
   }
 
@@ -261,6 +363,22 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
   /// `null` = nunca desde a assinatura. Usado pra não rebuscar o mesmo feed
   /// toda hora ao abrir o app.
   final DateTime? lastRefreshedAt;
+
+  /// Gestão automática por podcast (Fase 13). Defaults = comportamento
+  /// atual (nada automático).
+  ///
+  /// `autoDownload`: `never` | `wifi` | `always`.
+  final String autoDownload;
+
+  /// Quantos episódios recentes manter baixados automaticamente.
+  final int autoDownloadLimit;
+
+  /// Apagar download já ouvido depois de N dias. `0` = nunca.
+  final int autoDeletePlayedDays;
+
+  /// Velocidade fixa pra este podcast (`null` = usa a global). Consumida
+  /// pelo player na Fase 13/14.
+  final double? playbackSpeedOverride;
   const SubscriptionRow({
     required this.id,
     required this.title,
@@ -271,6 +389,10 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     required this.episodeCount,
     required this.subscribedAt,
     this.lastRefreshedAt,
+    required this.autoDownload,
+    required this.autoDownloadLimit,
+    required this.autoDeletePlayedDays,
+    this.playbackSpeedOverride,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -289,6 +411,12 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     map['subscribed_at'] = Variable<DateTime>(subscribedAt);
     if (!nullToAbsent || lastRefreshedAt != null) {
       map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt);
+    }
+    map['auto_download'] = Variable<String>(autoDownload);
+    map['auto_download_limit'] = Variable<int>(autoDownloadLimit);
+    map['auto_delete_played_days'] = Variable<int>(autoDeletePlayedDays);
+    if (!nullToAbsent || playbackSpeedOverride != null) {
+      map['playback_speed_override'] = Variable<double>(playbackSpeedOverride);
     }
     return map;
   }
@@ -310,6 +438,12 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       lastRefreshedAt: lastRefreshedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastRefreshedAt),
+      autoDownload: Value(autoDownload),
+      autoDownloadLimit: Value(autoDownloadLimit),
+      autoDeletePlayedDays: Value(autoDeletePlayedDays),
+      playbackSpeedOverride: playbackSpeedOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(playbackSpeedOverride),
     );
   }
 
@@ -328,6 +462,14 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       episodeCount: serializer.fromJson<int>(json['episodeCount']),
       subscribedAt: serializer.fromJson<DateTime>(json['subscribedAt']),
       lastRefreshedAt: serializer.fromJson<DateTime?>(json['lastRefreshedAt']),
+      autoDownload: serializer.fromJson<String>(json['autoDownload']),
+      autoDownloadLimit: serializer.fromJson<int>(json['autoDownloadLimit']),
+      autoDeletePlayedDays: serializer.fromJson<int>(
+        json['autoDeletePlayedDays'],
+      ),
+      playbackSpeedOverride: serializer.fromJson<double?>(
+        json['playbackSpeedOverride'],
+      ),
     );
   }
   @override
@@ -343,6 +485,12 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       'episodeCount': serializer.toJson<int>(episodeCount),
       'subscribedAt': serializer.toJson<DateTime>(subscribedAt),
       'lastRefreshedAt': serializer.toJson<DateTime?>(lastRefreshedAt),
+      'autoDownload': serializer.toJson<String>(autoDownload),
+      'autoDownloadLimit': serializer.toJson<int>(autoDownloadLimit),
+      'autoDeletePlayedDays': serializer.toJson<int>(autoDeletePlayedDays),
+      'playbackSpeedOverride': serializer.toJson<double?>(
+        playbackSpeedOverride,
+      ),
     };
   }
 
@@ -356,6 +504,10 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     int? episodeCount,
     DateTime? subscribedAt,
     Value<DateTime?> lastRefreshedAt = const Value.absent(),
+    String? autoDownload,
+    int? autoDownloadLimit,
+    int? autoDeletePlayedDays,
+    Value<double?> playbackSpeedOverride = const Value.absent(),
   }) => SubscriptionRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -368,6 +520,12 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     lastRefreshedAt: lastRefreshedAt.present
         ? lastRefreshedAt.value
         : this.lastRefreshedAt,
+    autoDownload: autoDownload ?? this.autoDownload,
+    autoDownloadLimit: autoDownloadLimit ?? this.autoDownloadLimit,
+    autoDeletePlayedDays: autoDeletePlayedDays ?? this.autoDeletePlayedDays,
+    playbackSpeedOverride: playbackSpeedOverride.present
+        ? playbackSpeedOverride.value
+        : this.playbackSpeedOverride,
   );
   SubscriptionRow copyWithCompanion(SubscriptionsCompanion data) {
     return SubscriptionRow(
@@ -388,6 +546,18 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       lastRefreshedAt: data.lastRefreshedAt.present
           ? data.lastRefreshedAt.value
           : this.lastRefreshedAt,
+      autoDownload: data.autoDownload.present
+          ? data.autoDownload.value
+          : this.autoDownload,
+      autoDownloadLimit: data.autoDownloadLimit.present
+          ? data.autoDownloadLimit.value
+          : this.autoDownloadLimit,
+      autoDeletePlayedDays: data.autoDeletePlayedDays.present
+          ? data.autoDeletePlayedDays.value
+          : this.autoDeletePlayedDays,
+      playbackSpeedOverride: data.playbackSpeedOverride.present
+          ? data.playbackSpeedOverride.value
+          : this.playbackSpeedOverride,
     );
   }
 
@@ -402,7 +572,11 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
           ..write('genre: $genre, ')
           ..write('episodeCount: $episodeCount, ')
           ..write('subscribedAt: $subscribedAt, ')
-          ..write('lastRefreshedAt: $lastRefreshedAt')
+          ..write('lastRefreshedAt: $lastRefreshedAt, ')
+          ..write('autoDownload: $autoDownload, ')
+          ..write('autoDownloadLimit: $autoDownloadLimit, ')
+          ..write('autoDeletePlayedDays: $autoDeletePlayedDays, ')
+          ..write('playbackSpeedOverride: $playbackSpeedOverride')
           ..write(')'))
         .toString();
   }
@@ -418,6 +592,10 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     episodeCount,
     subscribedAt,
     lastRefreshedAt,
+    autoDownload,
+    autoDownloadLimit,
+    autoDeletePlayedDays,
+    playbackSpeedOverride,
   );
   @override
   bool operator ==(Object other) =>
@@ -431,7 +609,11 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
           other.genre == this.genre &&
           other.episodeCount == this.episodeCount &&
           other.subscribedAt == this.subscribedAt &&
-          other.lastRefreshedAt == this.lastRefreshedAt);
+          other.lastRefreshedAt == this.lastRefreshedAt &&
+          other.autoDownload == this.autoDownload &&
+          other.autoDownloadLimit == this.autoDownloadLimit &&
+          other.autoDeletePlayedDays == this.autoDeletePlayedDays &&
+          other.playbackSpeedOverride == this.playbackSpeedOverride);
 }
 
 class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
@@ -444,6 +626,10 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
   final Value<int> episodeCount;
   final Value<DateTime> subscribedAt;
   final Value<DateTime?> lastRefreshedAt;
+  final Value<String> autoDownload;
+  final Value<int> autoDownloadLimit;
+  final Value<int> autoDeletePlayedDays;
+  final Value<double?> playbackSpeedOverride;
   const SubscriptionsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -454,6 +640,10 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     this.episodeCount = const Value.absent(),
     this.subscribedAt = const Value.absent(),
     this.lastRefreshedAt = const Value.absent(),
+    this.autoDownload = const Value.absent(),
+    this.autoDownloadLimit = const Value.absent(),
+    this.autoDeletePlayedDays = const Value.absent(),
+    this.playbackSpeedOverride = const Value.absent(),
   });
   SubscriptionsCompanion.insert({
     this.id = const Value.absent(),
@@ -465,6 +655,10 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     this.episodeCount = const Value.absent(),
     this.subscribedAt = const Value.absent(),
     this.lastRefreshedAt = const Value.absent(),
+    this.autoDownload = const Value.absent(),
+    this.autoDownloadLimit = const Value.absent(),
+    this.autoDeletePlayedDays = const Value.absent(),
+    this.playbackSpeedOverride = const Value.absent(),
   }) : title = Value(title),
        author = Value(author),
        feedUrl = Value(feedUrl);
@@ -478,6 +672,10 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     Expression<int>? episodeCount,
     Expression<DateTime>? subscribedAt,
     Expression<DateTime>? lastRefreshedAt,
+    Expression<String>? autoDownload,
+    Expression<int>? autoDownloadLimit,
+    Expression<int>? autoDeletePlayedDays,
+    Expression<double>? playbackSpeedOverride,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -489,6 +687,12 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
       if (episodeCount != null) 'episode_count': episodeCount,
       if (subscribedAt != null) 'subscribed_at': subscribedAt,
       if (lastRefreshedAt != null) 'last_refreshed_at': lastRefreshedAt,
+      if (autoDownload != null) 'auto_download': autoDownload,
+      if (autoDownloadLimit != null) 'auto_download_limit': autoDownloadLimit,
+      if (autoDeletePlayedDays != null)
+        'auto_delete_played_days': autoDeletePlayedDays,
+      if (playbackSpeedOverride != null)
+        'playback_speed_override': playbackSpeedOverride,
     });
   }
 
@@ -502,6 +706,10 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     Value<int>? episodeCount,
     Value<DateTime>? subscribedAt,
     Value<DateTime?>? lastRefreshedAt,
+    Value<String>? autoDownload,
+    Value<int>? autoDownloadLimit,
+    Value<int>? autoDeletePlayedDays,
+    Value<double?>? playbackSpeedOverride,
   }) {
     return SubscriptionsCompanion(
       id: id ?? this.id,
@@ -513,6 +721,11 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
       episodeCount: episodeCount ?? this.episodeCount,
       subscribedAt: subscribedAt ?? this.subscribedAt,
       lastRefreshedAt: lastRefreshedAt ?? this.lastRefreshedAt,
+      autoDownload: autoDownload ?? this.autoDownload,
+      autoDownloadLimit: autoDownloadLimit ?? this.autoDownloadLimit,
+      autoDeletePlayedDays: autoDeletePlayedDays ?? this.autoDeletePlayedDays,
+      playbackSpeedOverride:
+          playbackSpeedOverride ?? this.playbackSpeedOverride,
     );
   }
 
@@ -546,6 +759,22 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     if (lastRefreshedAt.present) {
       map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt.value);
     }
+    if (autoDownload.present) {
+      map['auto_download'] = Variable<String>(autoDownload.value);
+    }
+    if (autoDownloadLimit.present) {
+      map['auto_download_limit'] = Variable<int>(autoDownloadLimit.value);
+    }
+    if (autoDeletePlayedDays.present) {
+      map['auto_delete_played_days'] = Variable<int>(
+        autoDeletePlayedDays.value,
+      );
+    }
+    if (playbackSpeedOverride.present) {
+      map['playback_speed_override'] = Variable<double>(
+        playbackSpeedOverride.value,
+      );
+    }
     return map;
   }
 
@@ -560,7 +789,11 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
           ..write('genre: $genre, ')
           ..write('episodeCount: $episodeCount, ')
           ..write('subscribedAt: $subscribedAt, ')
-          ..write('lastRefreshedAt: $lastRefreshedAt')
+          ..write('lastRefreshedAt: $lastRefreshedAt, ')
+          ..write('autoDownload: $autoDownload, ')
+          ..write('autoDownloadLimit: $autoDownloadLimit, ')
+          ..write('autoDeletePlayedDays: $autoDeletePlayedDays, ')
+          ..write('playbackSpeedOverride: $playbackSpeedOverride')
           ..write(')'))
         .toString();
   }
@@ -670,6 +903,21 @@ class $EpisodeCacheTable extends EpisodeCache
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<bool> archived = GeneratedColumn<bool>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     podcastId,
@@ -681,6 +929,7 @@ class $EpisodeCacheTable extends EpisodeCache
     durationSeconds,
     publishedAt,
     addedAt,
+    archived,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -765,6 +1014,12 @@ class $EpisodeCacheTable extends EpisodeCache
         addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
       );
     }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    }
     return context;
   }
 
@@ -810,6 +1065,10 @@ class $EpisodeCacheTable extends EpisodeCache
         DriftSqlType.dateTime,
         data['${effectivePrefix}added_at'],
       ),
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archived'],
+      )!,
     );
   }
 
@@ -835,6 +1094,10 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
   /// Nullable de propósito: SQLite não deixa `ADD COLUMN NOT NULL` com
   /// default de expressão — quem preenche em INSERT é o `LibraryRepository`.
   final DateTime? addedAt;
+
+  /// Arquivado (Fase 13) — some das listas mas não desassina nem apaga o
+  /// cache. Default `false` = comportamento atual.
+  final bool archived;
   const EpisodeCacheRow({
     required this.podcastId,
     required this.guid,
@@ -845,6 +1108,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     this.durationSeconds,
     this.publishedAt,
     this.addedAt,
+    required this.archived,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -868,6 +1132,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     if (!nullToAbsent || addedAt != null) {
       map['added_at'] = Variable<DateTime>(addedAt);
     }
+    map['archived'] = Variable<bool>(archived);
     return map;
   }
 
@@ -892,6 +1157,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       addedAt: addedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(addedAt),
+      archived: Value(archived),
     );
   }
 
@@ -910,6 +1176,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
       publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
       addedAt: serializer.fromJson<DateTime?>(json['addedAt']),
+      archived: serializer.fromJson<bool>(json['archived']),
     );
   }
   @override
@@ -925,6 +1192,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       'durationSeconds': serializer.toJson<int?>(durationSeconds),
       'publishedAt': serializer.toJson<DateTime?>(publishedAt),
       'addedAt': serializer.toJson<DateTime?>(addedAt),
+      'archived': serializer.toJson<bool>(archived),
     };
   }
 
@@ -938,6 +1206,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     Value<int?> durationSeconds = const Value.absent(),
     Value<DateTime?> publishedAt = const Value.absent(),
     Value<DateTime?> addedAt = const Value.absent(),
+    bool? archived,
   }) => EpisodeCacheRow(
     podcastId: podcastId ?? this.podcastId,
     guid: guid ?? this.guid,
@@ -950,6 +1219,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
         : this.durationSeconds,
     publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
     addedAt: addedAt.present ? addedAt.value : this.addedAt,
+    archived: archived ?? this.archived,
   );
   EpisodeCacheRow copyWithCompanion(EpisodeCacheCompanion data) {
     return EpisodeCacheRow(
@@ -968,6 +1238,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           ? data.publishedAt.value
           : this.publishedAt,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      archived: data.archived.present ? data.archived.value : this.archived,
     );
   }
 
@@ -982,7 +1253,8 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           ..write('imageUrl: $imageUrl, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('publishedAt: $publishedAt, ')
-          ..write('addedAt: $addedAt')
+          ..write('addedAt: $addedAt, ')
+          ..write('archived: $archived')
           ..write(')'))
         .toString();
   }
@@ -998,6 +1270,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     durationSeconds,
     publishedAt,
     addedAt,
+    archived,
   );
   @override
   bool operator ==(Object other) =>
@@ -1011,7 +1284,8 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           other.imageUrl == this.imageUrl &&
           other.durationSeconds == this.durationSeconds &&
           other.publishedAt == this.publishedAt &&
-          other.addedAt == this.addedAt);
+          other.addedAt == this.addedAt &&
+          other.archived == this.archived);
 }
 
 class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
@@ -1024,6 +1298,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
   final Value<int?> durationSeconds;
   final Value<DateTime?> publishedAt;
   final Value<DateTime?> addedAt;
+  final Value<bool> archived;
   final Value<int> rowid;
   const EpisodeCacheCompanion({
     this.podcastId = const Value.absent(),
@@ -1035,6 +1310,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.durationSeconds = const Value.absent(),
     this.publishedAt = const Value.absent(),
     this.addedAt = const Value.absent(),
+    this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EpisodeCacheCompanion.insert({
@@ -1047,6 +1323,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.durationSeconds = const Value.absent(),
     this.publishedAt = const Value.absent(),
     this.addedAt = const Value.absent(),
+    this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : podcastId = Value(podcastId),
        guid = Value(guid),
@@ -1062,6 +1339,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Expression<int>? durationSeconds,
     Expression<DateTime>? publishedAt,
     Expression<DateTime>? addedAt,
+    Expression<bool>? archived,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1074,6 +1352,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (publishedAt != null) 'published_at': publishedAt,
       if (addedAt != null) 'added_at': addedAt,
+      if (archived != null) 'archived': archived,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1088,6 +1367,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Value<int?>? durationSeconds,
     Value<DateTime?>? publishedAt,
     Value<DateTime?>? addedAt,
+    Value<bool>? archived,
     Value<int>? rowid,
   }) {
     return EpisodeCacheCompanion(
@@ -1100,6 +1380,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       publishedAt: publishedAt ?? this.publishedAt,
       addedAt: addedAt ?? this.addedAt,
+      archived: archived ?? this.archived,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1134,6 +1415,9 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     if (addedAt.present) {
       map['added_at'] = Variable<DateTime>(addedAt.value);
     }
+    if (archived.present) {
+      map['archived'] = Variable<bool>(archived.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1152,6 +1436,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
           ..write('durationSeconds: $durationSeconds, ')
           ..write('publishedAt: $publishedAt, ')
           ..write('addedAt: $addedAt, ')
+          ..write('archived: $archived, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2894,6 +3179,10 @@ typedef $$SubscriptionsTableCreateCompanionBuilder =
       Value<int> episodeCount,
       Value<DateTime> subscribedAt,
       Value<DateTime?> lastRefreshedAt,
+      Value<String> autoDownload,
+      Value<int> autoDownloadLimit,
+      Value<int> autoDeletePlayedDays,
+      Value<double?> playbackSpeedOverride,
     });
 typedef $$SubscriptionsTableUpdateCompanionBuilder =
     SubscriptionsCompanion Function({
@@ -2906,6 +3195,10 @@ typedef $$SubscriptionsTableUpdateCompanionBuilder =
       Value<int> episodeCount,
       Value<DateTime> subscribedAt,
       Value<DateTime?> lastRefreshedAt,
+      Value<String> autoDownload,
+      Value<int> autoDownloadLimit,
+      Value<int> autoDeletePlayedDays,
+      Value<double?> playbackSpeedOverride,
     });
 
 final class $$SubscriptionsTableReferences
@@ -3025,6 +3318,26 @@ class $$SubscriptionsTableFilterComposer
 
   ColumnFilters<DateTime> get lastRefreshedAt => $composableBuilder(
     column: $table.lastRefreshedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get autoDownload => $composableBuilder(
+    column: $table.autoDownload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get autoDownloadLimit => $composableBuilder(
+    column: $table.autoDownloadLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get autoDeletePlayedDays => $composableBuilder(
+    column: $table.autoDeletePlayedDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get playbackSpeedOverride => $composableBuilder(
+    column: $table.playbackSpeedOverride,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3157,6 +3470,26 @@ class $$SubscriptionsTableOrderingComposer
     column: $table.lastRefreshedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get autoDownload => $composableBuilder(
+    column: $table.autoDownload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get autoDownloadLimit => $composableBuilder(
+    column: $table.autoDownloadLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get autoDeletePlayedDays => $composableBuilder(
+    column: $table.autoDeletePlayedDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get playbackSpeedOverride => $composableBuilder(
+    column: $table.playbackSpeedOverride,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SubscriptionsTableAnnotationComposer
@@ -3200,6 +3533,26 @@ class $$SubscriptionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get lastRefreshedAt => $composableBuilder(
     column: $table.lastRefreshedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get autoDownload => $composableBuilder(
+    column: $table.autoDownload,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get autoDownloadLimit => $composableBuilder(
+    column: $table.autoDownloadLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get autoDeletePlayedDays => $composableBuilder(
+    column: $table.autoDeletePlayedDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get playbackSpeedOverride => $composableBuilder(
+    column: $table.playbackSpeedOverride,
     builder: (column) => column,
   );
 
@@ -3320,6 +3673,10 @@ class $$SubscriptionsTableTableManager
                 Value<int> episodeCount = const Value.absent(),
                 Value<DateTime> subscribedAt = const Value.absent(),
                 Value<DateTime?> lastRefreshedAt = const Value.absent(),
+                Value<String> autoDownload = const Value.absent(),
+                Value<int> autoDownloadLimit = const Value.absent(),
+                Value<int> autoDeletePlayedDays = const Value.absent(),
+                Value<double?> playbackSpeedOverride = const Value.absent(),
               }) => SubscriptionsCompanion(
                 id: id,
                 title: title,
@@ -3330,6 +3687,10 @@ class $$SubscriptionsTableTableManager
                 episodeCount: episodeCount,
                 subscribedAt: subscribedAt,
                 lastRefreshedAt: lastRefreshedAt,
+                autoDownload: autoDownload,
+                autoDownloadLimit: autoDownloadLimit,
+                autoDeletePlayedDays: autoDeletePlayedDays,
+                playbackSpeedOverride: playbackSpeedOverride,
               ),
           createCompanionCallback:
               ({
@@ -3342,6 +3703,10 @@ class $$SubscriptionsTableTableManager
                 Value<int> episodeCount = const Value.absent(),
                 Value<DateTime> subscribedAt = const Value.absent(),
                 Value<DateTime?> lastRefreshedAt = const Value.absent(),
+                Value<String> autoDownload = const Value.absent(),
+                Value<int> autoDownloadLimit = const Value.absent(),
+                Value<int> autoDeletePlayedDays = const Value.absent(),
+                Value<double?> playbackSpeedOverride = const Value.absent(),
               }) => SubscriptionsCompanion.insert(
                 id: id,
                 title: title,
@@ -3352,6 +3717,10 @@ class $$SubscriptionsTableTableManager
                 episodeCount: episodeCount,
                 subscribedAt: subscribedAt,
                 lastRefreshedAt: lastRefreshedAt,
+                autoDownload: autoDownload,
+                autoDownloadLimit: autoDownloadLimit,
+                autoDeletePlayedDays: autoDeletePlayedDays,
+                playbackSpeedOverride: playbackSpeedOverride,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3477,6 +3846,7 @@ typedef $$EpisodeCacheTableCreateCompanionBuilder =
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
       Value<DateTime?> addedAt,
+      Value<bool> archived,
       Value<int> rowid,
     });
 typedef $$EpisodeCacheTableUpdateCompanionBuilder =
@@ -3490,6 +3860,7 @@ typedef $$EpisodeCacheTableUpdateCompanionBuilder =
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
       Value<DateTime?> addedAt,
+      Value<bool> archived,
       Value<int> rowid,
     });
 
@@ -3562,6 +3933,11 @@ class $$EpisodeCacheTableFilterComposer
 
   ColumnFilters<DateTime> get addedAt => $composableBuilder(
     column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archived => $composableBuilder(
+    column: $table.archived,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3638,6 +4014,11 @@ class $$EpisodeCacheTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SubscriptionsTableOrderingComposer get podcastId {
     final $$SubscriptionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3701,6 +4082,9 @@ class $$EpisodeCacheTableAnnotationComposer
   GeneratedColumn<DateTime> get addedAt =>
       $composableBuilder(column: $table.addedAt, builder: (column) => column);
 
+  GeneratedColumn<bool> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
   $$SubscriptionsTableAnnotationComposer get podcastId {
     final $$SubscriptionsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -3762,6 +4146,7 @@ class $$EpisodeCacheTableTableManager
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
                 Value<DateTime?> addedAt = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion(
                 podcastId: podcastId,
@@ -3773,6 +4158,7 @@ class $$EpisodeCacheTableTableManager
                 durationSeconds: durationSeconds,
                 publishedAt: publishedAt,
                 addedAt: addedAt,
+                archived: archived,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3786,6 +4172,7 @@ class $$EpisodeCacheTableTableManager
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
                 Value<DateTime?> addedAt = const Value.absent(),
+                Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion.insert(
                 podcastId: podcastId,
@@ -3797,6 +4184,7 @@ class $$EpisodeCacheTableTableManager
                 durationSeconds: durationSeconds,
                 publishedAt: publishedAt,
                 addedAt: addedAt,
+                archived: archived,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

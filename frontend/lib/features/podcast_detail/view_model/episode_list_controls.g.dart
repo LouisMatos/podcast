@@ -65,7 +65,7 @@ final class EpisodeListControlsProvider
 }
 
 String _$episodeListControlsHash() =>
-    r'caf96837b386d3ba73ae7190f08df1bd3e5fb208';
+    r'eef6017fa8fa381c1ab4741b565eac663bbd338c';
 
 /// Busca / filtro / ordenação da lista de episódios do detalhe. `family`
 /// por `podcastId` — só estado de UI, não toca em rede.

@@ -14,7 +14,10 @@ import '../../core/network/dio_client.dart';
 import '../models/download_status.dart';
 import '../models/episode.dart';
 import '../models/podcast.dart';
+import '../models/subscription_settings.dart';
 import '../sources/rss_feed_parser.dart';
+
+export '../models/subscription_settings.dart';
 
 part 'library_repository.g.dart';
 
@@ -58,11 +61,43 @@ class LibraryRepository {
     return query.watchSingleOrNull().map((row) => row != null);
   }
 
-  Stream<List<Episode>> watchEpisodes(int podcastId) {
+  Stream<List<Episode>> watchEpisodes(int podcastId, {bool includeArchived = false}) {
     final query = _db.select(_db.episodeCache)
       ..where((t) => t.podcastId.equals(podcastId))
       ..orderBy([(t) => OrderingTerm.desc(t.publishedAt)]);
+    if (!includeArchived) query.where((t) => t.archived.equals(false));
     return query.watch().map((rows) => rows.map(_episodeFromRow).toList());
+  }
+
+  /// Guids arquivados de um podcast, ao vivo (Fase 13). A lista do detalhe
+  /// vem do RSS ao vivo, não do cache — então o filtro de arquivados é
+  /// aplicado na View com este conjunto, igual ao progresso.
+  Stream<Set<String>> watchArchivedGuids(int podcastId) {
+    final query = _db.select(_db.episodeCache)
+      ..where((t) => t.podcastId.equals(podcastId) & t.archived.equals(true));
+    return query.watch().map((rows) => {for (final row in rows) row.guid});
+  }
+
+  /// Arquiva / desarquiva um episódio (no-op se não estiver no cache —
+  /// só episódio de podcast assinado tem linha).
+  Future<void> setEpisodeArchived(int podcastId, String episodeGuid, bool archived) {
+    return (_db.update(_db.episodeCache)
+          ..where((t) => t.podcastId.equals(podcastId) & t.guid.equals(episodeGuid)))
+        .write(EpisodeCacheCompanion(archived: Value(archived)));
+  }
+
+  /// Marca ouvido / não-ouvido na mão (Fase 13). "Não ouvido" zera a
+  /// posição; "ouvido" só levanta a flag.
+  Future<void> setEpisodeCompleted(int podcastId, String episodeGuid, bool completed) {
+    return _db.into(_db.playbackProgress).insertOnConflictUpdate(
+          PlaybackProgressCompanion.insert(
+            podcastId: podcastId,
+            episodeGuid: episodeGuid,
+            positionSeconds: const Value(0),
+            completed: Value(completed),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
   }
 
   /// Mesma lista de [watchEpisodes], mas uma leitura só — usada como
@@ -70,10 +105,11 @@ class LibraryRepository {
   /// já existe cache de uma visita anterior. Sem isso, um episódio baixado
   /// fica inacessível em modo avião: a tela de detalhe travaria no erro de
   /// rede antes de sequer mostrar a lista.
-  Future<List<Episode>> cachedEpisodes(int podcastId) async {
+  Future<List<Episode>> cachedEpisodes(int podcastId, {bool includeArchived = false}) async {
     final query = _db.select(_db.episodeCache)
       ..where((t) => t.podcastId.equals(podcastId))
       ..orderBy([(t) => OrderingTerm.desc(t.publishedAt)]);
+    if (!includeArchived) query.where((t) => t.archived.equals(false));
     final rows = await query.get();
     return rows.map(_episodeFromRow).toList();
   }
@@ -212,7 +248,8 @@ class LibraryRepository {
     ])
       ..where(
         _db.playbackProgress.completed.equals(false) &
-            _db.playbackProgress.positionSeconds.isBiggerThan(const Constant(0)),
+            _db.playbackProgress.positionSeconds.isBiggerThan(const Constant(0)) &
+            _db.episodeCache.archived.equals(false),
       )
       ..orderBy([OrderingTerm.desc(_db.playbackProgress.updatedAt)])
       ..limit(limit);
@@ -236,7 +273,10 @@ class LibraryRepository {
         _db.subscriptions.id.equalsExp(_db.episodeCache.podcastId),
       ),
     ])
-      ..where(_db.episodeCache.publishedAt.isNotNull())
+      ..where(
+        _db.episodeCache.publishedAt.isNotNull() &
+            _db.episodeCache.archived.equals(false),
+      )
       ..orderBy([OrderingTerm.desc(_db.episodeCache.publishedAt)])
       ..limit(limit);
 
@@ -265,6 +305,106 @@ class LibraryRepository {
           ),
         );
   }
+
+  // ---- Gestão automática por podcast (Fase 13) ----
+
+  Stream<SubscriptionSettings> watchSubscriptionSettings(int podcastId) {
+    final query = _db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId));
+    return query.watchSingleOrNull().map(
+          (row) => row == null ? defaultSubscriptionSettings : _settingsFromRow(row),
+        );
+  }
+
+  Future<List<({Podcast podcast, SubscriptionSettings settings})>>
+      allSubscriptionsWithSettings() async {
+    final rows = await _db.select(_db.subscriptions).get();
+    return [
+      for (final row in rows) (podcast: _podcastFromRow(row), settings: _settingsFromRow(row)),
+    ];
+  }
+
+  Future<void> updateAutoManagement(
+    int podcastId, {
+    AutoDownloadMode? autoDownload,
+    int? autoDownloadLimit,
+    int? autoDeletePlayedDays,
+  }) {
+    return (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId))).write(
+      SubscriptionsCompanion(
+        autoDownload:
+            autoDownload == null ? const Value.absent() : Value(autoDownload.name),
+        autoDownloadLimit: autoDownloadLimit == null
+            ? const Value.absent()
+            : Value(autoDownloadLimit),
+        autoDeletePlayedDays: autoDeletePlayedDays == null
+            ? const Value.absent()
+            : Value(autoDeletePlayedDays),
+      ),
+    );
+  }
+
+  /// `null` volta pra velocidade global.
+  Future<void> setPlaybackSpeedOverride(int podcastId, double? speed) {
+    return (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
+        .write(SubscriptionsCompanion(playbackSpeedOverride: Value(speed)));
+  }
+
+  /// Episódios recentes (entraram no cache dentro de [within]) de um podcast
+  /// que ainda não têm download — candidatos ao auto-download.
+  Future<List<Episode>> recentUndownloadedEpisodes(
+    int podcastId, {
+    required int limit,
+    Duration within = const Duration(days: 7),
+  }) async {
+    if (limit <= 0) return const [];
+    final cutoff = DateTime.now().subtract(within);
+    // Sem `LIMIT` no SQL de propósito: o corte por `limit` é aplicado
+    // depois de tirar os que já têm download.
+    final recent = await (_db.select(_db.episodeCache)
+          ..where((t) =>
+              t.podcastId.equals(podcastId) &
+              t.archived.equals(false) &
+              t.addedAt.isBiggerThanValue(cutoff))
+          ..orderBy([(t) => OrderingTerm.desc(t.addedAt)]))
+        .get();
+    final downloadedGuids = {
+      for (final row
+          in await (_db.select(_db.downloads)..where((t) => t.podcastId.equals(podcastId))).get())
+        row.episodeGuid,
+    };
+    return [
+      for (final row in recent)
+        if (!downloadedGuids.contains(row.guid)) _episodeFromRow(row),
+    ].take(limit).toList();
+  }
+
+  /// Guids de downloads concluídos + ouvidos até o fim há mais de
+  /// [olderThan] — candidatos à limpeza automática.
+  Future<List<String>> playedDownloadsToPrune(int podcastId, Duration olderThan) async {
+    final cutoff = DateTime.now().subtract(olderThan);
+    final query = _db.select(_db.downloads).join([
+      innerJoin(
+        _db.playbackProgress,
+        _db.playbackProgress.podcastId.equalsExp(_db.downloads.podcastId) &
+            _db.playbackProgress.episodeGuid.equalsExp(_db.downloads.episodeGuid) &
+            _db.playbackProgress.completed.equals(true) &
+            _db.playbackProgress.updatedAt.isSmallerThanValue(cutoff),
+      ),
+    ])
+      ..where(
+        _db.downloads.podcastId.equals(podcastId) &
+            _db.downloads.status.equals(DownloadStatus.complete.name),
+      );
+    final rows = await query.get();
+    return [for (final row in rows) row.readTable(_db.downloads).episodeGuid];
+  }
+
+  SubscriptionSettings _settingsFromRow(SubscriptionRow row) => (
+        autoDownload: AutoDownloadMode.fromName(row.autoDownload),
+        autoDownloadLimit: row.autoDownloadLimit,
+        autoDeletePlayedDays: row.autoDeletePlayedDays,
+        playbackSpeedOverride: row.playbackSpeedOverride,
+      );
 
   Future<void> _cacheEpisodes(int podcastId, List<Episode> episodes) {
     final now = DateTime.now();

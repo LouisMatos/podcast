@@ -23,6 +23,22 @@ class Subscriptions extends Table {
   /// toda hora ao abrir o app.
   DateTimeColumn get lastRefreshedAt => dateTime().nullable()();
 
+  /// Gestão automática por podcast (Fase 13). Defaults = comportamento
+  /// atual (nada automático).
+  ///
+  /// `autoDownload`: `never` | `wifi` | `always`.
+  TextColumn get autoDownload => text().withDefault(const Constant('never'))();
+
+  /// Quantos episódios recentes manter baixados automaticamente.
+  IntColumn get autoDownloadLimit => integer().withDefault(const Constant(3))();
+
+  /// Apagar download já ouvido depois de N dias. `0` = nunca.
+  IntColumn get autoDeletePlayedDays => integer().withDefault(const Constant(0))();
+
+  /// Velocidade fixa pra este podcast (`null` = usa a global). Consumida
+  /// pelo player na Fase 13/14.
+  RealColumn get playbackSpeedOverride => real().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -48,6 +64,10 @@ class EpisodeCache extends Table {
   /// Nullable de propósito: SQLite não deixa `ADD COLUMN NOT NULL` com
   /// default de expressão — quem preenche em INSERT é o `LibraryRepository`.
   DateTimeColumn get addedAt => dateTime().nullable()();
+
+  /// Arquivado (Fase 13) — some das listas mas não desassina nem apaga o
+  /// cache. Default `false` = comportamento atual.
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {podcastId, guid};

@@ -65,4 +65,22 @@ void main() {
     final out = applyEpisodeControls([a, noDate, b], const EpisodeListControlsState(), progress);
     expect(out.last.guid, 'z');
   });
+
+  test('arquivados: some por padrão; showArchived inverte (Fase 13)', () {
+    final semArquivado = applyEpisodeControls(
+      episodes,
+      const EpisodeListControlsState(),
+      progress,
+      archivedGuids: {'b'},
+    );
+    expect(semArquivado.map((e) => e.guid).toSet(), {'a', 'c'});
+
+    final soArquivados = applyEpisodeControls(
+      episodes,
+      const EpisodeListControlsState(showArchived: true),
+      progress,
+      archivedGuids: {'b'},
+    );
+    expect(soArquivados.map((e) => e.guid), ['b']);
+  });
 }

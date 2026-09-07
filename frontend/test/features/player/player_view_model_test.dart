@@ -63,6 +63,8 @@ void main() {
     final dl = _MockDownloads();
     final q = _MockQueue();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
+    when(() => lib.watchSubscriptionSettings(any()))
+        .thenAnswer((_) => Stream.value(defaultSubscriptionSettings));
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
     when(() => q.replaceWith(any())).thenAnswer((_) async {});
     when(() => q.playNow(any(), any())).thenAnswer((_) async {});
@@ -127,6 +129,8 @@ void main() {
     final dl = _MockDownloads();
     final q = _MockQueue();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
+    when(() => lib.watchSubscriptionSettings(any()))
+        .thenAnswer((_) => Stream.value(defaultSubscriptionSettings));
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
     final c = ProviderContainer(overrides: [
       audioHandlerProvider.overrideWithValue(handler),

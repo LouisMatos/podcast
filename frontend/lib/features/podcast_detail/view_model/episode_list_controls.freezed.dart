@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$EpisodeListControlsState {
 
- String get query; EpisodeFilter get filter; EpisodeSort get sort;
+ String get query; EpisodeFilter get filter; EpisodeSort get sort; bool get showArchived;
 /// Create a copy of EpisodeListControlsState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $EpisodeListControlsStateCopyWith<EpisodeListControlsState> get copyWith => _$Ep
 @override
 bool operator ==(Object other) {
   final _this = this as EpisodeListControlsState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EpisodeListControlsState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.filter, _this.filter) || other.filter == _this.filter)&&(identical(other.sort, _this.sort) || other.sort == _this.sort));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EpisodeListControlsState&&(identical(other.query, _this.query) || other.query == _this.query)&&(identical(other.filter, _this.filter) || other.filter == _this.filter)&&(identical(other.sort, _this.sort) || other.sort == _this.sort)&&(identical(other.showArchived, _this.showArchived) || other.showArchived == _this.showArchived));
 }
 
 
 @override
 int get hashCode {
   final _this = this as EpisodeListControlsState;
-  return Object.hash(runtimeType,_this.query,_this.filter,_this.sort);
+  return Object.hash(runtimeType,_this.query,_this.filter,_this.sort,_this.showArchived);
 }
 
 @override
 String toString() {
   final _this = this as EpisodeListControlsState;
-  return 'EpisodeListControlsState(query: ${_this.query}, filter: ${_this.filter}, sort: ${_this.sort})';
+  return 'EpisodeListControlsState(query: ${_this.query}, filter: ${_this.filter}, sort: ${_this.sort}, showArchived: ${_this.showArchived})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $EpisodeListControlsStateCopyWith<$Res>  {
   factory $EpisodeListControlsStateCopyWith(EpisodeListControlsState value, $Res Function(EpisodeListControlsState) _then) = _$EpisodeListControlsStateCopyWithImpl;
 @useResult
 $Res call({
- String query, EpisodeFilter filter, EpisodeSort sort
+ String query, EpisodeFilter filter, EpisodeSort sort, bool showArchived
 });
 
 
@@ -68,12 +68,13 @@ class _$EpisodeListControlsStateCopyWithImpl<$Res>
 
 /// Create a copy of EpisodeListControlsState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? filter = null,Object? sort = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? query = null,Object? filter = null,Object? sort = null,Object? showArchived = null,}) {
   return _then(EpisodeListControlsState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
 as EpisodeFilter,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
-as EpisodeSort,
+as EpisodeSort,showArchived: null == showArchived ? _self.showArchived : showArchived // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  EpisodeFilter filter,  EpisodeSort sort)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String query,  EpisodeFilter filter,  EpisodeSort sort,  bool showArchived)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EpisodeListControlsState() when $default != null:
-return $default(_that.query,_that.filter,_that.sort);case _:
+return $default(_that.query,_that.filter,_that.sort,_that.showArchived);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.query,_that.filter,_that.sort);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  EpisodeFilter filter,  EpisodeSort sort)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String query,  EpisodeFilter filter,  EpisodeSort sort,  bool showArchived)  $default,) {final _that = this;
 switch (_that) {
 case _EpisodeListControlsState():
-return $default(_that.query,_that.filter,_that.sort);case _:
+return $default(_that.query,_that.filter,_that.sort,_that.showArchived);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.query,_that.filter,_that.sort);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  EpisodeFilter filter,  EpisodeSort sort)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String query,  EpisodeFilter filter,  EpisodeSort sort,  bool showArchived)?  $default,) {final _that = this;
 switch (_that) {
 case _EpisodeListControlsState() when $default != null:
-return $default(_that.query,_that.filter,_that.sort);case _:
+return $default(_that.query,_that.filter,_that.sort,_that.showArchived);case _:
   return null;
 
 }
@@ -214,12 +215,13 @@ return $default(_that.query,_that.filter,_that.sort);case _:
 
 
 class _EpisodeListControlsState implements EpisodeListControlsState {
-  const _EpisodeListControlsState({this.query = '', this.filter = EpisodeFilter.todos, this.sort = EpisodeSort.recentes});
+  const _EpisodeListControlsState({this.query = '', this.filter = EpisodeFilter.todos, this.sort = EpisodeSort.recentes, this.showArchived = false});
   
 
 @override@JsonKey() final  String query;
 @override@JsonKey() final  EpisodeFilter filter;
 @override@JsonKey() final  EpisodeSort sort;
+@override@JsonKey() final  bool showArchived;
 
 /// Create a copy of EpisodeListControlsState
 /// with the given fields replaced by the non-null parameter values.
@@ -231,18 +233,18 @@ _$EpisodeListControlsStateCopyWith<_EpisodeListControlsState> get copyWith => __
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _EpisodeListControlsState&&(identical(other.query, query) || other.query == query)&&(identical(other.filter, filter) || other.filter == filter)&&(identical(other.sort, sort) || other.sort == sort));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _EpisodeListControlsState&&(identical(other.query, query) || other.query == query)&&(identical(other.filter, filter) || other.filter == filter)&&(identical(other.sort, sort) || other.sort == sort)&&(identical(other.showArchived, showArchived) || other.showArchived == showArchived));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,query,filter,sort);
+    return Object.hash(runtimeType,query,filter,sort,showArchived);
 }
 
 @override
 String toString() {
-    return 'EpisodeListControlsState(query: $query, filter: $filter, sort: $sort)';
+    return 'EpisodeListControlsState(query: $query, filter: $filter, sort: $sort, showArchived: $showArchived)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$EpisodeListControlsStateCopyWith<$Res> implements $Episod
   factory _$EpisodeListControlsStateCopyWith(_EpisodeListControlsState value, $Res Function(_EpisodeListControlsState) _then) = __$EpisodeListControlsStateCopyWithImpl;
 @override @useResult
 $Res call({
- String query, EpisodeFilter filter, EpisodeSort sort
+ String query, EpisodeFilter filter, EpisodeSort sort, bool showArchived
 });
 
 
@@ -270,12 +272,13 @@ class __$EpisodeListControlsStateCopyWithImpl<$Res>
 
 /// Create a copy of EpisodeListControlsState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? filter = null,Object? sort = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? query = null,Object? filter = null,Object? sort = null,Object? showArchived = null,}) {
   return _then(_EpisodeListControlsState(
 query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,filter: null == filter ? _self.filter : filter // ignore: cast_nullable_to_non_nullable
 as EpisodeFilter,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
-as EpisodeSort,
+as EpisodeSort,showArchived: null == showArchived ? _self.showArchived : showArchived // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

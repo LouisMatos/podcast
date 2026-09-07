@@ -12,12 +12,11 @@
 
 ## Onde parei
 
-**Fase 10 concluída** (refresh em background + notificação). 84 testes
-(era 74), `dart analyze` limpo, verificado no emulador (task do WorkManager
-registra + roda o isolate de background com sucesso, feeds atualizam sem
-abrir o app, toggles de Ajustes persistem e reagendam). Próximo: **Fase 13**
-(gestão de episódios).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 → 15 → 14 → 16 → 17 → 18**.
+**Fase 13 concluída** (gestão de episódios). 95 testes (era 84), `dart
+analyze` limpo, verificado no emulador (schema v5 migra, ajustes do podcast
+reativos e persistem, arquivar/desarquivar + filtro "arquivados", marcar
+ouvido). Próximo: **Fase 15** (transições e gestos).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -228,26 +227,38 @@ tem que ser `keepAlive` (`queueProvider`). E `playEpisode`/`_syncQueue` fazem
 `if (!ref.mounted) return` depois de cada `await` (senão um teste que não
 espera a Future explode com "Ref after dispose").
 
-## Fase 13 — Gestão de episódios · ALTO · M
+## Fase 13 — Gestão de episódios · ALTO · M ✅
 
-- [ ] Marcar ouvido / não-ouvido manual (menu do tile + swipe na Fase 15) —
-      escreve `PlaybackProgress.completed`.
-- [ ] Arquivar episódio — schema v5: `EpisodeCache.archived` (`bool`, false).
-      Some das listas, não desassina. Filtro "mostrar arquivados".
-- [ ] Schema v5: config por assinatura (`SubscriptionSettings` ou colunas em
-      `Subscriptions`): `autoDownload` (`nunca`/`wifi`/`sempre`),
-      `autoDownloadLimit` (int), `autoDeletePlayedDays` (int, 0 = nunca),
-      `playbackSpeedOverride` (double?).
-- [ ] Auto-download: ao fim de `refreshAllSubscriptions()`, pra cada assinatura
-      com `autoDownload != nunca`, baixa os N novos mais recentes via
-      `DownloadService` (wifi via dep `connectivity_plus`).
-- [ ] Limpeza automática: junto do refresh, remove downloads `complete` +
-      ouvidos há mais de `autoDeletePlayedDays` dias.
-- [ ] Config por podcast (engrenagem no detalhe) + defaults globais em Ajustes.
-- [ ] Testes: política de auto-download (unit); limpeza (drift in-memory).
+- [x] Marcar ouvido / não-ouvido manual — `LibraryRepository.setEpisodeCompleted`
+      (grava `PlaybackProgress.completed`, zera a posição). No menu "⋮" do tile
+      (`QueueMenuButton` ganhou `manage`), só pra podcast assinado.
+- [x] Arquivar episódio — schema **v5**: `EpisodeCache.archived`
+      (`boolean().withDefault(false)`). `setEpisodeArchived` +
+      `watchArchivedGuids`. Some de `watchEpisodes`/`watchRecentEpisodes`/
+      `watchContinueListening`; `applyEpisodeControls` ganhou `archivedGuids` +
+      `showArchived`; chip "Mostrar arquivados" no detalhe.
+- [x] Schema **v5**: `Subscriptions` ganha `autoDownload` (`never`/`wifi`/
+      `always`), `autoDownloadLimit` (3), `autoDeletePlayedDays` (0),
+      `playbackSpeedOverride` (`real?`). Migração = 5 `addColumn` com default
+      constante. `SubscriptionSettings` (typedef) + `watchSubscriptionSettings`/
+      `updateAutoManagement`/`setPlaybackSpeedOverride`.
+- [x] Auto-download + limpeza — `AutoDownloadService`
+      (`services/download/auto_download_service.dart`, dep `connectivity_plus`):
+      roda ao fim de `startupFeedRefreshProvider`. Por assinatura com
+      `autoDownload != never` (e wifi quando `wifi`), baixa
+      `recentUndownloadedEpisodes(limit)`; com `autoDeletePlayedDays > 0`,
+      remove `playedDownloadsToPrune(dias)` via `DownloadService.remove`.
+- [x] Config por podcast — engrenagem (`Icons.tune`) no AppBar do detalhe
+      (só assinado) → `subscription_settings_sheet.dart` (SegmentedButton +
+      stepper + ChoiceChips, reativo, escreve direto no repo).
+- [x] Velocidade por podcast — `PlayerViewModel.playEpisode` chama
+      `_applyPodcastSpeed` (usa `playbackSpeedOverride`, cai pra global).
+- [x] Testes: `library_repository_test` grupo "Fase 13" (5),
+      `auto_download_service_test` (4), `episode_list_controls_test` (arquivados),
+      `migration_v4_to_v5_test`. 95 no total.
 
-**Não quebra:** defaults = tudo desligado → comportamento atual idêntico.
-Precisa da Fase 9 (gatilho no refresh).
+**Não quebrou:** defaults = tudo desligado → comportamento idêntico.
+Global defaults em Ajustes ficaram de fora (per-podcast cobre; nice-to-have).
 
 ## Fase 14 — Player avançado · ALTO · esforço G
 

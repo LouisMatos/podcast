@@ -26,6 +26,8 @@ import '../view_model/downloaded_episodes_provider.dart';
 import '../view_model/episode_list_controls.dart';
 import '../view_model/episode_progress_provider.dart';
 import '../view_model/podcast_detail_view_model.dart';
+import '../view_model/subscription_settings_provider.dart';
+import 'subscription_settings_sheet.dart';
 
 class PodcastDetailScreen extends ConsumerWidget {
   const PodcastDetailScreen({super.key, required this.podcast});
@@ -37,8 +39,20 @@ class PodcastDetailScreen extends ConsumerWidget {
     final detail = ref.watch(podcastDetailViewModelProvider(podcast));
     final notifier = ref.read(podcastDetailViewModelProvider(podcast).notifier);
 
+    final isSubscribed = ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+
     return Scaffold(
-      appBar: AppBar(title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(
+        title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (isSubscribed)
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Ajustes do podcast',
+              onPressed: () => showSubscriptionSettings(context, podcast.id),
+            ),
+        ],
+      ),
       // Rota de topo (fora da casca) — monta o próprio mini-player, igual
       // à tela de episódio.
       bottomNavigationBar: const MiniPlayer(),
@@ -237,7 +251,8 @@ class _EpisodesTab extends ConsumerWidget {
     final controls = ref.watch(episodeListControlsProvider(podcast.id));
     final controlsNotifier = ref.read(episodeListControlsProvider(podcast.id).notifier);
     final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
-    final visible = applyEpisodeControls(episodes!, controls, progress);
+    final archived = ref.watch(archivedGuidsProvider(podcast.id)).value ?? const <String>{};
+    final visible = applyEpisodeControls(episodes!, controls, progress, archivedGuids: archived);
 
     return RefreshIndicator(
       onRefresh: () => ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
@@ -271,6 +286,17 @@ class _EpisodesTab extends ConsumerWidget {
             _SortButton(current: controls.sort, onSelected: controlsNotifier.setSort),
           ],
         ),
+        if (isSubscribed && (controls.showArchived || archived.isNotEmpty)) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _SelectableChip(
+              label: controls.showArchived ? 'Vendo arquivados' : 'Mostrar arquivados',
+              selected: controls.showArchived,
+              onTap: controlsNotifier.toggleShowArchived,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         if (visible.isEmpty)
           Padding(
@@ -289,6 +315,7 @@ class _EpisodesTab extends ConsumerWidget {
               queue: visible,
               isSubscribed: isSubscribed,
               progress: progress[episode.guid],
+              isArchived: archived.contains(episode.guid),
             ),
             const SizedBox(height: 12),
           ],
@@ -342,6 +369,7 @@ class _DownloadsTab extends ConsumerWidget {
                 queue: episodes,
                 isSubscribed: true,
                 progress: progress[episode.guid],
+                isArchived: false,
               ),
               const SizedBox(height: 12),
             ],
@@ -422,6 +450,7 @@ class _EpisodeTile extends ConsumerWidget {
     required this.episode,
     required this.queue,
     required this.isSubscribed,
+    required this.isArchived,
     this.progress,
   });
 
@@ -429,6 +458,7 @@ class _EpisodeTile extends ConsumerWidget {
   final Episode episode;
   final List<Episode> queue;
   final bool isSubscribed;
+  final bool isArchived;
   final EpisodeProgress? progress;
 
   @override
@@ -483,7 +513,26 @@ class _EpisodeTile extends ConsumerWidget {
               ],
             ),
           ),
-          QueueMenuButton(podcast: podcast, episode: episode),
+          QueueMenuButton(
+            podcast: podcast,
+            episode: episode,
+            manage: isSubscribed
+                ? (
+                    isCompleted: progress?.completed ?? false,
+                    isArchived: isArchived,
+                    onToggleCompleted: () => ref.read(libraryRepositoryProvider).setEpisodeCompleted(
+                          podcast.id,
+                          episode.guid,
+                          !(progress?.completed ?? false),
+                        ),
+                    onToggleArchived: () => ref.read(libraryRepositoryProvider).setEpisodeArchived(
+                          podcast.id,
+                          episode.guid,
+                          !isArchived,
+                        ),
+                  )
+                : null,
+          ),
           if (isSubscribed) DownloadButton(podcast: podcast, episode: episode),
         ],
       ),

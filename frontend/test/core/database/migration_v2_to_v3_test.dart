@@ -64,7 +64,7 @@ void main() {
 
     // Abrir com o schema atual roda v2→3→4 em sequência.
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.data.values.first, 4);
+    expect(version.data.values.first, 5);
 
     final subCols = await db
         .customSelect("SELECT name FROM pragma_table_info('subscriptions')")

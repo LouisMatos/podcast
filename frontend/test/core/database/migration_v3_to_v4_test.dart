@@ -61,7 +61,7 @@ void main() {
     expect(queued.map((r) => r.data['episode_guid']), ['g1']);
 
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.data.values.first, 4);
+    expect(version.data.values.first, 5);
 
     // dado antigo intacto
     final eps = await db.customSelect('SELECT guid FROM episode_cache').get();

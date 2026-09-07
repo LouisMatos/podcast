@@ -154,6 +154,17 @@ class PlayerViewModel extends _$PlayerViewModel {
     // O equalizador do device só fica disponível depois que um áudio foi
     // carregado. Android apenas.
     unawaited(_loadEqualizer());
+    unawaited(_applyPodcastSpeed(podcast.id));
+  }
+
+  /// Velocidade fixa por podcast (Fase 13) — `null` volta pra global salva.
+  Future<void> _applyPodcastSpeed(int podcastId) async {
+    final settings = await ref.read(libraryRepositoryProvider).watchSubscriptionSettings(podcastId).first;
+    if (!ref.mounted) return;
+    final target = settings.playbackSpeedOverride ?? _prefs.playbackSpeed;
+    if (target == state.speed) return;
+    unawaited(_handler.setSpeed(target));
+    state = state.copyWith(speed: target);
   }
 
   /// "Adicionar à fila" — vai pro fim.

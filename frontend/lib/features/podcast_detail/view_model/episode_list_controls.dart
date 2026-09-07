@@ -17,6 +17,7 @@ abstract class EpisodeListControlsState with _$EpisodeListControlsState {
     @Default('') String query,
     @Default(EpisodeFilter.todos) EpisodeFilter filter,
     @Default(EpisodeSort.recentes) EpisodeSort sort,
+    @Default(false) bool showArchived,
   }) = _EpisodeListControlsState;
 }
 
@@ -30,6 +31,7 @@ class EpisodeListControls extends _$EpisodeListControls {
   void setQuery(String query) => state = state.copyWith(query: query);
   void setFilter(EpisodeFilter filter) => state = state.copyWith(filter: filter);
   void setSort(EpisodeSort sort) => state = state.copyWith(sort: sort);
+  void toggleShowArchived() => state = state.copyWith(showArchived: !state.showArchived);
 }
 
 /// Aplica busca, filtro e ordenação a uma lista de episódios. Função pura —
@@ -37,9 +39,15 @@ class EpisodeListControls extends _$EpisodeListControls {
 List<Episode> applyEpisodeControls(
   List<Episode> episodes,
   EpisodeListControlsState controls,
-  Map<String, EpisodeProgress> progress,
-) {
+  Map<String, EpisodeProgress> progress, {
+  Set<String> archivedGuids = const {},
+}) {
   final query = controls.query.trim().toLowerCase();
+
+  bool matchesArchive(Episode e) {
+    final isArchived = archivedGuids.contains(e.guid);
+    return controls.showArchived ? isArchived : !isArchived;
+  }
 
   bool matchesFilter(Episode e) {
     final completed = progress[e.guid]?.completed ?? false;
@@ -51,6 +59,7 @@ List<Episode> applyEpisodeControls(
   }
 
   final filtered = episodes
+      .where(matchesArchive)
       .where((e) => query.isEmpty || e.title.toLowerCase().contains(query))
       .where(matchesFilter)
       .toList();

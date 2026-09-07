@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -39,6 +39,16 @@ class AppDatabase extends _$AppDatabase {
           // v3 -> v4 (Fase 12 — fila real): fila de reprodução persistente.
           if (from < 4) {
             await m.createTable(queueItems);
+          }
+          // v4 -> v5 (Fase 13 — gestão de episódios): arquivar + gestão
+          // automática por podcast. Todos os defaults são constantes
+          // (SQLite aceita `ADD COLUMN` com default constante).
+          if (from < 5) {
+            await m.addColumn(episodeCache, episodeCache.archived);
+            await m.addColumn(subscriptions, subscriptions.autoDownload);
+            await m.addColumn(subscriptions, subscriptions.autoDownloadLimit);
+            await m.addColumn(subscriptions, subscriptions.autoDeletePlayedDays);
+            await m.addColumn(subscriptions, subscriptions.playbackSpeedOverride);
           }
         },
       );
