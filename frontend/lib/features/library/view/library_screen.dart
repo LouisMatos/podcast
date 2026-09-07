@@ -88,7 +88,7 @@ class _SubscriptionTile extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return SoftCard(
-      onTap: () => context.push('/library/podcast', extra: podcast),
+      onTap: () => context.push('/podcast', extra: podcast),
       child: Row(
         children: [
           Hero(

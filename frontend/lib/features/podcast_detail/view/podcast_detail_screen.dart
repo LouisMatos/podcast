@@ -19,6 +19,7 @@ import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
+import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
 import '../view_model/downloaded_episodes_provider.dart';
 import '../view_model/episode_list_controls.dart';
@@ -37,6 +38,9 @@ class PodcastDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      // Rota de topo (fora da casca) — monta o próprio mini-player, igual
+      // à tela de episódio.
+      bottomNavigationBar: const MiniPlayer(),
       body: SafeArea(
         top: false,
         child: detail.when(

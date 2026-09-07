@@ -21,7 +21,7 @@ class PodcastListTile extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return SoftCard(
-      onTap: () => context.push('/discover/podcast', extra: podcast),
+      onTap: () => context.push('/podcast', extra: podcast),
       child: Row(
         children: [
           Hero(

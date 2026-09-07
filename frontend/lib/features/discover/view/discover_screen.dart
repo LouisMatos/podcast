@@ -140,7 +140,7 @@ class _RankedPodcastCard extends StatelessWidget {
       width: _width,
       child: SoftCard(
         padding: const EdgeInsets.all(10),
-        onTap: () => context.push('/discover/podcast', extra: podcast),
+        onTap: () => context.push('/podcast', extra: podcast),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

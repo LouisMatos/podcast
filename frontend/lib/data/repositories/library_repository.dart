@@ -1,5 +1,12 @@
 import 'package:drift/drift.dart'
-    show BooleanExpressionOperators, InsertMode, OrderingTerm, Value, innerJoin;
+    show
+        BooleanExpressionOperators,
+        ComparableExpr,
+        Constant,
+        InsertMode,
+        OrderingTerm,
+        Value,
+        innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
@@ -14,6 +21,13 @@ part 'library_repository.g.dart';
 /// Progresso de escuta de um episódio, do jeito que a lista de episódios
 /// precisa: posição atual e se já foi ouvido até o fim.
 typedef EpisodeProgress = ({int positionSeconds, bool completed});
+
+/// Um item "continuar ouvindo" da tela Início — episódio + podcast + onde
+/// parou. Cross-assinatura.
+typedef ContinueListeningItem = ({Podcast podcast, Episode episode, int positionSeconds});
+
+/// Um episódio recente de qualquer assinatura, pra seção "Novos episódios".
+typedef RecentEpisodeItem = ({Podcast podcast, Episode episode});
 
 /// Biblioteca do usuário: assinaturas e o cache local de episódios, tudo em
 /// SQLite via drift. Um ViewModel nunca fala com `AppDatabase` direto — só
@@ -172,6 +186,60 @@ class LibraryRepository {
     return query
         .watch()
         .map((rows) => rows.map((r) => _episodeFromRow(r.readTable(_db.episodeCache))).toList());
+  }
+
+  /// "Continuar ouvindo" da tela Início: episódios começados e não
+  /// terminados, de qualquer assinatura, do mais recente pro mais antigo
+  /// (por `updatedAt` do progresso).
+  Stream<List<ContinueListeningItem>> watchContinueListening({int limit = 20}) {
+    final query = _db.select(_db.playbackProgress).join([
+      innerJoin(
+        _db.episodeCache,
+        _db.episodeCache.podcastId.equalsExp(_db.playbackProgress.podcastId) &
+            _db.episodeCache.guid.equalsExp(_db.playbackProgress.episodeGuid),
+      ),
+      innerJoin(
+        _db.subscriptions,
+        _db.subscriptions.id.equalsExp(_db.playbackProgress.podcastId),
+      ),
+    ])
+      ..where(
+        _db.playbackProgress.completed.equals(false) &
+            _db.playbackProgress.positionSeconds.isBiggerThan(const Constant(0)),
+      )
+      ..orderBy([OrderingTerm.desc(_db.playbackProgress.updatedAt)])
+      ..limit(limit);
+
+    return query.watch().map((rows) => [
+          for (final row in rows)
+            (
+              podcast: _podcastFromRow(row.readTable(_db.subscriptions)),
+              episode: _episodeFromRow(row.readTable(_db.episodeCache)),
+              positionSeconds: row.readTable(_db.playbackProgress).positionSeconds,
+            ),
+        ]);
+  }
+
+  /// "Novos episódios" da tela Início: episódios (com data) de qualquer
+  /// assinatura, do mais recente pro mais antigo por `publishedAt`.
+  Stream<List<RecentEpisodeItem>> watchRecentEpisodes({int limit = 30}) {
+    final query = _db.select(_db.episodeCache).join([
+      innerJoin(
+        _db.subscriptions,
+        _db.subscriptions.id.equalsExp(_db.episodeCache.podcastId),
+      ),
+    ])
+      ..where(_db.episodeCache.publishedAt.isNotNull())
+      ..orderBy([OrderingTerm.desc(_db.episodeCache.publishedAt)])
+      ..limit(limit);
+
+    return query.watch().map((rows) => [
+          for (final row in rows)
+            (
+              podcast: _podcastFromRow(row.readTable(_db.subscriptions)),
+              episode: _episodeFromRow(row.readTable(_db.episodeCache)),
+            ),
+        ]);
   }
 
   Future<void> savePlaybackPosition({

@@ -5,8 +5,9 @@ import '../../data/models/episode.dart';
 import '../../data/models/podcast.dart';
 import '../../features/category/view/category_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
-import '../../features/episode_detail/view/episode_detail_screen.dart';
 import '../../features/downloads/view/downloads_screen.dart';
+import '../../features/episode_detail/view/episode_detail_screen.dart';
+import '../../features/home/view/home_screen.dart';
 import '../../features/library/view/library_screen.dart';
 import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
@@ -18,7 +19,7 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
-  initialLocation: '/discover',
+  initialLocation: '/home',
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
@@ -26,14 +27,17 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: '/home',
+              pageBuilder: (context, state) => _fadeSlidePage(state, const HomeScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: '/discover',
               pageBuilder: (context, state) => _fadeSlidePage(state, const DiscoverScreen()),
               routes: [
-                GoRoute(
-                  path: 'podcast',
-                  pageBuilder: (context, state) =>
-                      _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
-                ),
                 GoRoute(
                   path: 'category',
                   pageBuilder: (context, state) {
@@ -53,13 +57,6 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/library',
               pageBuilder: (context, state) => _fadeSlidePage(state, const LibraryScreen()),
-              routes: [
-                GoRoute(
-                  path: 'podcast',
-                  pageBuilder: (context, state) =>
-                      _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
-                ),
-              ],
             ),
           ],
         ),
@@ -79,8 +76,15 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
-    // Fora das 3 abas de propósito: o player cheio cobre a tela inteira e
-    // pode ser aberto do mini-player em qualquer uma delas.
+    // Detalhe do podcast — rota de topo (montada em qualquer aba). Cobre a
+    // casca e mostra o próprio mini-player, igual `/episode`.
+    GoRoute(
+      path: '/podcast',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) =>
+          _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
+    ),
+    // Player cheio — cobre a tela inteira, aberto do mini-player em qualquer aba.
     GoRoute(
       path: '/player',
       parentNavigatorKey: rootNavigatorKey,

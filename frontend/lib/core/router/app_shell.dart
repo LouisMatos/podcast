@@ -33,6 +33,11 @@ class AppShell extends ConsumerWidget {
             ),
             destinations: const [
               NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Início',
+              ),
+              NavigationDestination(
                 icon: Icon(Icons.explore_outlined),
                 selectedIcon: Icon(Icons.explore),
                 label: 'Descobrir',

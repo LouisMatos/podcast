@@ -131,4 +131,66 @@ void main() {
       expect(await repo.cachedEpisodes(99), isEmpty);
     });
   });
+
+  group('Fase 11 — tela Início', () {
+    Episode ep(String guid, {DateTime? date, Duration? dur}) =>
+        Episode(guid: guid, title: guid, audioUrl: 'u-$guid', publishedAt: date, duration: dur);
+
+    const p2 = Podcast(id: 2, title: 'P2', author: 'B', feedUrl: 'https://x/f2.xml');
+
+    test('watchContinueListening: só começados e não terminados, por updatedAt desc', () async {
+      await repo.subscribe(podcast, [ep('g1'), ep('g2'), ep('g3')]);
+
+      await repo.savePlaybackPosition(
+        podcastId: 1,
+        episodeGuid: 'g1',
+        position: const Duration(seconds: 30),
+        completed: false,
+      );
+      // `updatedAt` do drift é unix em segundos — precisa de > 1s de gap
+      // pra ordenar de forma determinística.
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      await repo.savePlaybackPosition(
+        podcastId: 1,
+        episodeGuid: 'g2',
+        position: const Duration(seconds: 60),
+        completed: false,
+      );
+      // ouvido até o fim → fora
+      await repo.savePlaybackPosition(
+        podcastId: 1,
+        episodeGuid: 'g3',
+        position: const Duration(seconds: 999),
+        completed: true,
+      );
+
+      final items = await repo.watchContinueListening().first;
+      expect(items.map((i) => i.episode.guid), ['g2', 'g1']); // g2 salvo por último
+      expect(items.first.positionSeconds, 60);
+    });
+
+    test('watchContinueListening ignora progresso com posição 0', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      await repo.savePlaybackPosition(
+        podcastId: 1,
+        episodeGuid: 'g1',
+        position: Duration.zero,
+        completed: false,
+      );
+      expect(await repo.watchContinueListening().first, isEmpty);
+    });
+
+    test('watchRecentEpisodes: cross-assinatura, por publishedAt desc, sem data fora', () async {
+      await repo.subscribe(podcast, [
+        ep('a', date: DateTime(2026, 1, 1)),
+        ep('b', date: DateTime(2026, 3, 1)),
+        ep('semdata'),
+      ]);
+      await repo.subscribe(p2, [ep('c', date: DateTime(2026, 2, 1))]);
+
+      final items = await repo.watchRecentEpisodes().first;
+      expect(items.map((i) => i.episode.guid), ['b', 'c', 'a']);
+      expect(items.map((i) => i.podcast.id), [1, 2, 1]);
+    });
+  });
 }

@@ -12,11 +12,9 @@
 
 ## Onde parei
 
-**Fase 9 concluída** (feeds vivos) **+ hotfix**. Schema drift v3. 61 testes
-(era 55), `dart analyze` limpo, app rodando. Próximo: **Fase 11** (aba
-Início) — já tem `refreshAllSubscriptions()` pronto pra alimentar "Novos
-episódios", e `EpisodeCache.addedAt` pra ordenar.
-Sequência recomendada: **9 ✅ → 11 → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
+**Fase 11 concluída** (aba Início). 64 testes (era 55), `dart analyze`
+limpo, app rodando. Próximo: **Fase 12** (fila de reprodução real).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -121,27 +119,40 @@ a tela de detalhe ficava presa no shimmer, nunca carregava.
 **Não quebra:** permissão negada → refresh continua, só sem notificação.
 `workmanager` respeita Doze.
 
-## Fase 11 — Aba Início · CRÍTICO · M
+## Fase 11 — Aba Início · CRÍTICO · M ✅
 
 **O payoff.** Abrir o app e já saber o que ouvir, sem caçar.
 
-- [ ] `LibraryRepository`: `watchContinueListening()` (cross-assinatura —
+- [x] `LibraryRepository`: `watchContinueListening({limit})` (cross-assinatura —
       `PlaybackProgress` onde `!completed && positionSeconds > 0`, por
-      `updatedAt` desc, join `episodeCache`) e `watchRecentEpisodes({int limit})`
-      (episódios de todas as assinaturas por `publishedAt`/`addedAt` desc).
-- [ ] `features/home/` — `HomeScreen` + `HomeViewModel`: "Continuar ouvindo"
-      (carrossel), "Novos episódios" (lista), atalho "Fila" (aparece após a
-      Fase 12). Pull-to-refresh → `refreshAllSubscriptions()`.
-- [ ] `AppShell`: 4ª aba "Início" (`Icons.home_outlined`/`home`), vira
-      `initialLocation`. `app_router.dart` ganha branch `/home`.
-- [ ] Refatorar `PodcastListTile` + tiles de episódio pra navegação
-      **path-agnostic** (hoje hardcodam `context.push('/discover/...')`).
-      Destrava reuso na Início e em qualquer tela nova.
-- [ ] Testes: as duas queries novas (drift in-memory); widget test da Início
-      vazia e com dados.
+      `updatedAt` desc, join `episodeCache` × `subscriptions`) e
+      `watchRecentEpisodes({limit})` (episódios com data de todas as
+      assinaturas, `publishedAt` desc). Typedefs `ContinueListeningItem` /
+      `RecentEpisodeItem`.
+- [x] `features/home/` — `home_providers.dart` (`continueListeningProvider`,
+      `recentEpisodesProvider`, streams reativos, padrão do `DownloadsViewModel`)
+      + `HomeScreen`: seção "Continuar ouvindo" (carrossel de cards com barra
+      de progresso), "Novos episódios" (lista). Pull-to-refresh →
+      `refreshAllSubscriptions(force: true)`. Estado vazio aponta pra Descobrir.
+- [x] `AppShell`: 4ª aba "Início" (`Icons.home_outlined`), **primeira**,
+      `initialLocation` = `/home`. `app_router.dart` ganha o branch.
+- [x] Navegação path-agnostic: **detalhe do podcast virou rota de topo
+      `/podcast`** (root nav, monta o próprio `MiniPlayer` como `/episode`).
+      `/discover/podcast` e `/library/podcast` saíram. Todos os tiles
+      (`PodcastListTile`, `_RankedPodcastCard`, `_SubscriptionTile`) apontam
+      pra `/podcast`.
+- [x] Tiles de episódio da Início abrem `/episode` (`queue: [episode]`).
+- [x] Testes: `library_repository_test` grupo "Fase 11" (3 novos, 64 total);
+      `widget_test` atualizado (abre na Início; overrides dos providers de
+      Início — `NativeDatabase` trava dentro de `testWidgets`, então usa
+      `overrideWith(Stream.value([]))`).
 
-**Não quebra:** Descobrir/Biblioteca/Ajustes intactos — entra 1 aba.
+**Não quebrou:** Descobrir/Biblioteca/Ajustes intactos — entrou 1 aba.
 `IndexedStack` mantém estado das 4.
+
+Armadilha: `AppDatabase(NativeDatabase.memory())` **trava dentro de
+`testWidgets`** (funciona em `test()` puro). Em widget test, sobrescrever os
+providers de dados, não o `appDatabaseProvider`.
 
 ## Fase 12 — Fila de reprodução real · CRÍTICO · esforço G
 

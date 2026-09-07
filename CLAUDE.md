@@ -31,7 +31,7 @@ cada fase. Trabalho novo = uma fase do `ROADMAP_V2.md`.
 
 ## Mapa do repositório
 
-Estado atual (v1 completa; v2 Fase 9 concluída — ver `docs/ROADMAP_V2.md`):
+Estado atual (v1 completa; v2 Fase 11 concluída — ver `docs/ROADMAP_V2.md`):
 
 ```text
 podcast/
@@ -53,8 +53,9 @@ podcast/
       main.dart                  async — inicializa AudioService e FlutterDownloader
                                   antes do runApp
       app.dart                   ProviderScope/MaterialApp.router
-      core/                      theme/, router/ (+ /player e /settings/downloads
-                                  fora/dentro das abas, /discover/category dentro),
+      core/                      theme/, router/ (4 abas: Início/Descobrir/
+                                  Biblioteca/Ajustes; /podcast /episode /player
+                                  são rotas de topo fora da casca),
                                   network/, database/ (drift, schemaVersion 3),
                                   prefs/ (PreferencesStore, shared_preferences),
                                   widgets/ (SoftCard, PillButton, SearchField,
@@ -62,18 +63,20 @@ podcast/
       data/                      models/, sources/ (itunes_search_api,
                                   apple_charts_api, rss_feed_parser, DAOs),
                                   repositories/ (Podcast, Library, Download)
-      features/                  discover/ (busca + carrossel Top 20 + categorias),
-                                  category/, library/, podcast_detail/ (abas
-                                  Episódios/Baixados, busca/filtro/ordenação,
-                                  progresso no tile), episode_detail/ (descrição
-                                  HTML, /episode), settings/,
+      features/                  home/ (aba inicial — Continuar ouvindo + Novos
+                                  episódios), discover/ (busca + carrossel Top 20
+                                  + categorias), category/, library/,
+                                  podcast_detail/ (abas Episódios/Baixados,
+                                  busca/filtro/ordenação, progresso no tile),
+                                  episode_detail/ (descrição HTML, /episode),
+                                  settings/,
                                   player/ (mini-player + tela cheia + volume/
                                   equalizador), downloads/ (+ widgets/DownloadButton)
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        61 testes — core/prefs/, core/database/ (migração),
+    test/                        64 testes — core/prefs/, core/database/ (migração),
                                   data/sources/, data/repositories/, features/discover/,
                                   features/podcast_detail/, features/episode_detail/,
                                   features/player/, support/ (helpers), widget_test.dart
@@ -301,4 +304,13 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   não `find.textContaining`.
 - **Teste de repositório drift**: `AppDatabase(NativeDatabase.memory())`
   (`package:drift/native.dart`) + `tearDown(() => db.close())`. Inserir a
-  `Subscriptions` antes de qualquer linha com FK.
+  `Subscriptions` antes de qualquer linha com FK. **`NativeDatabase` trava
+  dentro de `testWidgets`** — em widget test que precisa de dados do banco,
+  sobrescrever os providers de dados (`overrideWith(Stream.value([]))`), não
+  o `appDatabaseProvider`.
+- **`updatedAt`/`publishedAt` do drift são unix em segundos** — teste que
+  depende de ordem por data precisa de > 1s de gap real entre escritas.
+- **Detalhe do podcast é rota de topo `/podcast`** (v2 Fase 11) — root nav,
+  monta o próprio `MiniPlayer`, igual `/episode`/`/player`. Não existe mais
+  `/discover/podcast` nem `/library/podcast`. Aba Início = `/home`, primeira,
+  é o `initialLocation`.
