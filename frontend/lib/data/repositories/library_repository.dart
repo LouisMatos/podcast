@@ -2,9 +2,11 @@ import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm,
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/network/dio_client.dart';
 import '../models/download_status.dart';
 import '../models/episode.dart';
 import '../models/podcast.dart';
+import '../sources/rss_feed_parser.dart';
 
 part 'library_repository.g.dart';
 
@@ -17,9 +19,14 @@ typedef EpisodeProgress = ({int positionSeconds, bool completed});
 /// com este repositório, que devolve/recebe os modelos de domínio
 /// (`Podcast`, `Episode`), nunca as `*Row` geradas pelo drift.
 class LibraryRepository {
-  LibraryRepository(this._db);
+  LibraryRepository(this._db, this._feedParser);
 
   final AppDatabase _db;
+  final RssFeedParser _feedParser;
+
+  /// Não rebusca o mesmo feed com menos de 1h desde o último refresh
+  /// (a menos que `force`).
+  static const _refreshThrottle = Duration(hours: 1);
 
   Stream<List<Podcast>> watchSubscriptions() {
     return _db.select(_db.subscriptions).watch().map(
@@ -71,6 +78,60 @@ class LibraryRepository {
     // As linhas de `episodeCache`/`playbackProgress`/`downloads` somem
     // sozinhas via `onDelete: cascade` nas referências.
     await (_db.delete(_db.subscriptions)..where((t) => t.id.equals(podcastId))).go();
+  }
+
+  /// Faz upsert dos episódios no cache **se** o podcast está assinado
+  /// (senão a FK barra). Chamado pelo detalhe toda vez que ele carrega com
+  /// rede — é o que mantém o cache fresco (Fase 9).
+  Future<void> cacheEpisodesIfSubscribed(int podcastId, List<Episode> episodes) async {
+    final sub =
+        await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId))).getSingleOrNull();
+    if (sub == null) return;
+    await _cacheEpisodes(podcastId, episodes);
+  }
+
+  /// Rebusca o RSS de um podcast assinado e faz upsert no cache. Devolve
+  /// quantos episódios são novos (guid inédito). Sem `force`, pula se o
+  /// feed foi atualizado há menos de [_refreshThrottle].
+  Future<int> refreshFeed(int podcastId, {bool force = false}) async {
+    final sub =
+        await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId))).getSingleOrNull();
+    if (sub == null) return 0;
+
+    if (!force &&
+        sub.lastRefreshedAt != null &&
+        DateTime.now().difference(sub.lastRefreshedAt!) < _refreshThrottle) {
+      return 0;
+    }
+
+    final fresh = await _feedParser.fetchEpisodes(sub.feedUrl);
+
+    final existing =
+        await (_db.select(_db.episodeCache)..where((t) => t.podcastId.equals(podcastId))).get();
+    final existingGuids = {for (final row in existing) row.guid};
+    final newCount = fresh.where((e) => !existingGuids.contains(e.guid)).length;
+
+    await _cacheEpisodes(podcastId, fresh);
+    await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
+        .write(SubscriptionsCompanion(lastRefreshedAt: Value(DateTime.now())));
+
+    return newCount;
+  }
+
+  /// Rebusca todos os feeds assinados (respeitando o throttle por feed).
+  /// Um feed fora do ar não impede os outros. Devolve o total de episódios
+  /// novos.
+  Future<int> refreshAllSubscriptions({bool force = false}) async {
+    final subs = await _db.select(_db.subscriptions).get();
+    var total = 0;
+    for (final sub in subs) {
+      try {
+        total += await refreshFeed(sub.id, force: force);
+      } catch (_) {
+        // sem rede / feed quebrado — ignora, tenta os próximos
+      }
+    }
+    return total;
   }
 
   /// Posição salva de um episódio, ou `null` se nunca tocou. Usado pelo
@@ -177,5 +238,8 @@ class LibraryRepository {
 
 @Riverpod(keepAlive: true)
 LibraryRepository libraryRepository(Ref ref) {
-  return LibraryRepository(ref.watch(appDatabaseProvider));
+  return LibraryRepository(
+    ref.watch(appDatabaseProvider),
+    RssFeedParser(ref.watch(dioClientProvider)),
+  );
 }

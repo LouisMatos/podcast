@@ -234,9 +234,11 @@ class _EpisodesTab extends ConsumerWidget {
     final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
     final visible = applyEpisodeControls(episodes!, controls, progress);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      children: [
+    return RefreshIndicator(
+      onRefresh: () => ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
         SearchField(
           hintText: 'Buscar episódio',
           onChanged: controlsNotifier.setQuery,
@@ -285,7 +287,8 @@ class _EpisodesTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
           ],
-      ],
+        ],
+      ),
     );
   }
 

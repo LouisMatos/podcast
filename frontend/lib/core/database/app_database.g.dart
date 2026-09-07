@@ -91,6 +91,18 @@ class $SubscriptionsTable extends Subscriptions
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _lastRefreshedAtMeta = const VerificationMeta(
+    'lastRefreshedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastRefreshedAt =
+      GeneratedColumn<DateTime>(
+        'last_refreshed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -101,6 +113,7 @@ class $SubscriptionsTable extends Subscriptions
     genre,
     episodeCount,
     subscribedAt,
+    lastRefreshedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -171,6 +184,15 @@ class $SubscriptionsTable extends Subscriptions
         ),
       );
     }
+    if (data.containsKey('last_refreshed_at')) {
+      context.handle(
+        _lastRefreshedAtMeta,
+        lastRefreshedAt.isAcceptableOrUnknown(
+          data['last_refreshed_at']!,
+          _lastRefreshedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -212,6 +234,10 @@ class $SubscriptionsTable extends Subscriptions
         DriftSqlType.dateTime,
         data['${effectivePrefix}subscribed_at'],
       )!,
+      lastRefreshedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_refreshed_at'],
+      ),
     );
   }
 
@@ -230,6 +256,11 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
   final String? genre;
   final int episodeCount;
   final DateTime subscribedAt;
+
+  /// Última vez que o feed foi rebuscado e o cache atualizado (Fase 9).
+  /// `null` = nunca desde a assinatura. Usado pra não rebuscar o mesmo feed
+  /// toda hora ao abrir o app.
+  final DateTime? lastRefreshedAt;
   const SubscriptionRow({
     required this.id,
     required this.title,
@@ -239,6 +270,7 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     this.genre,
     required this.episodeCount,
     required this.subscribedAt,
+    this.lastRefreshedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -255,6 +287,9 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     }
     map['episode_count'] = Variable<int>(episodeCount);
     map['subscribed_at'] = Variable<DateTime>(subscribedAt);
+    if (!nullToAbsent || lastRefreshedAt != null) {
+      map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt);
+    }
     return map;
   }
 
@@ -272,6 +307,9 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
           : Value(genre),
       episodeCount: Value(episodeCount),
       subscribedAt: Value(subscribedAt),
+      lastRefreshedAt: lastRefreshedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRefreshedAt),
     );
   }
 
@@ -289,6 +327,7 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       genre: serializer.fromJson<String?>(json['genre']),
       episodeCount: serializer.fromJson<int>(json['episodeCount']),
       subscribedAt: serializer.fromJson<DateTime>(json['subscribedAt']),
+      lastRefreshedAt: serializer.fromJson<DateTime?>(json['lastRefreshedAt']),
     );
   }
   @override
@@ -303,6 +342,7 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       'genre': serializer.toJson<String?>(genre),
       'episodeCount': serializer.toJson<int>(episodeCount),
       'subscribedAt': serializer.toJson<DateTime>(subscribedAt),
+      'lastRefreshedAt': serializer.toJson<DateTime?>(lastRefreshedAt),
     };
   }
 
@@ -315,6 +355,7 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     Value<String?> genre = const Value.absent(),
     int? episodeCount,
     DateTime? subscribedAt,
+    Value<DateTime?> lastRefreshedAt = const Value.absent(),
   }) => SubscriptionRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -324,6 +365,9 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     genre: genre.present ? genre.value : this.genre,
     episodeCount: episodeCount ?? this.episodeCount,
     subscribedAt: subscribedAt ?? this.subscribedAt,
+    lastRefreshedAt: lastRefreshedAt.present
+        ? lastRefreshedAt.value
+        : this.lastRefreshedAt,
   );
   SubscriptionRow copyWithCompanion(SubscriptionsCompanion data) {
     return SubscriptionRow(
@@ -341,6 +385,9 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
       subscribedAt: data.subscribedAt.present
           ? data.subscribedAt.value
           : this.subscribedAt,
+      lastRefreshedAt: data.lastRefreshedAt.present
+          ? data.lastRefreshedAt.value
+          : this.lastRefreshedAt,
     );
   }
 
@@ -354,7 +401,8 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
           ..write('artworkUrl: $artworkUrl, ')
           ..write('genre: $genre, ')
           ..write('episodeCount: $episodeCount, ')
-          ..write('subscribedAt: $subscribedAt')
+          ..write('subscribedAt: $subscribedAt, ')
+          ..write('lastRefreshedAt: $lastRefreshedAt')
           ..write(')'))
         .toString();
   }
@@ -369,6 +417,7 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
     genre,
     episodeCount,
     subscribedAt,
+    lastRefreshedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -381,7 +430,8 @@ class SubscriptionRow extends DataClass implements Insertable<SubscriptionRow> {
           other.artworkUrl == this.artworkUrl &&
           other.genre == this.genre &&
           other.episodeCount == this.episodeCount &&
-          other.subscribedAt == this.subscribedAt);
+          other.subscribedAt == this.subscribedAt &&
+          other.lastRefreshedAt == this.lastRefreshedAt);
 }
 
 class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
@@ -393,6 +443,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
   final Value<String?> genre;
   final Value<int> episodeCount;
   final Value<DateTime> subscribedAt;
+  final Value<DateTime?> lastRefreshedAt;
   const SubscriptionsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -402,6 +453,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     this.genre = const Value.absent(),
     this.episodeCount = const Value.absent(),
     this.subscribedAt = const Value.absent(),
+    this.lastRefreshedAt = const Value.absent(),
   });
   SubscriptionsCompanion.insert({
     this.id = const Value.absent(),
@@ -412,6 +464,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     this.genre = const Value.absent(),
     this.episodeCount = const Value.absent(),
     this.subscribedAt = const Value.absent(),
+    this.lastRefreshedAt = const Value.absent(),
   }) : title = Value(title),
        author = Value(author),
        feedUrl = Value(feedUrl);
@@ -424,6 +477,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     Expression<String>? genre,
     Expression<int>? episodeCount,
     Expression<DateTime>? subscribedAt,
+    Expression<DateTime>? lastRefreshedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -434,6 +488,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
       if (genre != null) 'genre': genre,
       if (episodeCount != null) 'episode_count': episodeCount,
       if (subscribedAt != null) 'subscribed_at': subscribedAt,
+      if (lastRefreshedAt != null) 'last_refreshed_at': lastRefreshedAt,
     });
   }
 
@@ -446,6 +501,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     Value<String?>? genre,
     Value<int>? episodeCount,
     Value<DateTime>? subscribedAt,
+    Value<DateTime?>? lastRefreshedAt,
   }) {
     return SubscriptionsCompanion(
       id: id ?? this.id,
@@ -456,6 +512,7 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
       genre: genre ?? this.genre,
       episodeCount: episodeCount ?? this.episodeCount,
       subscribedAt: subscribedAt ?? this.subscribedAt,
+      lastRefreshedAt: lastRefreshedAt ?? this.lastRefreshedAt,
     );
   }
 
@@ -486,6 +543,9 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
     if (subscribedAt.present) {
       map['subscribed_at'] = Variable<DateTime>(subscribedAt.value);
     }
+    if (lastRefreshedAt.present) {
+      map['last_refreshed_at'] = Variable<DateTime>(lastRefreshedAt.value);
+    }
     return map;
   }
 
@@ -499,7 +559,8 @@ class SubscriptionsCompanion extends UpdateCompanion<SubscriptionRow> {
           ..write('artworkUrl: $artworkUrl, ')
           ..write('genre: $genre, ')
           ..write('episodeCount: $episodeCount, ')
-          ..write('subscribedAt: $subscribedAt')
+          ..write('subscribedAt: $subscribedAt, ')
+          ..write('lastRefreshedAt: $lastRefreshedAt')
           ..write(')'))
         .toString();
   }
@@ -598,6 +659,18 @@ class $EpisodeCacheTable extends EpisodeCache
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     podcastId,
@@ -608,6 +681,7 @@ class $EpisodeCacheTable extends EpisodeCache
     imageUrl,
     durationSeconds,
     publishedAt,
+    addedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -686,6 +760,12 @@ class $EpisodeCacheTable extends EpisodeCache
         ),
       );
     }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -727,6 +807,10 @@ class $EpisodeCacheTable extends EpisodeCache
         DriftSqlType.dateTime,
         data['${effectivePrefix}published_at'],
       ),
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}added_at'],
+      )!,
     );
   }
 
@@ -745,6 +829,10 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
   final String? imageUrl;
   final int? durationSeconds;
   final DateTime? publishedAt;
+
+  /// Quando o episódio entrou no cache local (Fase 9). Feeds mentem a
+  /// `publishedAt`; isto é confiável pra "novos desde a última visita".
+  final DateTime addedAt;
   const EpisodeCacheRow({
     required this.podcastId,
     required this.guid,
@@ -754,6 +842,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     this.imageUrl,
     this.durationSeconds,
     this.publishedAt,
+    required this.addedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -774,6 +863,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     if (!nullToAbsent || publishedAt != null) {
       map['published_at'] = Variable<DateTime>(publishedAt);
     }
+    map['added_at'] = Variable<DateTime>(addedAt);
     return map;
   }
 
@@ -795,6 +885,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       publishedAt: publishedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(publishedAt),
+      addedAt: Value(addedAt),
     );
   }
 
@@ -812,6 +903,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
       publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
     );
   }
   @override
@@ -826,6 +918,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       'imageUrl': serializer.toJson<String?>(imageUrl),
       'durationSeconds': serializer.toJson<int?>(durationSeconds),
       'publishedAt': serializer.toJson<DateTime?>(publishedAt),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
     };
   }
 
@@ -838,6 +931,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     Value<String?> imageUrl = const Value.absent(),
     Value<int?> durationSeconds = const Value.absent(),
     Value<DateTime?> publishedAt = const Value.absent(),
+    DateTime? addedAt,
   }) => EpisodeCacheRow(
     podcastId: podcastId ?? this.podcastId,
     guid: guid ?? this.guid,
@@ -849,6 +943,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
         ? durationSeconds.value
         : this.durationSeconds,
     publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
+    addedAt: addedAt ?? this.addedAt,
   );
   EpisodeCacheRow copyWithCompanion(EpisodeCacheCompanion data) {
     return EpisodeCacheRow(
@@ -866,6 +961,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       publishedAt: data.publishedAt.present
           ? data.publishedAt.value
           : this.publishedAt,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
     );
   }
 
@@ -879,7 +975,8 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           ..write('description: $description, ')
           ..write('imageUrl: $imageUrl, ')
           ..write('durationSeconds: $durationSeconds, ')
-          ..write('publishedAt: $publishedAt')
+          ..write('publishedAt: $publishedAt, ')
+          ..write('addedAt: $addedAt')
           ..write(')'))
         .toString();
   }
@@ -894,6 +991,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     imageUrl,
     durationSeconds,
     publishedAt,
+    addedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -906,7 +1004,8 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           other.description == this.description &&
           other.imageUrl == this.imageUrl &&
           other.durationSeconds == this.durationSeconds &&
-          other.publishedAt == this.publishedAt);
+          other.publishedAt == this.publishedAt &&
+          other.addedAt == this.addedAt);
 }
 
 class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
@@ -918,6 +1017,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
   final Value<String?> imageUrl;
   final Value<int?> durationSeconds;
   final Value<DateTime?> publishedAt;
+  final Value<DateTime> addedAt;
   final Value<int> rowid;
   const EpisodeCacheCompanion({
     this.podcastId = const Value.absent(),
@@ -928,6 +1028,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.imageUrl = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.publishedAt = const Value.absent(),
+    this.addedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EpisodeCacheCompanion.insert({
@@ -939,6 +1040,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.imageUrl = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.publishedAt = const Value.absent(),
+    this.addedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : podcastId = Value(podcastId),
        guid = Value(guid),
@@ -953,6 +1055,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Expression<String>? imageUrl,
     Expression<int>? durationSeconds,
     Expression<DateTime>? publishedAt,
+    Expression<DateTime>? addedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -964,6 +1067,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       if (imageUrl != null) 'image_url': imageUrl,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (publishedAt != null) 'published_at': publishedAt,
+      if (addedAt != null) 'added_at': addedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -977,6 +1081,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Value<String?>? imageUrl,
     Value<int?>? durationSeconds,
     Value<DateTime?>? publishedAt,
+    Value<DateTime>? addedAt,
     Value<int>? rowid,
   }) {
     return EpisodeCacheCompanion(
@@ -988,6 +1093,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       imageUrl: imageUrl ?? this.imageUrl,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       publishedAt: publishedAt ?? this.publishedAt,
+      addedAt: addedAt ?? this.addedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1019,6 +1125,9 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     if (publishedAt.present) {
       map['published_at'] = Variable<DateTime>(publishedAt.value);
     }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1036,6 +1145,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
           ..write('imageUrl: $imageUrl, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('publishedAt: $publishedAt, ')
+          ..write('addedAt: $addedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1950,6 +2060,7 @@ typedef $$SubscriptionsTableCreateCompanionBuilder =
       Value<String?> genre,
       Value<int> episodeCount,
       Value<DateTime> subscribedAt,
+      Value<DateTime?> lastRefreshedAt,
     });
 typedef $$SubscriptionsTableUpdateCompanionBuilder =
     SubscriptionsCompanion Function({
@@ -1961,6 +2072,7 @@ typedef $$SubscriptionsTableUpdateCompanionBuilder =
       Value<String?> genre,
       Value<int> episodeCount,
       Value<DateTime> subscribedAt,
+      Value<DateTime?> lastRefreshedAt,
     });
 
 final class $$SubscriptionsTableReferences
@@ -2075,6 +2187,11 @@ class $$SubscriptionsTableFilterComposer
 
   ColumnFilters<DateTime> get subscribedAt => $composableBuilder(
     column: $table.subscribedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastRefreshedAt => $composableBuilder(
+    column: $table.lastRefreshedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2202,6 +2319,11 @@ class $$SubscriptionsTableOrderingComposer
     column: $table.subscribedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastRefreshedAt => $composableBuilder(
+    column: $table.lastRefreshedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SubscriptionsTableAnnotationComposer
@@ -2240,6 +2362,11 @@ class $$SubscriptionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get subscribedAt => $composableBuilder(
     column: $table.subscribedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastRefreshedAt => $composableBuilder(
+    column: $table.lastRefreshedAt,
     builder: (column) => column,
   );
 
@@ -2359,6 +2486,7 @@ class $$SubscriptionsTableTableManager
                 Value<String?> genre = const Value.absent(),
                 Value<int> episodeCount = const Value.absent(),
                 Value<DateTime> subscribedAt = const Value.absent(),
+                Value<DateTime?> lastRefreshedAt = const Value.absent(),
               }) => SubscriptionsCompanion(
                 id: id,
                 title: title,
@@ -2368,6 +2496,7 @@ class $$SubscriptionsTableTableManager
                 genre: genre,
                 episodeCount: episodeCount,
                 subscribedAt: subscribedAt,
+                lastRefreshedAt: lastRefreshedAt,
               ),
           createCompanionCallback:
               ({
@@ -2379,6 +2508,7 @@ class $$SubscriptionsTableTableManager
                 Value<String?> genre = const Value.absent(),
                 Value<int> episodeCount = const Value.absent(),
                 Value<DateTime> subscribedAt = const Value.absent(),
+                Value<DateTime?> lastRefreshedAt = const Value.absent(),
               }) => SubscriptionsCompanion.insert(
                 id: id,
                 title: title,
@@ -2388,6 +2518,7 @@ class $$SubscriptionsTableTableManager
                 genre: genre,
                 episodeCount: episodeCount,
                 subscribedAt: subscribedAt,
+                lastRefreshedAt: lastRefreshedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2512,6 +2643,7 @@ typedef $$EpisodeCacheTableCreateCompanionBuilder =
       Value<String?> imageUrl,
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
+      Value<DateTime> addedAt,
       Value<int> rowid,
     });
 typedef $$EpisodeCacheTableUpdateCompanionBuilder =
@@ -2524,6 +2656,7 @@ typedef $$EpisodeCacheTableUpdateCompanionBuilder =
       Value<String?> imageUrl,
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
+      Value<DateTime> addedAt,
       Value<int> rowid,
     });
 
@@ -2591,6 +2724,11 @@ class $$EpisodeCacheTableFilterComposer
 
   ColumnFilters<DateTime> get publishedAt => $composableBuilder(
     column: $table.publishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2662,6 +2800,11 @@ class $$EpisodeCacheTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SubscriptionsTableOrderingComposer get podcastId {
     final $$SubscriptionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2721,6 +2864,9 @@ class $$EpisodeCacheTableAnnotationComposer
     column: $table.publishedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
 
   $$SubscriptionsTableAnnotationComposer get podcastId {
     final $$SubscriptionsTableAnnotationComposer composer = $composerBuilder(
@@ -2782,6 +2928,7 @@ class $$EpisodeCacheTableTableManager
                 Value<String?> imageUrl = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion(
                 podcastId: podcastId,
@@ -2792,6 +2939,7 @@ class $$EpisodeCacheTableTableManager
                 imageUrl: imageUrl,
                 durationSeconds: durationSeconds,
                 publishedAt: publishedAt,
+                addedAt: addedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2804,6 +2952,7 @@ class $$EpisodeCacheTableTableManager
                 Value<String?> imageUrl = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion.insert(
                 podcastId: podcastId,
@@ -2814,6 +2963,7 @@ class $$EpisodeCacheTableTableManager
                 imageUrl: imageUrl,
                 durationSeconds: durationSeconds,
                 publishedAt: publishedAt,
+                addedAt: addedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -1,20 +1,26 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:podcast_app/core/database/app_database.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
+import 'package:podcast_app/data/sources/rss_feed_parser.dart';
+
+class _MockFeedParser extends Mock implements RssFeedParser {}
 
 void main() {
   late AppDatabase db;
+  late _MockFeedParser feedParser;
   late LibraryRepository repo;
 
   const podcast = Podcast(id: 1, title: 'P', author: 'A', feedUrl: 'https://x/f.xml');
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
-    repo = LibraryRepository(db);
+    feedParser = _MockFeedParser();
+    repo = LibraryRepository(db, feedParser);
   });
 
   tearDown(() => db.close());
@@ -66,5 +72,63 @@ void main() {
 
     final eps = await repo.watchDownloadedEpisodes(1).first;
     expect(eps.map((e) => e.guid), ['g1']);
+  });
+
+  group('Fase 9 — feeds vivos', () {
+    Episode ep(String guid) => Episode(guid: guid, title: guid, audioUrl: 'u-$guid');
+
+    test('refreshFeed traz episódio novo e conta só os inéditos', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      when(() => feedParser.fetchEpisodes('https://x/f.xml'))
+          .thenAnswer((_) async => [ep('g1'), ep('g2')]);
+
+      final novos = await repo.refreshFeed(1, force: true);
+
+      expect(novos, 1);
+      expect((await repo.cachedEpisodes(1)).map((e) => e.guid).toSet(), {'g1', 'g2'});
+    });
+
+    test('refreshFeed repetido não duplica e conta 0', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      when(() => feedParser.fetchEpisodes(any())).thenAnswer((_) async => [ep('g1')]);
+
+      await repo.refreshFeed(1, force: true);
+      final novos = await repo.refreshFeed(1, force: true);
+
+      expect(novos, 0);
+      expect((await repo.cachedEpisodes(1)).length, 1);
+    });
+
+    test('sem force, pula feed rebuscado há menos de 1h', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      when(() => feedParser.fetchEpisodes(any())).thenAnswer((_) async => [ep('g1'), ep('g2')]);
+
+      await repo.refreshFeed(1, force: true); // marca lastRefreshedAt = agora
+      final novos = await repo.refreshFeed(1); // sem force → throttle
+
+      expect(novos, 0);
+      verify(() => feedParser.fetchEpisodes(any())).called(1); // não rebuscou de novo
+    });
+
+    test('refreshAllSubscriptions ignora feed que falha e segue nos outros', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      await repo.subscribe(
+        const Podcast(id: 2, title: 'P2', author: 'A', feedUrl: 'https://x/f2.xml'),
+        [ep('h1')],
+      );
+      when(() => feedParser.fetchEpisodes('https://x/f.xml')).thenThrow(Exception('sem rede'));
+      when(() => feedParser.fetchEpisodes('https://x/f2.xml'))
+          .thenAnswer((_) async => [ep('h1'), ep('h2')]);
+
+      final total = await repo.refreshAllSubscriptions(force: true);
+
+      expect(total, 1); // só o h2 do podcast 2
+      expect((await repo.cachedEpisodes(2)).length, 2);
+    });
+
+    test('cacheEpisodesIfSubscribed não faz nada se não assinado', () async {
+      await repo.cacheEpisodesIfSubscribed(99, [ep('g1')]);
+      expect(await repo.cachedEpisodes(99), isEmpty);
+    });
   });
 }

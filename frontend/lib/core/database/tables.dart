@@ -18,6 +18,11 @@ class Subscriptions extends Table {
   IntColumn get episodeCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get subscribedAt => dateTime().withDefault(currentDateAndTime)();
 
+  /// Última vez que o feed foi rebuscado e o cache atualizado (Fase 9).
+  /// `null` = nunca desde a assinatura. Usado pra não rebuscar o mesmo feed
+  /// toda hora ao abrir o app.
+  DateTimeColumn get lastRefreshedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -36,6 +41,10 @@ class EpisodeCache extends Table {
   TextColumn get imageUrl => text().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
   DateTimeColumn get publishedAt => dateTime().nullable()();
+
+  /// Quando o episódio entrou no cache local (Fase 9). Feeds mentem a
+  /// `publishedAt`; isto é confiável pra "novos desde a última visita".
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {podcastId, guid};

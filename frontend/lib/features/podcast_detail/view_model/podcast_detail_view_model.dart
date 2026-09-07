@@ -21,6 +21,9 @@ class PodcastDetailViewModel extends _$PodcastDetailViewModel {
     final repository = ref.watch(podcastRepositoryProvider);
     try {
       final episodes = await repository.episodesFor(podcast);
+      // Feeds vivos (Fase 9): toda visita com rede atualiza o cache local
+      // do podcast assinado — é assim que "novos episódios" fica em dia.
+      await ref.read(libraryRepositoryProvider).cacheEpisodesIfSubscribed(podcast.id, episodes);
       return PodcastDetailState(podcast: podcast, episodes: episodes);
     } catch (error) {
       // Sem rede (ou feed fora do ar): se já tem cache de uma visita
@@ -40,5 +43,12 @@ class PodcastDetailViewModel extends _$PodcastDetailViewModel {
 
   Future<void> unsubscribe() async {
     await ref.read(libraryRepositoryProvider).unsubscribe(podcast.id);
+  }
+
+  /// Pull-to-refresh: rebusca o RSS e re-renderiza (o cache é atualizado
+  /// dentro do `build`).
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
   }
 }

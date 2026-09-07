@@ -12,9 +12,11 @@
 
 ## Onde parei
 
-**Nenhuma fase v2 iniciada.** v1 (Fases 0–8) intacta, 55 testes, `dart analyze`
-limpo. Sequência recomendada: **9 → 11 → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**
-(ver "Ordem e dependências" no fim).
+**Fase 9 concluída** (feeds vivos). Schema drift v3. 60 testes (era 55),
+`dart analyze` limpo, app rodando. Próximo: **Fase 11** (aba Início) — já
+tem `refreshAllSubscriptions()` pronto pra alimentar "Novos episódios", e
+`EpisodeCache.addedAt` pra ordenar.
+Sequência recomendada: **9 ✅ → 11 → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -47,30 +49,42 @@ depois (`intl`/`analyzer` já causaram conflito na v1).
 
 ---
 
-## Fase 9 — Feeds vivos (cache que atualiza) · CRÍTICO · esforço M
+## Fase 9 — Feeds vivos (cache que atualiza) · CRÍTICO · esforço M ✅
 
 **Problema:** o `episodeCache` de um podcast assinado **congela na hora da
-assinatura**. `PodcastDetailViewModel.build` busca o RSS ao vivo mas nunca
-persiste. Nada no app sabe que saiu episódio novo. Sem isso, nem "Novidades"
-nem auto-download existem — é a base.
+assinatura**. `PodcastDetailViewModel.build` buscava o RSS ao vivo mas nunca
+persistia. Nada no app sabia que saiu episódio novo.
 
-- [ ] `PodcastDetailViewModel.build`: persistir os episódios buscados no
-      `episodeCache` (upsert) quando o podcast está assinado. Reusar
-      `LibraryRepository._cacheEpisodes` (hoje privado, só no `subscribe`).
-- [ ] `LibraryRepository`: `refreshFeed(int podcastId)` e
-      `refreshAllSubscriptions()` — busca RSS via `PodcastRepository`, upsert
-      no cache, devolve nº de episódios novos.
-- [ ] Schema v3: `EpisodeCache.addedAt` (`dateTime`, `currentDateAndTime`) —
-      "novos desde X" sem depender só de `publishedAt` (feed mente data).
-      Migração `if (from < 3)`.
-- [ ] `Subscriptions.lastRefreshedAt` (`dateTime?`) — throttle: refresh ao abrir
-      o app só se passou > 1h desde o último por feed.
-- [ ] Refresh ao abrir o app (throttled) + pull-to-refresh no detalhe.
-- [ ] Testes: refresh com `NativeDatabase.memory()` (item novo → cache cresce;
-      item repetido → sem duplicar); migração v2→v3.
+- [x] `PodcastDetailViewModel.build`: chama
+      `LibraryRepository.cacheEpisodesIfSubscribed(podcast.id, episodes)` após
+      o fetch — no-op se não assinado (a FK barra). `refresh()` novo pro
+      pull-to-refresh (`invalidateSelf` + `future`).
+- [x] `LibraryRepository` ganha `RssFeedParser` injetado.
+      `refreshFeed(podcastId, {force})` — rebusca RSS, upsert no cache,
+      devolve nº de episódios inéditos (diff por `guid`); sem `force` pula se
+      `lastRefreshedAt` < 1h. `refreshAllSubscriptions({force})` — itera todos,
+      engole erro por feed.
+- [x] Schema drift **v3**: `EpisodeCache.addedAt`
+      (`dateTime().withDefault(currentDateAndTime)`) +
+      `Subscriptions.lastRefreshedAt` (`dateTime().nullable()`). Migração
+      `if (from < 3)` com dois `addColumn`.
+- [x] `startupFeedRefreshProvider` (`features/library/view_model/`) —
+      `refreshAllSubscriptions()` ao abrir o app; `AppShell` virou
+      `ConsumerWidget` e faz `ref.listen` nele (throttle por feed evita
+      spam de rede).
+- [x] Pull-to-refresh na aba "Episódios" do detalhe (`RefreshIndicator` →
+      `notifier.refresh()`).
+- [x] Testes: `library_repository_test` grupo "Fase 9" (5 novos, 60 no total)
+      — traz episódio novo, não duplica, throttle sem `force`,
+      `refreshAllSubscriptions` ignora feed que falha, `cacheEpisodesIfSubscribed`
+      no-op sem assinatura.
 
-**Não quebra:** `subscribe` continua cacheando na assinatura. O fallback
-offline (`cachedEpisodes`) já existe e passa a ter dado fresco.
+**Não quebrou:** `subscribe` continua cacheando na assinatura; fallback
+offline (`cachedEpisodes`) agora tem dado fresco.
+
+Dívida da fase: **teste formal de migração v2→v3 adiado pra Fase 18** (precisa
+do schema tooling do `drift_dev`, que o projeto ainda não tem). A migração em
+si é só dois `addColumn` de coluna com default/nullable.
 
 ## Fase 10 — Refresh em background + notificação de episódio novo · ALTO · M
 

@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -22,6 +22,12 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.addColumn(downloads, downloads.taskId);
             await m.addColumn(downloads, downloads.progress);
+          }
+          // v2 -> v3 (Fase 9 — feeds vivos): cache de episódio ganha
+          // addedAt; assinatura ganha lastRefreshedAt (throttle do refresh).
+          if (from < 3) {
+            await m.addColumn(episodeCache, episodeCache.addedAt);
+            await m.addColumn(subscriptions, subscriptions.lastRefreshedAt);
           }
         },
       );
