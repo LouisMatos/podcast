@@ -6,6 +6,7 @@ import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
 import 'package:podcast_app/data/repositories/download_repository.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
+import 'package:podcast_app/data/repositories/queue_repository.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/features/player/view_model/player_view_model.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
@@ -13,21 +14,23 @@ import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
 import '../../support/fake_preferences.dart';
 
 /// Handler real (os BehaviorSubjects de `BaseAudioHandler` já funcionam),
-/// mas `playQueue` é interceptado — assim nada bate em platform channel e
+/// mas `setQueue` é interceptado — assim nada bate em platform channel e
 /// dá pra inspecionar o `autoPlay`.
 class _FakeHandler extends PodcastAudioHandler {
   int calls = 0;
   bool? lastAutoPlay;
 
   @override
-  Future<void> playQueue(
+  Future<void> setQueue(
     List<MediaItem> items, {
-    required int startIndex,
+    bool playFirst = false,
     Duration? initialPosition,
     bool autoPlay = true,
   }) async {
-    calls++;
-    lastAutoPlay = autoPlay;
+    if (playFirst) {
+      calls++;
+      lastAutoPlay = autoPlay;
+    }
   }
 }
 
@@ -35,10 +38,18 @@ class _MockLibrary extends Mock implements LibraryRepository {}
 
 class _MockDownloads extends Mock implements DownloadRepository {}
 
+class _MockQueue extends Mock implements QueueRepository {}
+
 void main() {
   // `just_audio.AudioPlayer` (criado no construtor do handler) registra um
   // method channel handler — precisa do binding de teste inicializado.
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    registerFallbackValue(<QueueEntry>[]);
+    registerFallbackValue(const Podcast(id: 0, title: '', author: '', feedUrl: ''));
+    registerFallbackValue(const Episode(guid: '', title: '', audioUrl: ''));
+  });
 
   late _FakeHandler handler;
   late ProviderContainer container;
@@ -50,14 +61,21 @@ void main() {
     handler = _FakeHandler();
     final lib = _MockLibrary();
     final dl = _MockDownloads();
+    final q = _MockQueue();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
+    when(() => q.replaceWith(any())).thenAnswer((_) async {});
+    when(() => q.playNow(any(), any())).thenAnswer((_) async {});
+    when(() => q.addToEnd(any(), any())).thenAnswer((_) async {});
+    when(() => q.playNextAfter(any(), any(), any())).thenAnswer((_) async {});
 
     final c = ProviderContainer(
       overrides: [
         audioHandlerProvider.overrideWithValue(handler),
         libraryRepositoryProvider.overrideWithValue(lib),
         downloadRepositoryProvider.overrideWithValue(dl),
+        queueRepositoryProvider.overrideWithValue(q),
+        queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
         preferencesStoreProvider.overrideWithValue(await fakePreferencesStore(prefs)),
       ],
     );
@@ -72,7 +90,7 @@ void main() {
   test('playEpisode não toca sozinho (autoPlay padrão = false)', () async {
     await container
         .read(playerViewModelProvider.notifier)
-        .playEpisode(podcast, episode, queue: const [episode]);
+        .playEpisode(podcast, episode);
 
     expect(handler.calls, 1);
     expect(handler.lastAutoPlay, false);
@@ -81,7 +99,7 @@ void main() {
   test('playEpisode com autoPlay: true repassa pro handler', () async {
     await container
         .read(playerViewModelProvider.notifier)
-        .playEpisode(podcast, episode, queue: const [episode], autoPlay: true);
+        .playEpisode(podcast, episode, autoPlay: true);
 
     expect(handler.lastAutoPlay, true);
   });
@@ -89,7 +107,7 @@ void main() {
   test('estado ganha o episódio de forma síncrona, antes do await', () {
     container
         .read(playerViewModelProvider.notifier)
-        .playEpisode(podcast, episode, queue: const [episode]);
+        .playEpisode(podcast, episode);
 
     expect(container.read(playerViewModelProvider).episode?.guid, 'g1');
   });
@@ -107,12 +125,15 @@ void main() {
     handler = _FakeHandler();
     final lib = _MockLibrary();
     final dl = _MockDownloads();
+    final q = _MockQueue();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
     final c = ProviderContainer(overrides: [
       audioHandlerProvider.overrideWithValue(handler),
       libraryRepositoryProvider.overrideWithValue(lib),
       downloadRepositoryProvider.overrideWithValue(dl),
+      queueRepositoryProvider.overrideWithValue(q),
+      queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
       preferencesStoreProvider.overrideWithValue(prefs),
     ]);
     addTearDown(c.dispose);

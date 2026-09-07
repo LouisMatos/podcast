@@ -9,6 +9,7 @@ import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/download_repository.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../../data/repositories/queue_repository.dart';
 import '../../../services/audio/podcast_audio_handler.dart';
 import 'player_state.dart';
 
@@ -68,8 +69,9 @@ class PlayerViewModel extends _$PlayerViewModel {
   DateTime? _sleepTimerEndsAt;
   int _tickCount = 0;
 
-  Podcast? _podcast;
-  List<Episode> _queue = const [];
+  /// Última fila persistida vista — usada pra resolver o podcast/episódio do
+  /// item que passou a tocar (o handler só devolve `MediaItem`).
+  List<QueueEntry> _entries = const [];
 
   PodcastAudioHandler get _handler => ref.read(audioHandlerProvider);
   PreferencesStore get _prefs => ref.read(preferencesStoreProvider);
@@ -82,11 +84,21 @@ class PlayerViewModel extends _$PlayerViewModel {
     _playbackStateSub = handler.playbackState.listen(_onPlaybackStateChanged);
     _ticker = Timer.periodic(_tickInterval, (_) => _onTick());
 
+    // Fila persistida (Fase 12) é a fonte de verdade da ordem — o handler é
+    // só o espelho dela. Quando ela muda (enfileirar / reordenar / consumir),
+    // re-sincroniza o handler.
+    handler.onItemConsumed = _onItemConsumed;
+    ref.listen(queueProvider, (_, next) {
+      final entries = next.value;
+      if (entries != null) unawaited(_syncQueue(entries));
+    }, fireImmediately: true);
+
     ref.onDispose(() {
       _mediaItemSub?.cancel();
       _playbackStateSub?.cancel();
       _ticker?.cancel();
       _sleepTimer?.cancel();
+      handler.onItemConsumed = null;
     });
 
     // Restaura volume/velocidade salvos (Fase pós-8). O equalizador é
@@ -99,37 +111,42 @@ class PlayerViewModel extends _$PlayerViewModel {
     return PlayerState(volume: volume, speed: speed);
   }
 
-  /// Carrega [episode], começando a fila em [queue] (a lista de episódios do
-  /// podcast) — retoma de onde parou se houver progresso salvo (Fase 3).
+  /// Toca [episode] agora: a fila passa a ser **só ele** (Fase 12, decisão
+  /// b — tocar um episódio não substitui a fila pela lista inteira do
+  /// podcast; pra isso o usuário enfileira explicitamente). Retoma de onde
+  /// parou se houver progresso salvo (Fase 3).
   ///
   /// [autoPlay] `false` (padrão): só prepara o áudio e mostra o mini-player
-  /// pausado — selecionar um episódio não deve tocar sozinho (Fase 8.3). A
-  /// tela de episódio e o botão de play na lista passam `true`.
-  Future<void> playEpisode(
-    Podcast podcast,
-    Episode episode, {
-    required List<Episode> queue,
-    bool autoPlay = false,
-  }) async {
-    _podcast = podcast;
-    _queue = queue;
-
+  /// pausado — selecionar um episódio não toca sozinho (Fase 8.3). A tela de
+  /// episódio e o botão de play na lista passam `true`.
+  Future<void> playEpisode(Podcast podcast, Episode episode, {bool autoPlay = false}) async {
     // Atualiza o estado já síncrono, antes de qualquer await — quem chamou
     // playEpisode costuma navegar pro player logo em seguida (sem esperar
-    // essa Future), e a tela precisa ver podcast/episode desde o 1º frame,
-    // não só depois do disco/rede responderem.
-    state = state.copyWith(podcast: podcast, episode: episode, queue: queue, duration: episode.duration);
+    // essa Future), e a tela precisa ver podcast/episode desde o 1º frame.
+    _entries = [(podcast: podcast, episode: episode)];
+    state = state.copyWith(
+      podcast: podcast,
+      episode: episode,
+      queue: [episode],
+      duration: episode.duration,
+    );
 
-    final startIndex = queue.indexWhere((e) => e.guid == episode.guid);
-    final savedPosition = await ref.read(libraryRepositoryProvider).playbackPositionFor(podcast.id, episode.guid);
+    final savedPosition =
+        await ref.read(libraryRepositoryProvider).playbackPositionFor(podcast.id, episode.guid);
+    if (!ref.mounted) return;
+    // Põe o episódio na frente da fila persistida, preservando o que já
+    // estava enfileirado (o stream `queueProvider` reemite; `_syncQueue`
+    // completa o `_entries` com a fila inteira).
+    await ref.read(queueRepositoryProvider).playNow(podcast, episode);
+    if (!ref.mounted) return;
 
-    // Toca do arquivo baixado sempre que existir — é o que faz um episódio
-    // baixado funcionar em modo avião (Fase 5).
-    final localPaths = await ref.read(downloadRepositoryProvider).completedPathsForPodcast(podcast.id);
-    final items = [for (final e in queue) _toMediaItem(podcast, e, localPath: localPaths[e.guid])];
-    await _handler.playQueue(
-      items,
-      startIndex: startIndex < 0 ? 0 : startIndex,
+    // Toca do arquivo baixado sempre que existir — modo avião (Fase 5).
+    final localPaths =
+        await ref.read(downloadRepositoryProvider).completedPathsForPodcast(podcast.id);
+    if (!ref.mounted) return;
+    await _handler.setQueue(
+      [_toMediaItem(podcast, episode, localPath: localPaths[episode.guid])],
+      playFirst: true,
       initialPosition: savedPosition,
       autoPlay: autoPlay,
     );
@@ -137,6 +154,80 @@ class PlayerViewModel extends _$PlayerViewModel {
     // O equalizador do device só fica disponível depois que um áudio foi
     // carregado. Android apenas.
     unawaited(_loadEqualizer());
+  }
+
+  /// "Adicionar à fila" — vai pro fim.
+  Future<void> enqueue(Podcast podcast, Episode episode) =>
+      ref.read(queueRepositoryProvider).addToEnd(podcast, episode);
+
+  /// "Tocar a seguir" — logo após o episódio atual.
+  Future<void> playNext(Podcast podcast, Episode episode) => ref
+      .read(queueRepositoryProvider)
+      .playNextAfter(podcast, episode, state.episode?.guid);
+
+  /// Enfileira vários de uma vez, na ordem dada (usado pelo "enfileirar os
+  /// próximos" da tela de episódio).
+  Future<void> enqueueAll(Podcast podcast, List<Episode> episodes) async {
+    final repo = ref.read(queueRepositoryProvider);
+    for (final e in episodes) {
+      await repo.addToEnd(podcast, e);
+    }
+  }
+
+  /// Remove um item de "a seguir" pela posição na fila (índice 0 é o atual).
+  Future<void> removeFromQueueAt(int index) =>
+      ref.read(queueRepositoryProvider).removeAt(index);
+
+  Future<void> reorderQueue(int oldIndex, int newIndex) =>
+      ref.read(queueRepositoryProvider).move(oldIndex, newIndex);
+
+  Future<void> clearQueue() => ref.read(queueRepositoryProvider).clear();
+
+  /// Sincroniza a fila do handler com a persistida, sem recarregar o áudio
+  /// que já toca (a menos que o item atual tenha saído da fila).
+  Future<void> _syncQueue(List<QueueEntry> entries) async {
+    _entries = entries;
+    state = state.copyWith(queue: [for (final e in entries) e.episode]);
+
+    if (entries.isEmpty) {
+      await _handler.setQueue(const []);
+      return;
+    }
+
+    final currentId = _handler.mediaItem.value?.id;
+    final handlerIds = [for (final i in _handler.queue.value) i.id];
+
+    final items = <audio_service.MediaItem>[];
+    for (final e in entries) {
+      final paths =
+          await ref.read(downloadRepositoryProvider).completedPathsForPodcast(e.podcast.id);
+      if (!ref.mounted) return;
+      items.add(_toMediaItem(e.podcast, e.episode, localPath: paths[e.episode.guid]));
+    }
+    final newIds = [for (final i in items) i.id];
+
+    if (currentId != null && !newIds.contains(currentId)) {
+      // O item que tocava saiu da fila (reordenação/remoção esquisita) —
+      // recarrega o novo topo, preservando play/pause.
+      await _handler.setQueue(items, playFirst: true, autoPlay: state.isPlaying);
+    } else if (!_sameIds(handlerIds, newIds)) {
+      await _handler.setQueue(items);
+    }
+  }
+
+  bool _sameIds(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  void _onItemConsumed(audio_service.MediaItem consumed) {
+    final guid = consumed.extras?['guid'] as String?;
+    final podcastId = consumed.extras?['podcastId'] as int?;
+    if (guid == null || podcastId == null) return;
+    unawaited(ref.read(queueRepositoryProvider).removeEpisode(podcastId, guid));
   }
 
   void togglePlayPause() {
@@ -243,17 +334,8 @@ class PlayerViewModel extends _$PlayerViewModel {
     }
   }
 
-  Future<void> playNextInQueue() async {
-    final episode = state.episode;
-    final podcast = _podcast;
-    if (episode == null || podcast == null) return;
-
-    final index = _queue.indexWhere((e) => e.guid == episode.guid);
-    if (index == -1 || index >= _queue.length - 1) return;
-
-    // "Próximo" é ação explícita do usuário — aqui toca de fato.
-    await playEpisode(podcast, _queue[index + 1], queue: _queue, autoPlay: true);
-  }
+  /// "Próximo": descarta o item atual da fila e toca o seguinte.
+  Future<void> playNextInQueue() => _handler.skipToNext();
 
   void startSleepTimer(Duration duration) {
     _sleepTimer?.cancel();
@@ -302,7 +384,21 @@ class PlayerViewModel extends _$PlayerViewModel {
 
   void _onMediaItemChanged(audio_service.MediaItem? item) {
     if (item == null) return;
-    state = state.copyWith(duration: item.duration);
+    final guid = item.extras?['guid'] as String?;
+    final entry = _entryFor(guid);
+    state = state.copyWith(
+      duration: item.duration,
+      episode: entry?.episode ?? state.episode,
+      podcast: entry?.podcast ?? state.podcast,
+    );
+  }
+
+  QueueEntry? _entryFor(String? guid) {
+    if (guid == null) return null;
+    for (final e in _entries) {
+      if (e.episode.guid == guid) return e;
+    }
+    return null;
   }
 
   void _onPlaybackStateChanged(audio_service.PlaybackState playbackState) {
@@ -323,14 +419,9 @@ class PlayerViewModel extends _$PlayerViewModel {
     if (wasPlaying && !playbackState.playing) {
       unawaited(_saveProgress());
     }
-
-    final index = playbackState.queueIndex;
-    if (index == null || index < 0 || index >= _queue.length) return;
-
-    final episodeAtIndex = _queue[index];
-    if (episodeAtIndex.guid != state.episode?.guid) {
-      state = state.copyWith(episode: episodeAtIndex, duration: episodeAtIndex.duration);
-    }
+    // Qual episódio está tocando vem do `mediaItem` (via `extras`), tratado
+    // em `_onMediaItemChanged` — não do `queueIndex` (que é sempre 0 no
+    // modelo de fila "consumir da frente").
   }
 
   Future<void> _saveProgress() async {
@@ -359,6 +450,7 @@ class PlayerViewModel extends _$PlayerViewModel {
       album: podcast.title,
       artUri: artUrl != null ? Uri.tryParse(artUrl) : null,
       duration: episode.duration,
+      extras: {'guid': episode.guid, 'podcastId': podcast.id},
     );
   }
 }

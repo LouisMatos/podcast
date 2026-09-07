@@ -31,7 +31,7 @@ cada fase. Trabalho novo = uma fase do `ROADMAP_V2.md`.
 
 ## Mapa do repositório
 
-Estado atual (v1 completa; v2 Fase 11 concluída — ver `docs/ROADMAP_V2.md`):
+Estado atual (v1 completa; v2 Fase 12 concluída — ver `docs/ROADMAP_V2.md`):
 
 ```text
 podcast/
@@ -56,13 +56,13 @@ podcast/
       core/                      theme/, router/ (4 abas: Início/Descobrir/
                                   Biblioteca/Ajustes; /podcast /episode /player
                                   são rotas de topo fora da casca),
-                                  network/, database/ (drift, schemaVersion 3),
+                                  network/, database/ (drift, schemaVersion 4),
                                   prefs/ (PreferencesStore, shared_preferences),
                                   widgets/ (SoftCard, PillButton, SearchField,
                                   PodcastListTile, ...)
       data/                      models/, sources/ (itunes_search_api,
                                   apple_charts_api, rss_feed_parser, DAOs),
-                                  repositories/ (Podcast, Library, Download)
+                                  repositories/ (Podcast, Library, Download, Queue)
       features/                  home/ (aba inicial — Continuar ouvindo + Novos
                                   episódios), discover/ (busca + carrossel Top 20
                                   + categorias), category/, library/,
@@ -71,12 +71,13 @@ podcast/
                                   episode_detail/ (descrição HTML, /episode),
                                   settings/,
                                   player/ (mini-player + tela cheia + volume/
-                                  equalizador), downloads/ (+ widgets/DownloadButton)
+                                  equalizador + fila reordenável + widgets/
+                                  QueueMenuButton), downloads/ (+ widgets/DownloadButton)
                                   — layout completo descrito em "Arquitetura" abaixo
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        64 testes — core/prefs/, core/database/ (migração),
+    test/                        74 testes — core/prefs/, core/database/ (migração),
                                   data/sources/, data/repositories/, features/discover/,
                                   features/podcast_detail/, features/episode_detail/,
                                   features/player/, support/ (helpers), widget_test.dart
@@ -233,10 +234,21 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   `/episode` (`EpisodeDetailScreen`). Play só via `IconButton` de play do
   tile ou botão "Tocar" da tela — esses passam `autoPlay: true`.
   `PlayerViewModel.playEpisode` tem `autoPlay` default `false`;
-  `PodcastAudioHandler.playQueue`/`skipToQueueItem` default `true` (o
-  auto-avanço no fim da fila continua). Ao navegar pro player, **não**
-  esperar `playEpisode` terminar antes do `context.push` (a tela já mostra
-  `isBuffering`).
+  `PodcastAudioHandler.setQueue(playFirst:true)`/`skipToQueueItem` default
+  `true` (auto-avanço no fim continua, consumindo a fila). Ao navegar pro
+  player, **não** esperar `playEpisode` terminar antes do `context.push` (a
+  tela já mostra `isBuffering`).
+- **Fila real (v2 Fase 12)**: `QueueItems` (drift, schema v4, dados
+  desnormalizados — pode ter episódio de podcast não assinado). `QueueRepository`
+  reescreve a tabela inteira (posições 0..n) a cada mutação. `queueProvider`
+  (`keepAlive`) é a fonte de verdade da ordem; `PlayerViewModel` (também
+  `keepAlive`) espelha no `PodcastAudioHandler` via `ref.listen` → `_syncQueue`.
+  Modelo "consumir da frente": item em foco = índice 0; `skipToNext`/fim do
+  episódio removem o 0 (`_advance` + callback `onItemConsumed`). `playEpisode`
+  = `queueRepo.playNow` (vai pra frente, **preserva** o resto da fila — não
+  substitui pela lista do podcast). `MediaItem.extras` carrega `guid`/`podcastId`
+  pra resolver qual episódio passou a tocar. Todo `await` em `playEpisode`/
+  `_syncQueue` é seguido de `if (!ref.mounted) return`.
 - **Botão de download / progresso de episódio só com podcast assinado** —
   `Downloads`/`EpisodeCache`/`PlaybackProgress` têm FK em `Subscriptions.id`.
 - **Filtro/ordenação de episódio** é a função pura `applyEpisodeControls`
@@ -307,7 +319,10 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   `Subscriptions` antes de qualquer linha com FK. **`NativeDatabase` trava
   dentro de `testWidgets`** — em widget test que precisa de dados do banco,
   sobrescrever os providers de dados (`overrideWith(Stream.value([]))`), não
-  o `appDatabaseProvider`.
+  o `appDatabaseProvider`. Qualquer widget test que monte `MiniPlayer`/
+  `PlayerScreen`/`EpisodeDetailScreen`/`PodcastApp` precisa também de
+  `queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[]))`
+  (o `PlayerViewModel` passou a consumir a fila no `build`).
 - **`updatedAt`/`publishedAt` do drift são unix em segundos** — teste que
   depende de ordem por data precisa de > 1s de gap real entre escritas.
 - **Detalhe do podcast é rota de topo `/podcast`** (v2 Fase 11) — root nav,

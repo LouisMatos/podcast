@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/core/theme/app_theme.dart';
+import 'package:podcast_app/data/repositories/queue_repository.dart';
 import 'package:podcast_app/features/player/view/mini_player.dart';
 import 'package:podcast_app/features/player/view/player_screen.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
@@ -25,6 +26,7 @@ void main() {
       overrides: [
         audioHandlerProvider.overrideWithValue(PodcastAudioHandler()),
         preferencesStoreProvider.overrideWithValue(prefs),
+        queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
       ],
       child: MaterialApp(theme: AppTheme.light(), home: child),
     );

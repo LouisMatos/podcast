@@ -21,6 +21,7 @@ import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
+import '../../player/widgets/queue_menu_button.dart';
 import '../view_model/downloaded_episodes_provider.dart';
 import '../view_model/episode_list_controls.dart';
 import '../view_model/episode_progress_provider.dart';
@@ -458,7 +459,7 @@ class _EpisodeTile extends ConsumerWidget {
               if (isCurrent) {
                 n.togglePlayPause();
               } else {
-                unawaited(n.playEpisode(podcast, episode, queue: queue, autoPlay: true));
+                unawaited(n.playEpisode(podcast, episode, autoPlay: true));
               }
             },
           ),
@@ -482,10 +483,8 @@ class _EpisodeTile extends ConsumerWidget {
               ],
             ),
           ),
-          if (isSubscribed) ...[
-            const SizedBox(width: 8),
-            DownloadButton(podcast: podcast, episode: episode),
-          ],
+          QueueMenuButton(podcast: podcast, episode: episode),
+          if (isSubscribed) DownloadButton(podcast: podcast, episode: episode),
         ],
       ),
     );

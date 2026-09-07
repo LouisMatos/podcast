@@ -68,6 +68,35 @@ class PlaybackProgress extends Table {
   Set<Column> get primaryKey => {podcastId, episodeGuid};
 }
 
+/// Fila de reprodução persistente (Fase 12) — cross-podcast, sobrevive ao
+/// kill do app. `position` é 0-based e contígua: o `QueueRepository`
+/// reescreve todas as linhas a cada mutação (a fila é pequena). O item em
+/// `position = 0` é o que está tocando/em foco.
+///
+/// Dados do episódio/podcast ficam **desnormalizados** de propósito: a fila
+/// pode conter episódios de um podcast que não está assinado (tocado direto
+/// da busca), e nesse caso não há linha em `episodeCache`/`subscriptions`
+/// pra fazer join.
+@DataClassName('QueueItemRow')
+class QueueItems extends Table {
+  IntColumn get position => integer()();
+  IntColumn get podcastId => integer()();
+  TextColumn get podcastTitle => text()();
+  TextColumn get podcastAuthor => text()();
+  TextColumn get podcastFeedUrl => text()();
+  TextColumn get podcastArtworkUrl => text().nullable()();
+  TextColumn get episodeGuid => text()();
+  TextColumn get episodeTitle => text()();
+  TextColumn get audioUrl => text()();
+  TextColumn get episodeImageUrl => text().nullable()();
+  IntColumn get episodeDurationSeconds => integer().nullable()();
+  DateTimeColumn get episodePublishedAt => dateTime().nullable()();
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {podcastId, episodeGuid};
+}
+
 /// Estado de download de um episódio. Escrito pelo `DownloadService`
 /// (Fase 5) a partir dos eventos do `flutter_downloader`. `taskId` é o
 /// identificador que o próprio `flutter_downloader` dá à tarefa — é por

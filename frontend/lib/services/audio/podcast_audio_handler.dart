@@ -54,19 +54,35 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     await params.bands[index].setGain(gain);
   }
 
-  /// Carrega uma fila a partir do item em [startIndex], retomando de
-  /// [initialPosition] quando existe progresso salvo (Fase 3).
+  /// Chamado quando o item em foco sai da fila (terminou ou o usuário
+  /// pulou). O `PlayerViewModel` usa pra remover o mesmo item da fila
+  /// persistida. Recebe o `MediaItem` consumido (o `guid`/`podcastId` vêm
+  /// em `extras`).
+  void Function(MediaItem consumed)? onItemConsumed;
+
+  /// Substitui a fila do handler (Fase 12 — espelho da fila persistida).
   ///
-  /// [autoPlay] `false` só prepara o áudio (o usuário decide quando ouvir —
-  /// Fase 8.3). O auto-avanço no fim de um episódio continua com `true`.
-  Future<void> playQueue(
+  /// [playFirst] carrega o áudio do item 0 — usado ao tocar um episódio
+  /// novo. Sem ele, só atualiza a lista sem mexer no áudio que já toca
+  /// (usado quando o usuário só enfileira / reordena).
+  ///
+  /// [autoPlay] `false` só prepara o áudio (Fase 8.3).
+  Future<void> setQueue(
     List<MediaItem> items, {
-    required int startIndex,
+    bool playFirst = false,
     Duration? initialPosition,
     bool autoPlay = true,
   }) async {
     queue.add(items);
-    await skipToQueueItem(startIndex, initialPosition: initialPosition, autoPlay: autoPlay);
+    if (items.isEmpty) {
+      await stop();
+      return;
+    }
+    if (playFirst) {
+      await skipToQueueItem(0, initialPosition: initialPosition, autoPlay: autoPlay);
+    } else {
+      playbackState.add(playbackState.value.copyWith(queueIndex: 0));
+    }
   }
 
   @override
@@ -108,6 +124,28 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   Future<void> skipBackward(Duration amount) => _seekBy(-amount);
 
+  /// Pula pro próximo da fila: descarta o item 0 e carrega o novo item 0.
+  @override
+  Future<void> skipToNext() => _advance(autoPlay: true);
+
+  /// Sem histórico na fila — "anterior" volta ao início do episódio atual.
+  @override
+  Future<void> skipToPrevious() => _player.seek(Duration.zero);
+
+  /// Tira o item em foco da fila e toca o próximo (ou para, se acabou).
+  Future<void> _advance({bool autoPlay = true}) async {
+    final items = [...queue.value];
+    if (items.isEmpty) return;
+    final consumed = items.removeAt(0);
+    queue.add(items);
+    onItemConsumed?.call(consumed);
+    if (items.isEmpty) {
+      await stop();
+    } else {
+      await skipToQueueItem(0, autoPlay: autoPlay);
+    }
+  }
+
   Future<void> _seekBy(Duration amount) {
     final target = _player.position + amount;
     final duration = _player.duration;
@@ -117,15 +155,7 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     return _player.seek(clamped);
   }
 
-  Future<void> _onEpisodeCompleted() async {
-    final items = queue.value;
-    final nextIndex = (playbackState.value.queueIndex ?? -1) + 1;
-    if (nextIndex < items.length) {
-      await skipToQueueItem(nextIndex);
-    } else {
-      await stop();
-    }
-  }
+  Future<void> _onEpisodeCompleted() => _advance();
 
   void _broadcastPlaybackState(just_audio.PlaybackEvent event) {
     final playing = _player.playing;

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/pill_button.dart';
+import '../../../data/models/episode.dart';
 import '../view_model/player_state.dart';
 import '../view_model/player_view_model.dart';
 
@@ -37,6 +38,15 @@ class PlayerScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(podcast?.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: player.queue.length > 1,
+              label: Text('${player.queue.length - 1}'),
+              child: const Icon(Icons.queue_music),
+            ),
+            tooltip: 'Fila',
+            onPressed: () => _showQueueSheet(context),
+          ),
           if (defaultTargetPlatform == TargetPlatform.android)
             IconButton(
               icon: const Icon(Icons.tune),
@@ -141,6 +151,18 @@ class PlayerScreen extends ConsumerWidget {
                   ],
                 ],
               ),
+              if (player.queue.length > 1) ...[
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => _showQueueSheet(context),
+                  child: Text(
+                    'A seguir: ${player.queue[1].title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                  ),
+                ),
+              ],
               const Spacer(),
             ],
           ),
@@ -215,6 +237,113 @@ class _SpeedButton extends StatelessWidget {
         icon: Icons.speed,
         variant: PillButtonVariant.ghost,
         onPressed: null,
+      ),
+    );
+  }
+}
+
+void _showQueueSheet(BuildContext context) {
+  final colors = Theme.of(context).extension<AppColors>()!;
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: colors.surface,
+    showDragHandle: true,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
+    ),
+    builder: (_) => const _QueueSheet(),
+  );
+}
+
+/// Fila do player: item atual fixo no topo, "a seguir" reordenável e
+/// removível (Fase 12).
+class _QueueSheet extends ConsumerWidget {
+  const _QueueSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final player = ref.watch(playerViewModelProvider);
+    final notifier = ref.read(playerViewModelProvider.notifier);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final queue = player.queue;
+    final upcoming = queue.length > 1 ? queue.sublist(1) : const <Episode>[];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Fila', style: Theme.of(context).textTheme.titleMedium),
+                if (upcoming.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      notifier.clearQueue();
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Limpar'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (queue.isNotEmpty)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.play_arrow, color: colors.primary),
+                title: Text(
+                  queue.first.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                subtitle: Text('Tocando agora', style: Theme.of(context).textTheme.bodySmall),
+              ),
+            if (upcoming.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'Nada na fila. Use "Adicionar à fila" num episódio.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              Flexible(
+                child: ReorderableListView.builder(
+                  shrinkWrap: true,
+                  buildDefaultDragHandles: true,
+                  itemCount: upcoming.length,
+                  // +1: índice 0 da fila é o item atual, fora desta lista.
+                  // `onReorderItem` já entrega o newIndex ajustado.
+                  onReorderItem: (oldIndex, newIndex) =>
+                      notifier.reorderQueue(oldIndex + 1, newIndex + 1),
+                  itemBuilder: (context, i) {
+                    final episode = upcoming[i];
+                    return ListTile(
+                      key: ValueKey('queue-${episode.guid}'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        episode.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.remove_circle_outline, color: colors.textMuted),
+                        tooltip: 'Tirar da fila',
+                        onPressed: () => notifier.removeFromQueueAt(i + 1),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

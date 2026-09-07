@@ -12,9 +12,11 @@
 
 ## Onde parei
 
-**Fase 11 concluída** (aba Início). 64 testes (era 55), `dart analyze`
-limpo, app rodando. Próximo: **Fase 12** (fila de reprodução real).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
+**Fase 12 concluída** (fila de reprodução real). 74 testes (era 64),
+`dart analyze` limpo, app rodando e verificado no emulador (fila persiste ao
+kill, add/tocar-a-seguir, sheet reordenável, skip consome a frente,
+cross-podcast). Próximo: **Fase 10** (refresh em background + notificação).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -154,35 +156,55 @@ Armadilha: `AppDatabase(NativeDatabase.memory())` **trava dentro de
 `testWidgets`** (funciona em `test()` puro). Em widget test, sobrescrever os
 providers de dados, não o `appDatabaseProvider`.
 
-## Fase 12 — Fila de reprodução real · CRÍTICO · esforço G
+## Fase 12 — Fila de reprodução real · CRÍTICO · esforço G ✅
 
-**Problema:** a "fila" hoje é só a lista do podcast atual, recarregada inteira
-a cada play, some ao fechar o app. `playNextInQueue` recarrega tudo. Sem
-`skipToNext`/`prev` reais.
+**Problema:** a "fila" era só a lista do podcast atual, recarregada inteira a
+cada play, sumia ao fechar o app.
 
-- [ ] Schema v4: tabela `QueueItems` (`position` int, `podcastId`,
-      `episodeGuid`, `addedAt`) — fila persistente cross-podcast, sobrevive ao
-      kill do app.
-- [ ] `QueueRepository` + `queueProvider` (stream reativo do drift).
-- [ ] `PodcastAudioHandler`: overrides reais `addQueueItem`, `removeQueueItem`,
-      `insertQueueItem` (tocar a seguir), `moveQueueItem` (reordenar),
-      `skipToNext`/`skipToPrevious`. Avaliar `ConcatenatingAudioSource` do
-      just_audio vs. gestão manual (hoje é `setAudioSource` faixa a faixa).
-- [ ] `PlayerViewModel`: `enqueue(episode)`, `playNext(episode)`,
-      `removeFromQueue`, `reorderQueue`. `playEpisode` interage com a fila
-      persistida, não com uma `List<Episode>` volátil. `_onEpisodeCompleted`
-      consome a fila.
-- [ ] UI: menu "Tocar a seguir" / "Adicionar à fila" nos tiles + `EpisodeDetailScreen`;
-      sheet de fila reordenável no player (`ReorderableListView`); mini-player e
-      full player mostram "A seguir: …".
-- [ ] **Decisão de design:** tocar um episódio da lista do podcast = toca só
-      ele + oferece "enfileirar os N seguintes" (opção b — mais previsível que
-      substituir a fila).
-- [ ] Testes: `QueueRepository` (add/remove/move/rehidratação); handler fake
-      (ordem, skipToNext).
+- [x] Schema drift **v4**: tabela `QueueItems` — `position` (0-based, contígua,
+      reescrita a cada mutação), `podcastId`/`episodeGuid` (PK) + dados de
+      podcast/episódio **desnormalizados** (a fila pode ter episódio de podcast
+      não assinado, sem linha em `episodeCache`/`subscriptions` pra join).
+      Migração `if (from < 4) createTable`.
+- [x] `QueueRepository` (`data/repositories/queue_repository.dart`) —
+      `watchQueue`/`currentQueue`, `playNow` (põe na frente, preserva o resto),
+      `addToEnd`, `playNextAfter` (após o item atual), `removeAt`/`removeEpisode`,
+      `move`, `replaceWith`, `clear`. Toda escrita é uma transação que reescreve
+      a tabela com posições 0..n. `queueProvider` (`@Riverpod(keepAlive:true)`,
+      stream) é a fonte de verdade da ordem.
+- [x] `PodcastAudioHandler`: `setQueue(items, {playFirst})` espelha a fila
+      persistida; `skipToNext`/`_advance` **consome a frente** (item em foco =
+      índice 0) e chama `onItemConsumed` (callback pro `PlayerViewModel`
+      remover da fila persistida). `skipToPrevious` = volta ao início do
+      episódio (sem histórico). `_onEpisodeCompleted` = `_advance`.
+      `MediaItem.extras` carrega `guid`/`podcastId`.
+- [x] `PlayerViewModel`: `playEpisode` → `queueRepo.playNow` (não recebe mais
+      `List<Episode> queue`). `enqueue`/`playNext`/`enqueueAll`/`removeFromQueueAt`/
+      `reorderQueue`/`clearQueue`. `ref.listen(queueProvider)` → `_syncQueue`
+      re-espelha no handler sem recarregar o áudio (guarda por lista de ids).
+      `_entries` resolve podcast/episódio do `MediaItem` que passa a tocar.
+- [x] UI: `QueueMenuButton` (menu "⋮" — Tocar a seguir / Adicionar à fila) nos
+      tiles de episódio (detalhe do podcast, "Novos episódios" da Início);
+      botões na `EpisodeDetailScreen` + "Enfileirar próximos (N)" quando aberta
+      de uma lista; sheet de fila no player (`ReorderableListView` com
+      `onReorderItem`, remover item, badge com contagem, "Limpar"); "A seguir:
+      …" no player.
+- [x] **Decisão b:** tocar um episódio = `playNow` (vai pra frente, preserva a
+      fila existente). Não substitui a fila pela lista inteira do podcast; não
+      auto-continua o podcast. Enfileirar os seguintes é ação explícita.
+- [x] Testes: `queue_repository_test` (10 — ordem/reindex, playNow, playNextAfter,
+      move/removeAt, cross-podcast, rehidratação); `migration_v3_to_v4_test`;
+      `player_view_model_test` atualizado (`setQueue`/`_MockQueue`). 74 no total.
 
-**Não quebra:** fila vazia + tocar 1 episódio = fila de 1 item. A
-`List<Episode> queue` passada hoje pra `playEpisode` some — vira operação de fila.
+**Não quebrou:** "não toca ao selecionar" (Fase 8.3) intacto — `playEpisode`
+default `autoPlay: false`. Retomar posição salva (Fase 3) e tocar do arquivo
+baixado (Fase 5) seguem em `playEpisode`. Auto-avanço no fim continua (agora
+consumindo a fila).
+
+Armadilha: `PlayerViewModel` é `keepAlive` → todo provider que ele consome
+tem que ser `keepAlive` (`queueProvider`). E `playEpisode`/`_syncQueue` fazem
+`if (!ref.mounted) return` depois de cada `await` (senão um teste que não
+espera a Future explode com "Ref after dispose").
 
 ## Fase 13 — Gestão de episódios · ALTO · M
 

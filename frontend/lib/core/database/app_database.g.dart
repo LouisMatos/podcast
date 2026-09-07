@@ -2011,6 +2011,831 @@ class DownloadsCompanion extends UpdateCompanion<DownloadRow> {
   }
 }
 
+class $QueueItemsTable extends QueueItems
+    with TableInfo<$QueueItemsTable, QueueItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $QueueItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _podcastIdMeta = const VerificationMeta(
+    'podcastId',
+  );
+  @override
+  late final GeneratedColumn<int> podcastId = GeneratedColumn<int>(
+    'podcast_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _podcastTitleMeta = const VerificationMeta(
+    'podcastTitle',
+  );
+  @override
+  late final GeneratedColumn<String> podcastTitle = GeneratedColumn<String>(
+    'podcast_title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _podcastAuthorMeta = const VerificationMeta(
+    'podcastAuthor',
+  );
+  @override
+  late final GeneratedColumn<String> podcastAuthor = GeneratedColumn<String>(
+    'podcast_author',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _podcastFeedUrlMeta = const VerificationMeta(
+    'podcastFeedUrl',
+  );
+  @override
+  late final GeneratedColumn<String> podcastFeedUrl = GeneratedColumn<String>(
+    'podcast_feed_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _podcastArtworkUrlMeta = const VerificationMeta(
+    'podcastArtworkUrl',
+  );
+  @override
+  late final GeneratedColumn<String> podcastArtworkUrl =
+      GeneratedColumn<String>(
+        'podcast_artwork_url',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _episodeGuidMeta = const VerificationMeta(
+    'episodeGuid',
+  );
+  @override
+  late final GeneratedColumn<String> episodeGuid = GeneratedColumn<String>(
+    'episode_guid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _episodeTitleMeta = const VerificationMeta(
+    'episodeTitle',
+  );
+  @override
+  late final GeneratedColumn<String> episodeTitle = GeneratedColumn<String>(
+    'episode_title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _audioUrlMeta = const VerificationMeta(
+    'audioUrl',
+  );
+  @override
+  late final GeneratedColumn<String> audioUrl = GeneratedColumn<String>(
+    'audio_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _episodeImageUrlMeta = const VerificationMeta(
+    'episodeImageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> episodeImageUrl = GeneratedColumn<String>(
+    'episode_image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _episodeDurationSecondsMeta =
+      const VerificationMeta('episodeDurationSeconds');
+  @override
+  late final GeneratedColumn<int> episodeDurationSeconds = GeneratedColumn<int>(
+    'episode_duration_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _episodePublishedAtMeta =
+      const VerificationMeta('episodePublishedAt');
+  @override
+  late final GeneratedColumn<DateTime> episodePublishedAt =
+      GeneratedColumn<DateTime>(
+        'episode_published_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    position,
+    podcastId,
+    podcastTitle,
+    podcastAuthor,
+    podcastFeedUrl,
+    podcastArtworkUrl,
+    episodeGuid,
+    episodeTitle,
+    audioUrl,
+    episodeImageUrl,
+    episodeDurationSeconds,
+    episodePublishedAt,
+    addedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'queue_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<QueueItemRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('podcast_id')) {
+      context.handle(
+        _podcastIdMeta,
+        podcastId.isAcceptableOrUnknown(data['podcast_id']!, _podcastIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastIdMeta);
+    }
+    if (data.containsKey('podcast_title')) {
+      context.handle(
+        _podcastTitleMeta,
+        podcastTitle.isAcceptableOrUnknown(
+          data['podcast_title']!,
+          _podcastTitleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastTitleMeta);
+    }
+    if (data.containsKey('podcast_author')) {
+      context.handle(
+        _podcastAuthorMeta,
+        podcastAuthor.isAcceptableOrUnknown(
+          data['podcast_author']!,
+          _podcastAuthorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastAuthorMeta);
+    }
+    if (data.containsKey('podcast_feed_url')) {
+      context.handle(
+        _podcastFeedUrlMeta,
+        podcastFeedUrl.isAcceptableOrUnknown(
+          data['podcast_feed_url']!,
+          _podcastFeedUrlMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastFeedUrlMeta);
+    }
+    if (data.containsKey('podcast_artwork_url')) {
+      context.handle(
+        _podcastArtworkUrlMeta,
+        podcastArtworkUrl.isAcceptableOrUnknown(
+          data['podcast_artwork_url']!,
+          _podcastArtworkUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('episode_guid')) {
+      context.handle(
+        _episodeGuidMeta,
+        episodeGuid.isAcceptableOrUnknown(
+          data['episode_guid']!,
+          _episodeGuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_episodeGuidMeta);
+    }
+    if (data.containsKey('episode_title')) {
+      context.handle(
+        _episodeTitleMeta,
+        episodeTitle.isAcceptableOrUnknown(
+          data['episode_title']!,
+          _episodeTitleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_episodeTitleMeta);
+    }
+    if (data.containsKey('audio_url')) {
+      context.handle(
+        _audioUrlMeta,
+        audioUrl.isAcceptableOrUnknown(data['audio_url']!, _audioUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_audioUrlMeta);
+    }
+    if (data.containsKey('episode_image_url')) {
+      context.handle(
+        _episodeImageUrlMeta,
+        episodeImageUrl.isAcceptableOrUnknown(
+          data['episode_image_url']!,
+          _episodeImageUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('episode_duration_seconds')) {
+      context.handle(
+        _episodeDurationSecondsMeta,
+        episodeDurationSeconds.isAcceptableOrUnknown(
+          data['episode_duration_seconds']!,
+          _episodeDurationSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('episode_published_at')) {
+      context.handle(
+        _episodePublishedAtMeta,
+        episodePublishedAt.isAcceptableOrUnknown(
+          data['episode_published_at']!,
+          _episodePublishedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {podcastId, episodeGuid};
+  @override
+  QueueItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return QueueItemRow(
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      podcastId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}podcast_id'],
+      )!,
+      podcastTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}podcast_title'],
+      )!,
+      podcastAuthor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}podcast_author'],
+      )!,
+      podcastFeedUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}podcast_feed_url'],
+      )!,
+      podcastArtworkUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}podcast_artwork_url'],
+      ),
+      episodeGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_guid'],
+      )!,
+      episodeTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_title'],
+      )!,
+      audioUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}audio_url'],
+      )!,
+      episodeImageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_image_url'],
+      ),
+      episodeDurationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}episode_duration_seconds'],
+      ),
+      episodePublishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}episode_published_at'],
+      ),
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $QueueItemsTable createAlias(String alias) {
+    return $QueueItemsTable(attachedDatabase, alias);
+  }
+}
+
+class QueueItemRow extends DataClass implements Insertable<QueueItemRow> {
+  final int position;
+  final int podcastId;
+  final String podcastTitle;
+  final String podcastAuthor;
+  final String podcastFeedUrl;
+  final String? podcastArtworkUrl;
+  final String episodeGuid;
+  final String episodeTitle;
+  final String audioUrl;
+  final String? episodeImageUrl;
+  final int? episodeDurationSeconds;
+  final DateTime? episodePublishedAt;
+  final DateTime addedAt;
+  const QueueItemRow({
+    required this.position,
+    required this.podcastId,
+    required this.podcastTitle,
+    required this.podcastAuthor,
+    required this.podcastFeedUrl,
+    this.podcastArtworkUrl,
+    required this.episodeGuid,
+    required this.episodeTitle,
+    required this.audioUrl,
+    this.episodeImageUrl,
+    this.episodeDurationSeconds,
+    this.episodePublishedAt,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['position'] = Variable<int>(position);
+    map['podcast_id'] = Variable<int>(podcastId);
+    map['podcast_title'] = Variable<String>(podcastTitle);
+    map['podcast_author'] = Variable<String>(podcastAuthor);
+    map['podcast_feed_url'] = Variable<String>(podcastFeedUrl);
+    if (!nullToAbsent || podcastArtworkUrl != null) {
+      map['podcast_artwork_url'] = Variable<String>(podcastArtworkUrl);
+    }
+    map['episode_guid'] = Variable<String>(episodeGuid);
+    map['episode_title'] = Variable<String>(episodeTitle);
+    map['audio_url'] = Variable<String>(audioUrl);
+    if (!nullToAbsent || episodeImageUrl != null) {
+      map['episode_image_url'] = Variable<String>(episodeImageUrl);
+    }
+    if (!nullToAbsent || episodeDurationSeconds != null) {
+      map['episode_duration_seconds'] = Variable<int>(episodeDurationSeconds);
+    }
+    if (!nullToAbsent || episodePublishedAt != null) {
+      map['episode_published_at'] = Variable<DateTime>(episodePublishedAt);
+    }
+    map['added_at'] = Variable<DateTime>(addedAt);
+    return map;
+  }
+
+  QueueItemsCompanion toCompanion(bool nullToAbsent) {
+    return QueueItemsCompanion(
+      position: Value(position),
+      podcastId: Value(podcastId),
+      podcastTitle: Value(podcastTitle),
+      podcastAuthor: Value(podcastAuthor),
+      podcastFeedUrl: Value(podcastFeedUrl),
+      podcastArtworkUrl: podcastArtworkUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(podcastArtworkUrl),
+      episodeGuid: Value(episodeGuid),
+      episodeTitle: Value(episodeTitle),
+      audioUrl: Value(audioUrl),
+      episodeImageUrl: episodeImageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(episodeImageUrl),
+      episodeDurationSeconds: episodeDurationSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(episodeDurationSeconds),
+      episodePublishedAt: episodePublishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(episodePublishedAt),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory QueueItemRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return QueueItemRow(
+      position: serializer.fromJson<int>(json['position']),
+      podcastId: serializer.fromJson<int>(json['podcastId']),
+      podcastTitle: serializer.fromJson<String>(json['podcastTitle']),
+      podcastAuthor: serializer.fromJson<String>(json['podcastAuthor']),
+      podcastFeedUrl: serializer.fromJson<String>(json['podcastFeedUrl']),
+      podcastArtworkUrl: serializer.fromJson<String?>(
+        json['podcastArtworkUrl'],
+      ),
+      episodeGuid: serializer.fromJson<String>(json['episodeGuid']),
+      episodeTitle: serializer.fromJson<String>(json['episodeTitle']),
+      audioUrl: serializer.fromJson<String>(json['audioUrl']),
+      episodeImageUrl: serializer.fromJson<String?>(json['episodeImageUrl']),
+      episodeDurationSeconds: serializer.fromJson<int?>(
+        json['episodeDurationSeconds'],
+      ),
+      episodePublishedAt: serializer.fromJson<DateTime?>(
+        json['episodePublishedAt'],
+      ),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'position': serializer.toJson<int>(position),
+      'podcastId': serializer.toJson<int>(podcastId),
+      'podcastTitle': serializer.toJson<String>(podcastTitle),
+      'podcastAuthor': serializer.toJson<String>(podcastAuthor),
+      'podcastFeedUrl': serializer.toJson<String>(podcastFeedUrl),
+      'podcastArtworkUrl': serializer.toJson<String?>(podcastArtworkUrl),
+      'episodeGuid': serializer.toJson<String>(episodeGuid),
+      'episodeTitle': serializer.toJson<String>(episodeTitle),
+      'audioUrl': serializer.toJson<String>(audioUrl),
+      'episodeImageUrl': serializer.toJson<String?>(episodeImageUrl),
+      'episodeDurationSeconds': serializer.toJson<int?>(episodeDurationSeconds),
+      'episodePublishedAt': serializer.toJson<DateTime?>(episodePublishedAt),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+    };
+  }
+
+  QueueItemRow copyWith({
+    int? position,
+    int? podcastId,
+    String? podcastTitle,
+    String? podcastAuthor,
+    String? podcastFeedUrl,
+    Value<String?> podcastArtworkUrl = const Value.absent(),
+    String? episodeGuid,
+    String? episodeTitle,
+    String? audioUrl,
+    Value<String?> episodeImageUrl = const Value.absent(),
+    Value<int?> episodeDurationSeconds = const Value.absent(),
+    Value<DateTime?> episodePublishedAt = const Value.absent(),
+    DateTime? addedAt,
+  }) => QueueItemRow(
+    position: position ?? this.position,
+    podcastId: podcastId ?? this.podcastId,
+    podcastTitle: podcastTitle ?? this.podcastTitle,
+    podcastAuthor: podcastAuthor ?? this.podcastAuthor,
+    podcastFeedUrl: podcastFeedUrl ?? this.podcastFeedUrl,
+    podcastArtworkUrl: podcastArtworkUrl.present
+        ? podcastArtworkUrl.value
+        : this.podcastArtworkUrl,
+    episodeGuid: episodeGuid ?? this.episodeGuid,
+    episodeTitle: episodeTitle ?? this.episodeTitle,
+    audioUrl: audioUrl ?? this.audioUrl,
+    episodeImageUrl: episodeImageUrl.present
+        ? episodeImageUrl.value
+        : this.episodeImageUrl,
+    episodeDurationSeconds: episodeDurationSeconds.present
+        ? episodeDurationSeconds.value
+        : this.episodeDurationSeconds,
+    episodePublishedAt: episodePublishedAt.present
+        ? episodePublishedAt.value
+        : this.episodePublishedAt,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  QueueItemRow copyWithCompanion(QueueItemsCompanion data) {
+    return QueueItemRow(
+      position: data.position.present ? data.position.value : this.position,
+      podcastId: data.podcastId.present ? data.podcastId.value : this.podcastId,
+      podcastTitle: data.podcastTitle.present
+          ? data.podcastTitle.value
+          : this.podcastTitle,
+      podcastAuthor: data.podcastAuthor.present
+          ? data.podcastAuthor.value
+          : this.podcastAuthor,
+      podcastFeedUrl: data.podcastFeedUrl.present
+          ? data.podcastFeedUrl.value
+          : this.podcastFeedUrl,
+      podcastArtworkUrl: data.podcastArtworkUrl.present
+          ? data.podcastArtworkUrl.value
+          : this.podcastArtworkUrl,
+      episodeGuid: data.episodeGuid.present
+          ? data.episodeGuid.value
+          : this.episodeGuid,
+      episodeTitle: data.episodeTitle.present
+          ? data.episodeTitle.value
+          : this.episodeTitle,
+      audioUrl: data.audioUrl.present ? data.audioUrl.value : this.audioUrl,
+      episodeImageUrl: data.episodeImageUrl.present
+          ? data.episodeImageUrl.value
+          : this.episodeImageUrl,
+      episodeDurationSeconds: data.episodeDurationSeconds.present
+          ? data.episodeDurationSeconds.value
+          : this.episodeDurationSeconds,
+      episodePublishedAt: data.episodePublishedAt.present
+          ? data.episodePublishedAt.value
+          : this.episodePublishedAt,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueueItemRow(')
+          ..write('position: $position, ')
+          ..write('podcastId: $podcastId, ')
+          ..write('podcastTitle: $podcastTitle, ')
+          ..write('podcastAuthor: $podcastAuthor, ')
+          ..write('podcastFeedUrl: $podcastFeedUrl, ')
+          ..write('podcastArtworkUrl: $podcastArtworkUrl, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('episodeTitle: $episodeTitle, ')
+          ..write('audioUrl: $audioUrl, ')
+          ..write('episodeImageUrl: $episodeImageUrl, ')
+          ..write('episodeDurationSeconds: $episodeDurationSeconds, ')
+          ..write('episodePublishedAt: $episodePublishedAt, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    position,
+    podcastId,
+    podcastTitle,
+    podcastAuthor,
+    podcastFeedUrl,
+    podcastArtworkUrl,
+    episodeGuid,
+    episodeTitle,
+    audioUrl,
+    episodeImageUrl,
+    episodeDurationSeconds,
+    episodePublishedAt,
+    addedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is QueueItemRow &&
+          other.position == this.position &&
+          other.podcastId == this.podcastId &&
+          other.podcastTitle == this.podcastTitle &&
+          other.podcastAuthor == this.podcastAuthor &&
+          other.podcastFeedUrl == this.podcastFeedUrl &&
+          other.podcastArtworkUrl == this.podcastArtworkUrl &&
+          other.episodeGuid == this.episodeGuid &&
+          other.episodeTitle == this.episodeTitle &&
+          other.audioUrl == this.audioUrl &&
+          other.episodeImageUrl == this.episodeImageUrl &&
+          other.episodeDurationSeconds == this.episodeDurationSeconds &&
+          other.episodePublishedAt == this.episodePublishedAt &&
+          other.addedAt == this.addedAt);
+}
+
+class QueueItemsCompanion extends UpdateCompanion<QueueItemRow> {
+  final Value<int> position;
+  final Value<int> podcastId;
+  final Value<String> podcastTitle;
+  final Value<String> podcastAuthor;
+  final Value<String> podcastFeedUrl;
+  final Value<String?> podcastArtworkUrl;
+  final Value<String> episodeGuid;
+  final Value<String> episodeTitle;
+  final Value<String> audioUrl;
+  final Value<String?> episodeImageUrl;
+  final Value<int?> episodeDurationSeconds;
+  final Value<DateTime?> episodePublishedAt;
+  final Value<DateTime> addedAt;
+  final Value<int> rowid;
+  const QueueItemsCompanion({
+    this.position = const Value.absent(),
+    this.podcastId = const Value.absent(),
+    this.podcastTitle = const Value.absent(),
+    this.podcastAuthor = const Value.absent(),
+    this.podcastFeedUrl = const Value.absent(),
+    this.podcastArtworkUrl = const Value.absent(),
+    this.episodeGuid = const Value.absent(),
+    this.episodeTitle = const Value.absent(),
+    this.audioUrl = const Value.absent(),
+    this.episodeImageUrl = const Value.absent(),
+    this.episodeDurationSeconds = const Value.absent(),
+    this.episodePublishedAt = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  QueueItemsCompanion.insert({
+    required int position,
+    required int podcastId,
+    required String podcastTitle,
+    required String podcastAuthor,
+    required String podcastFeedUrl,
+    this.podcastArtworkUrl = const Value.absent(),
+    required String episodeGuid,
+    required String episodeTitle,
+    required String audioUrl,
+    this.episodeImageUrl = const Value.absent(),
+    this.episodeDurationSeconds = const Value.absent(),
+    this.episodePublishedAt = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : position = Value(position),
+       podcastId = Value(podcastId),
+       podcastTitle = Value(podcastTitle),
+       podcastAuthor = Value(podcastAuthor),
+       podcastFeedUrl = Value(podcastFeedUrl),
+       episodeGuid = Value(episodeGuid),
+       episodeTitle = Value(episodeTitle),
+       audioUrl = Value(audioUrl);
+  static Insertable<QueueItemRow> custom({
+    Expression<int>? position,
+    Expression<int>? podcastId,
+    Expression<String>? podcastTitle,
+    Expression<String>? podcastAuthor,
+    Expression<String>? podcastFeedUrl,
+    Expression<String>? podcastArtworkUrl,
+    Expression<String>? episodeGuid,
+    Expression<String>? episodeTitle,
+    Expression<String>? audioUrl,
+    Expression<String>? episodeImageUrl,
+    Expression<int>? episodeDurationSeconds,
+    Expression<DateTime>? episodePublishedAt,
+    Expression<DateTime>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (position != null) 'position': position,
+      if (podcastId != null) 'podcast_id': podcastId,
+      if (podcastTitle != null) 'podcast_title': podcastTitle,
+      if (podcastAuthor != null) 'podcast_author': podcastAuthor,
+      if (podcastFeedUrl != null) 'podcast_feed_url': podcastFeedUrl,
+      if (podcastArtworkUrl != null) 'podcast_artwork_url': podcastArtworkUrl,
+      if (episodeGuid != null) 'episode_guid': episodeGuid,
+      if (episodeTitle != null) 'episode_title': episodeTitle,
+      if (audioUrl != null) 'audio_url': audioUrl,
+      if (episodeImageUrl != null) 'episode_image_url': episodeImageUrl,
+      if (episodeDurationSeconds != null)
+        'episode_duration_seconds': episodeDurationSeconds,
+      if (episodePublishedAt != null)
+        'episode_published_at': episodePublishedAt,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  QueueItemsCompanion copyWith({
+    Value<int>? position,
+    Value<int>? podcastId,
+    Value<String>? podcastTitle,
+    Value<String>? podcastAuthor,
+    Value<String>? podcastFeedUrl,
+    Value<String?>? podcastArtworkUrl,
+    Value<String>? episodeGuid,
+    Value<String>? episodeTitle,
+    Value<String>? audioUrl,
+    Value<String?>? episodeImageUrl,
+    Value<int?>? episodeDurationSeconds,
+    Value<DateTime?>? episodePublishedAt,
+    Value<DateTime>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return QueueItemsCompanion(
+      position: position ?? this.position,
+      podcastId: podcastId ?? this.podcastId,
+      podcastTitle: podcastTitle ?? this.podcastTitle,
+      podcastAuthor: podcastAuthor ?? this.podcastAuthor,
+      podcastFeedUrl: podcastFeedUrl ?? this.podcastFeedUrl,
+      podcastArtworkUrl: podcastArtworkUrl ?? this.podcastArtworkUrl,
+      episodeGuid: episodeGuid ?? this.episodeGuid,
+      episodeTitle: episodeTitle ?? this.episodeTitle,
+      audioUrl: audioUrl ?? this.audioUrl,
+      episodeImageUrl: episodeImageUrl ?? this.episodeImageUrl,
+      episodeDurationSeconds:
+          episodeDurationSeconds ?? this.episodeDurationSeconds,
+      episodePublishedAt: episodePublishedAt ?? this.episodePublishedAt,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (podcastId.present) {
+      map['podcast_id'] = Variable<int>(podcastId.value);
+    }
+    if (podcastTitle.present) {
+      map['podcast_title'] = Variable<String>(podcastTitle.value);
+    }
+    if (podcastAuthor.present) {
+      map['podcast_author'] = Variable<String>(podcastAuthor.value);
+    }
+    if (podcastFeedUrl.present) {
+      map['podcast_feed_url'] = Variable<String>(podcastFeedUrl.value);
+    }
+    if (podcastArtworkUrl.present) {
+      map['podcast_artwork_url'] = Variable<String>(podcastArtworkUrl.value);
+    }
+    if (episodeGuid.present) {
+      map['episode_guid'] = Variable<String>(episodeGuid.value);
+    }
+    if (episodeTitle.present) {
+      map['episode_title'] = Variable<String>(episodeTitle.value);
+    }
+    if (audioUrl.present) {
+      map['audio_url'] = Variable<String>(audioUrl.value);
+    }
+    if (episodeImageUrl.present) {
+      map['episode_image_url'] = Variable<String>(episodeImageUrl.value);
+    }
+    if (episodeDurationSeconds.present) {
+      map['episode_duration_seconds'] = Variable<int>(
+        episodeDurationSeconds.value,
+      );
+    }
+    if (episodePublishedAt.present) {
+      map['episode_published_at'] = Variable<DateTime>(
+        episodePublishedAt.value,
+      );
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueueItemsCompanion(')
+          ..write('position: $position, ')
+          ..write('podcastId: $podcastId, ')
+          ..write('podcastTitle: $podcastTitle, ')
+          ..write('podcastAuthor: $podcastAuthor, ')
+          ..write('podcastFeedUrl: $podcastFeedUrl, ')
+          ..write('podcastArtworkUrl: $podcastArtworkUrl, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('episodeTitle: $episodeTitle, ')
+          ..write('audioUrl: $audioUrl, ')
+          ..write('episodeImageUrl: $episodeImageUrl, ')
+          ..write('episodeDurationSeconds: $episodeDurationSeconds, ')
+          ..write('episodePublishedAt: $episodePublishedAt, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2020,6 +2845,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $DownloadsTable downloads = $DownloadsTable(this);
+  late final $QueueItemsTable queueItems = $QueueItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2029,6 +2855,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     episodeCache,
     playbackProgress,
     downloads,
+    queueItems,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3723,6 +4550,383 @@ typedef $$DownloadsTableProcessedTableManager =
       DownloadRow,
       PrefetchHooks Function({bool podcastId})
     >;
+typedef $$QueueItemsTableCreateCompanionBuilder = QueueItemsCompanion Function({
+  required int position,
+  required int podcastId,
+  required String podcastTitle,
+  required String podcastAuthor,
+  required String podcastFeedUrl,
+  Value<String?> podcastArtworkUrl,
+  required String episodeGuid,
+  required String episodeTitle,
+  required String audioUrl,
+  Value<String?> episodeImageUrl,
+  Value<int?> episodeDurationSeconds,
+  Value<DateTime?> episodePublishedAt,
+  Value<DateTime> addedAt,
+  Value<int> rowid,
+});
+typedef $$QueueItemsTableUpdateCompanionBuilder = QueueItemsCompanion Function({
+  Value<int> position,
+  Value<int> podcastId,
+  Value<String> podcastTitle,
+  Value<String> podcastAuthor,
+  Value<String> podcastFeedUrl,
+  Value<String?> podcastArtworkUrl,
+  Value<String> episodeGuid,
+  Value<String> episodeTitle,
+  Value<String> audioUrl,
+  Value<String?> episodeImageUrl,
+  Value<int?> episodeDurationSeconds,
+  Value<DateTime?> episodePublishedAt,
+  Value<DateTime> addedAt,
+  Value<int> rowid,
+});
+
+class $$QueueItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $QueueItemsTable> {
+  $$QueueItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get podcastTitle => $composableBuilder(
+    column: $table.podcastTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get podcastAuthor => $composableBuilder(
+    column: $table.podcastAuthor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get podcastFeedUrl => $composableBuilder(
+    column: $table.podcastFeedUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get podcastArtworkUrl => $composableBuilder(
+    column: $table.podcastArtworkUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeTitle => $composableBuilder(
+    column: $table.episodeTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get audioUrl => $composableBuilder(
+    column: $table.audioUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeImageUrl => $composableBuilder(
+    column: $table.episodeImageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get episodeDurationSeconds => $composableBuilder(
+    column: $table.episodeDurationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get episodePublishedAt => $composableBuilder(
+    column: $table.episodePublishedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$QueueItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $QueueItemsTable> {
+  $$QueueItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get podcastTitle => $composableBuilder(
+    column: $table.podcastTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get podcastAuthor => $composableBuilder(
+    column: $table.podcastAuthor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get podcastFeedUrl => $composableBuilder(
+    column: $table.podcastFeedUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get podcastArtworkUrl => $composableBuilder(
+    column: $table.podcastArtworkUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeTitle => $composableBuilder(
+    column: $table.episodeTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get audioUrl => $composableBuilder(
+    column: $table.audioUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeImageUrl => $composableBuilder(
+    column: $table.episodeImageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get episodeDurationSeconds => $composableBuilder(
+    column: $table.episodeDurationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get episodePublishedAt => $composableBuilder(
+    column: $table.episodePublishedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$QueueItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $QueueItemsTable> {
+  $$QueueItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get podcastId =>
+      $composableBuilder(column: $table.podcastId, builder: (column) => column);
+
+  GeneratedColumn<String> get podcastTitle => $composableBuilder(
+    column: $table.podcastTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get podcastAuthor => $composableBuilder(
+    column: $table.podcastAuthor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get podcastFeedUrl => $composableBuilder(
+    column: $table.podcastFeedUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get podcastArtworkUrl => $composableBuilder(
+    column: $table.podcastArtworkUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get episodeTitle => $composableBuilder(
+    column: $table.episodeTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get audioUrl =>
+      $composableBuilder(column: $table.audioUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get episodeImageUrl => $composableBuilder(
+    column: $table.episodeImageUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get episodeDurationSeconds => $composableBuilder(
+    column: $table.episodeDurationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get episodePublishedAt => $composableBuilder(
+    column: $table.episodePublishedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$QueueItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $QueueItemsTable,
+          QueueItemRow,
+          $$QueueItemsTableFilterComposer,
+          $$QueueItemsTableOrderingComposer,
+          $$QueueItemsTableAnnotationComposer,
+          $$QueueItemsTableCreateCompanionBuilder,
+          $$QueueItemsTableUpdateCompanionBuilder,
+          (
+            QueueItemRow,
+            BaseReferences<_$AppDatabase, $QueueItemsTable, QueueItemRow>,
+          ),
+          QueueItemRow,
+          PrefetchHooks Function()
+        > {
+  $$QueueItemsTableTableManager(_$AppDatabase db, $QueueItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$QueueItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$QueueItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$QueueItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> position = const Value.absent(),
+                Value<int> podcastId = const Value.absent(),
+                Value<String> podcastTitle = const Value.absent(),
+                Value<String> podcastAuthor = const Value.absent(),
+                Value<String> podcastFeedUrl = const Value.absent(),
+                Value<String?> podcastArtworkUrl = const Value.absent(),
+                Value<String> episodeGuid = const Value.absent(),
+                Value<String> episodeTitle = const Value.absent(),
+                Value<String> audioUrl = const Value.absent(),
+                Value<String?> episodeImageUrl = const Value.absent(),
+                Value<int?> episodeDurationSeconds = const Value.absent(),
+                Value<DateTime?> episodePublishedAt = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => QueueItemsCompanion(
+                position: position,
+                podcastId: podcastId,
+                podcastTitle: podcastTitle,
+                podcastAuthor: podcastAuthor,
+                podcastFeedUrl: podcastFeedUrl,
+                podcastArtworkUrl: podcastArtworkUrl,
+                episodeGuid: episodeGuid,
+                episodeTitle: episodeTitle,
+                audioUrl: audioUrl,
+                episodeImageUrl: episodeImageUrl,
+                episodeDurationSeconds: episodeDurationSeconds,
+                episodePublishedAt: episodePublishedAt,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int position,
+                required int podcastId,
+                required String podcastTitle,
+                required String podcastAuthor,
+                required String podcastFeedUrl,
+                Value<String?> podcastArtworkUrl = const Value.absent(),
+                required String episodeGuid,
+                required String episodeTitle,
+                required String audioUrl,
+                Value<String?> episodeImageUrl = const Value.absent(),
+                Value<int?> episodeDurationSeconds = const Value.absent(),
+                Value<DateTime?> episodePublishedAt = const Value.absent(),
+                Value<DateTime> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => QueueItemsCompanion.insert(
+                position: position,
+                podcastId: podcastId,
+                podcastTitle: podcastTitle,
+                podcastAuthor: podcastAuthor,
+                podcastFeedUrl: podcastFeedUrl,
+                podcastArtworkUrl: podcastArtworkUrl,
+                episodeGuid: episodeGuid,
+                episodeTitle: episodeTitle,
+                audioUrl: audioUrl,
+                episodeImageUrl: episodeImageUrl,
+                episodeDurationSeconds: episodeDurationSeconds,
+                episodePublishedAt: episodePublishedAt,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$QueueItemsTable, QueueItemRow>(table),
+                  BaseReferences<_$AppDatabase, $QueueItemsTable, QueueItemRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$QueueItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $QueueItemsTable,
+      QueueItemRow,
+      $$QueueItemsTableFilterComposer,
+      $$QueueItemsTableOrderingComposer,
+      $$QueueItemsTableAnnotationComposer,
+      $$QueueItemsTableCreateCompanionBuilder,
+      $$QueueItemsTableUpdateCompanionBuilder,
+      (
+        QueueItemRow,
+        BaseReferences<_$AppDatabase, $QueueItemsTable, QueueItemRow>,
+      ),
+      QueueItemRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3735,6 +4939,8 @@ class $AppDatabaseManager {
       $$PlaybackProgressTableTableManager(_db, _db.playbackProgress);
   $$DownloadsTableTableManager get downloads =>
       $$DownloadsTableTableManager(_db, _db.downloads);
+  $$QueueItemsTableTableManager get queueItems =>
+      $$QueueItemsTableTableManager(_db, _db.queueItems);
 }
 
 // **************************************************************************

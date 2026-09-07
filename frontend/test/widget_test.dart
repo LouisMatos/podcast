@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:podcast_app/app.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
+import 'package:podcast_app/data/repositories/queue_repository.dart';
 import 'package:podcast_app/features/home/view_model/home_providers.dart';
 import 'package:podcast_app/features/library/view_model/startup_feed_refresh_provider.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
@@ -28,6 +29,7 @@ void main() {
             (ref) => Stream.value(const <RecentEpisodeItem>[]),
           ),
           startupFeedRefreshProvider.overrideWith((ref) async => 0),
+          queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
         ],
         child: const PodcastApp(),
       ),

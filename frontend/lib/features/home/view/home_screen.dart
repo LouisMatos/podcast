@@ -12,6 +12,7 @@ import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../player/widgets/queue_menu_button.dart';
 import '../view_model/home_providers.dart';
 
 /// Tela inicial (v2 Fase 11): "Continuar ouvindo" + "Novos episódios" das
@@ -211,6 +212,7 @@ class _RecentEpisodeRow extends StatelessWidget {
               ],
             ),
           ),
+          QueueMenuButton(podcast: item.podcast, episode: item.episode),
         ],
       ),
     );

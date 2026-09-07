@@ -88,7 +88,7 @@ class EpisodeDetailScreen extends ConsumerWidget {
                       if (isCurrent) {
                         n.togglePlayPause();
                       } else {
-                        n.playEpisode(podcast, episode, queue: queue, autoPlay: true);
+                        n.playEpisode(podcast, episode, autoPlay: true);
                       }
                     },
                   ),
@@ -106,6 +106,8 @@ class EpisodeDetailScreen extends ConsumerWidget {
               variant: PillButtonVariant.ghost,
               onPressed: () => context.push('/player'),
             ),
+            const SizedBox(height: 8),
+            _QueueActions(podcast: podcast, episode: episode, followingUp: _following()),
             const SizedBox(height: 20),
             SoftCard(
               child: _Description(html: episode.description),
@@ -114,6 +116,14 @@ class EpisodeDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Episódios depois deste na lista de onde a tela foi aberta — pro
+  /// "enfileirar os próximos".
+  List<Episode> _following() {
+    final i = queue.indexWhere((e) => e.guid == episode.guid);
+    if (i < 0 || i + 1 >= queue.length) return const [];
+    return queue.sublist(i + 1);
   }
 
   String _meta() {
@@ -130,6 +140,60 @@ class EpisodeDetailScreen extends ConsumerWidget {
     final m = d.inMinutes.remainder(60);
     if (h > 0) return '${h}h${m.toString().padLeft(2, '0')}min';
     return '${m}min';
+  }
+}
+
+/// Ações de fila da tela de episódio (Fase 12). "Enfileirar próximos" só
+/// aparece quando a tela foi aberta a partir de uma lista com episódios
+/// depois deste.
+class _QueueActions extends ConsumerWidget {
+  const _QueueActions({required this.podcast, required this.episode, required this.followingUp});
+
+  final Podcast podcast;
+  final Episode episode;
+  final List<Episode> followingUp;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final n = ref.read(playerViewModelProvider.notifier);
+
+    void toast(String msg) =>
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        PillButton(
+          label: 'Tocar a seguir',
+          icon: Icons.playlist_play,
+          variant: PillButtonVariant.ghost,
+          onPressed: () {
+            n.playNext(podcast, episode);
+            toast('Toca a seguir');
+          },
+        ),
+        PillButton(
+          label: 'Adicionar à fila',
+          icon: Icons.playlist_add,
+          variant: PillButtonVariant.ghost,
+          onPressed: () {
+            n.enqueue(podcast, episode);
+            toast('Adicionado à fila');
+          },
+        ),
+        if (followingUp.isNotEmpty)
+          PillButton(
+            label: 'Enfileirar próximos (${followingUp.length})',
+            icon: Icons.queue_music,
+            variant: PillButtonVariant.ghost,
+            onPressed: () {
+              n.enqueueAll(podcast, followingUp);
+              toast('${followingUp.length} episódios na fila');
+            },
+          ),
+      ],
+    );
   }
 }
 

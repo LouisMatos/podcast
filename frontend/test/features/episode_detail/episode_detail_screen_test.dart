@@ -8,6 +8,7 @@ import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
+import 'package:podcast_app/data/repositories/queue_repository.dart';
 import 'package:podcast_app/features/episode_detail/view/episode_detail_screen.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
 
@@ -35,6 +36,7 @@ void main() {
           audioHandlerProvider.overrideWithValue(PodcastAudioHandler()),
           libraryRepositoryProvider.overrideWithValue(lib),
           preferencesStoreProvider.overrideWithValue(prefs),
+          queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
