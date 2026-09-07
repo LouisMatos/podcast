@@ -25,9 +25,16 @@ class AppDatabase extends _$AppDatabase {
           }
           // v2 -> v3 (Fase 9 — feeds vivos): cache de episódio ganha
           // addedAt; assinatura ganha lastRefreshedAt (throttle do refresh).
+          // Ambas nullable — SQLite não deixa ADD COLUMN NOT NULL com
+          // default de expressão (foi o bug que travou a tela no shimmer).
           if (from < 3) {
-            await m.addColumn(episodeCache, episodeCache.addedAt);
             await m.addColumn(subscriptions, subscriptions.lastRefreshedAt);
+            await m.addColumn(episodeCache, episodeCache.addedAt);
+            // Episódios já cacheados não são "novos" — usa a data de
+            // publicação como aproximação de quando entraram.
+            await m.database.customStatement(
+              'UPDATE episode_cache SET added_at = published_at WHERE added_at IS NULL',
+            );
           }
         },
       );

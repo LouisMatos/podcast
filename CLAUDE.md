@@ -73,8 +73,8 @@ podcast/
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        60 testes — core/prefs/, data/sources/,
-                                  data/repositories/, features/discover/,
+    test/                        61 testes — core/prefs/, core/database/ (migração),
+                                  data/sources/, data/repositories/, features/discover/,
                                   features/podcast_detail/, features/episode_detail/,
                                   features/player/, support/ (helpers), widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
@@ -216,8 +216,16 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   `force` respeitam `Subscriptions.lastRefreshedAt` (throttle de 1h).
   `PodcastDetailViewModel.build` chama `cacheEpisodesIfSubscribed` (no-op se
   não assinado). `startupFeedRefreshProvider` roda ao abrir o app
-  (`AppShell` é `ConsumerWidget`, faz `ref.listen`). `EpisodeCache.addedAt`
-  é a data confiável pra "novos" (feed mente `publishedAt`).
+  (`AppShell` é `ConsumerWidget`, faz `ref.listen`).
+- **`ADD COLUMN NOT NULL` com default de expressão trava o app** — SQLite
+  não aceita, a migração drift lança e o banco nunca abre (tela fica no
+  shimmer pra sempre, sem erro visível). Coluna nova numa tabela existente:
+  **nullable** (`addedAt`, `lastRefreshedAt`), preencher no INSERT pela app,
+  backfill na migração. `EpisodeCache.addedAt` (nullable) é a data confiável
+  pra "novos"; `null` = já estava no cache antes da v3.
+- **`RssFeedParser` parseia em `Isolate.run`** — `RssFeed.parse` é síncrono
+  e pesado; sem isolate, `refreshAllSubscriptions()` no startup trava a UI
+  por segundos. `parseRssEpisodes` é top-level de propósito (sendável).
 - **Selecionar episódio não toca**: tocar no card do `_EpisodeTile` abre
   `/episode` (`EpisodeDetailScreen`). Play só via `IconButton` de play do
   tile ou botão "Tocar" da tela — esses passam `autoPlay: true`.

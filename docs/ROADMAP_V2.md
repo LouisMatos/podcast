@@ -12,10 +12,10 @@
 
 ## Onde parei
 
-**Fase 9 concluída** (feeds vivos). Schema drift v3. 60 testes (era 55),
-`dart analyze` limpo, app rodando. Próximo: **Fase 11** (aba Início) — já
-tem `refreshAllSubscriptions()` pronto pra alimentar "Novos episódios", e
-`EpisodeCache.addedAt` pra ordenar.
+**Fase 9 concluída** (feeds vivos) **+ hotfix**. Schema drift v3. 61 testes
+(era 55), `dart analyze` limpo, app rodando. Próximo: **Fase 11** (aba
+Início) — já tem `refreshAllSubscriptions()` pronto pra alimentar "Novos
+episódios", e `EpisodeCache.addedAt` pra ordenar.
 Sequência recomendada: **9 ✅ → 11 → 12 → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
@@ -82,9 +82,27 @@ persistia. Nada no app sabia que saiu episódio novo.
 **Não quebrou:** `subscribe` continua cacheando na assinatura; fallback
 offline (`cachedEpisodes`) agora tem dado fresco.
 
-Dívida da fase: **teste formal de migração v2→v3 adiado pra Fase 18** (precisa
-do schema tooling do `drift_dev`, que o projeto ainda não tem). A migração em
-si é só dois `addColumn` de coluna com default/nullable.
+### Hotfix Fase 9 — migração travava a tela no shimmer
+
+Achado testando com o banco v2 real (5 assinaturas, 4517 episódios em cache):
+a tela de detalhe ficava presa no shimmer, nunca carregava.
+
+- **Causa**: `EpisodeCache.addedAt` era `NOT NULL` com default
+  `currentDateAndTime`. SQLite **não aceita `ALTER TABLE ADD COLUMN NOT NULL`
+  com default de expressão** → a migração v2→v3 lançava exceção → o banco
+  nunca abria → `PodcastDetailViewModel.build` ficava pendente pra sempre.
+- **Fix**: `addedAt` e `lastRefreshedAt` agora **nullable**. `_cacheEpisodes`
+  preenche `addedAt` no INSERT de episódio novo (`insertOrIgnore` preserva o
+  valor de quem já está no cache; segunda passada com
+  `insertAllOnConflictUpdate` atualiza só os metadados). Migração faz backfill
+  `added_at = published_at` nos episódios já cacheados.
+- **Bônus**: o parse de RSS (`RssFeedParser`) agora roda em `Isolate.run` —
+  era síncrono na main isolate, e `refreshAllSubscriptions()` no startup
+  parseava 5 feeds grandes seguidos, travando a UI por segundos.
+- **Teste novo**: `test/core/database/migration_v2_to_v3_test.dart` — monta um
+  banco v2 na mão (via `sqlite3`), abre com `AppDatabase`, confirma que a
+  migração roda, as colunas entram e os dados sobrevivem. 61 testes no total.
+- Teste formal com o schema tooling do `drift_dev` ainda fica pra Fase 18.
 
 ## Fase 10 — Refresh em background + notificação de episódio novo · ALTO · M
 

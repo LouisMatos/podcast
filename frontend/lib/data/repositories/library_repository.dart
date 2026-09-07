@@ -1,4 +1,5 @@
-import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value, innerJoin;
+import 'package:drift/drift.dart'
+    show BooleanExpressionOperators, InsertMode, OrderingTerm, Value, innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
@@ -191,24 +192,44 @@ class LibraryRepository {
   }
 
   Future<void> _cacheEpisodes(int podcastId, List<Episode> episodes) {
+    final now = DateTime.now();
     return _db.batch((batch) {
-      batch.insertAllOnConflictUpdate(
+      // 1) novos: marca `addedAt = agora`; `insertOrIgnore` preserva o
+      //    `addedAt` de quem já está no cache.
+      batch.insertAll(
         _db.episodeCache,
         [
           for (final episode in episodes)
-            EpisodeCacheCompanion.insert(
-              podcastId: podcastId,
-              guid: episode.guid,
-              title: episode.title,
-              audioUrl: episode.audioUrl,
-              description: Value(episode.description),
-              imageUrl: Value(episode.imageUrl),
-              durationSeconds: Value(episode.duration?.inSeconds),
-              publishedAt: Value(episode.publishedAt),
-            ),
+            _episodeCompanion(podcastId, episode, addedAt: Value(now)),
         ],
+        mode: InsertMode.insertOrIgnore,
+      );
+      // 2) todos: atualiza os metadados (título/descrição/...) sem tocar
+      //    em `addedAt` — a companion não o inclui, então o SET não o
+      //    sobrescreve.
+      batch.insertAllOnConflictUpdate(
+        _db.episodeCache,
+        [for (final episode in episodes) _episodeCompanion(podcastId, episode)],
       );
     });
+  }
+
+  EpisodeCacheCompanion _episodeCompanion(
+    int podcastId,
+    Episode episode, {
+    Value<DateTime?> addedAt = const Value.absent(),
+  }) {
+    return EpisodeCacheCompanion.insert(
+      podcastId: podcastId,
+      guid: episode.guid,
+      title: episode.title,
+      audioUrl: episode.audioUrl,
+      description: Value(episode.description),
+      imageUrl: Value(episode.imageUrl),
+      durationSeconds: Value(episode.duration?.inSeconds),
+      publishedAt: Value(episode.publishedAt),
+      addedAt: addedAt,
+    );
   }
 
   Podcast _podcastFromRow(SubscriptionRow row) {

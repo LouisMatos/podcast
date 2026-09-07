@@ -42,9 +42,12 @@ class EpisodeCache extends Table {
   IntColumn get durationSeconds => integer().nullable()();
   DateTimeColumn get publishedAt => dateTime().nullable()();
 
-  /// Quando o episódio entrou no cache local (Fase 9). Feeds mentem a
-  /// `publishedAt`; isto é confiável pra "novos desde a última visita".
-  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
+  /// Quando o episódio entrou no cache local (Fase 9). `null` = já estava
+  /// no cache antes da v3 (não dá pra saber). Feeds mentem `publishedAt`;
+  /// quando presente, isto é confiável pra "novos desde a última visita".
+  /// Nullable de propósito: SQLite não deixa `ADD COLUMN NOT NULL` com
+  /// default de expressão — quem preenche em INSERT é o `LibraryRepository`.
+  DateTimeColumn get addedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {podcastId, guid};

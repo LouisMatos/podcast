@@ -666,10 +666,9 @@ class $EpisodeCacheTable extends EpisodeCache
   late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
     'added_at',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -810,7 +809,7 @@ class $EpisodeCacheTable extends EpisodeCache
       addedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}added_at'],
-      )!,
+      ),
     );
   }
 
@@ -830,9 +829,12 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
   final int? durationSeconds;
   final DateTime? publishedAt;
 
-  /// Quando o episódio entrou no cache local (Fase 9). Feeds mentem a
-  /// `publishedAt`; isto é confiável pra "novos desde a última visita".
-  final DateTime addedAt;
+  /// Quando o episódio entrou no cache local (Fase 9). `null` = já estava
+  /// no cache antes da v3 (não dá pra saber). Feeds mentem `publishedAt`;
+  /// quando presente, isto é confiável pra "novos desde a última visita".
+  /// Nullable de propósito: SQLite não deixa `ADD COLUMN NOT NULL` com
+  /// default de expressão — quem preenche em INSERT é o `LibraryRepository`.
+  final DateTime? addedAt;
   const EpisodeCacheRow({
     required this.podcastId,
     required this.guid,
@@ -842,7 +844,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     this.imageUrl,
     this.durationSeconds,
     this.publishedAt,
-    required this.addedAt,
+    this.addedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -863,7 +865,9 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     if (!nullToAbsent || publishedAt != null) {
       map['published_at'] = Variable<DateTime>(publishedAt);
     }
-    map['added_at'] = Variable<DateTime>(addedAt);
+    if (!nullToAbsent || addedAt != null) {
+      map['added_at'] = Variable<DateTime>(addedAt);
+    }
     return map;
   }
 
@@ -885,7 +889,9 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       publishedAt: publishedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(publishedAt),
-      addedAt: Value(addedAt),
+      addedAt: addedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(addedAt),
     );
   }
 
@@ -903,7 +909,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
       publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
-      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+      addedAt: serializer.fromJson<DateTime?>(json['addedAt']),
     );
   }
   @override
@@ -918,7 +924,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       'imageUrl': serializer.toJson<String?>(imageUrl),
       'durationSeconds': serializer.toJson<int?>(durationSeconds),
       'publishedAt': serializer.toJson<DateTime?>(publishedAt),
-      'addedAt': serializer.toJson<DateTime>(addedAt),
+      'addedAt': serializer.toJson<DateTime?>(addedAt),
     };
   }
 
@@ -931,7 +937,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     Value<String?> imageUrl = const Value.absent(),
     Value<int?> durationSeconds = const Value.absent(),
     Value<DateTime?> publishedAt = const Value.absent(),
-    DateTime? addedAt,
+    Value<DateTime?> addedAt = const Value.absent(),
   }) => EpisodeCacheRow(
     podcastId: podcastId ?? this.podcastId,
     guid: guid ?? this.guid,
@@ -943,7 +949,7 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
         ? durationSeconds.value
         : this.durationSeconds,
     publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
-    addedAt: addedAt ?? this.addedAt,
+    addedAt: addedAt.present ? addedAt.value : this.addedAt,
   );
   EpisodeCacheRow copyWithCompanion(EpisodeCacheCompanion data) {
     return EpisodeCacheRow(
@@ -1017,7 +1023,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
   final Value<String?> imageUrl;
   final Value<int?> durationSeconds;
   final Value<DateTime?> publishedAt;
-  final Value<DateTime> addedAt;
+  final Value<DateTime?> addedAt;
   final Value<int> rowid;
   const EpisodeCacheCompanion({
     this.podcastId = const Value.absent(),
@@ -1081,7 +1087,7 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Value<String?>? imageUrl,
     Value<int?>? durationSeconds,
     Value<DateTime?>? publishedAt,
-    Value<DateTime>? addedAt,
+    Value<DateTime?>? addedAt,
     Value<int>? rowid,
   }) {
     return EpisodeCacheCompanion(
@@ -2643,7 +2649,7 @@ typedef $$EpisodeCacheTableCreateCompanionBuilder =
       Value<String?> imageUrl,
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
-      Value<DateTime> addedAt,
+      Value<DateTime?> addedAt,
       Value<int> rowid,
     });
 typedef $$EpisodeCacheTableUpdateCompanionBuilder =
@@ -2656,7 +2662,7 @@ typedef $$EpisodeCacheTableUpdateCompanionBuilder =
       Value<String?> imageUrl,
       Value<int?> durationSeconds,
       Value<DateTime?> publishedAt,
-      Value<DateTime> addedAt,
+      Value<DateTime?> addedAt,
       Value<int> rowid,
     });
 
@@ -2928,7 +2934,7 @@ class $$EpisodeCacheTableTableManager
                 Value<String?> imageUrl = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
-                Value<DateTime> addedAt = const Value.absent(),
+                Value<DateTime?> addedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion(
                 podcastId: podcastId,
@@ -2952,7 +2958,7 @@ class $$EpisodeCacheTableTableManager
                 Value<String?> imageUrl = const Value.absent(),
                 Value<int?> durationSeconds = const Value.absent(),
                 Value<DateTime?> publishedAt = const Value.absent(),
-                Value<DateTime> addedAt = const Value.absent(),
+                Value<DateTime?> addedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion.insert(
                 podcastId: podcastId,
