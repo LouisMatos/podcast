@@ -6,17 +6,18 @@
 
 ## Onde parei
 
-**Fase 8 em andamento** — 7 features novas, faseadas (ver "Fase 8" abaixo).
-v1 (Fases 0–6) segue completa e intacta. Fase 7 (iOS) continua pausada de
-propósito — só Android por enquanto.
+**Fase 8 concluída** (7 features novas, 8.1→8.4) + rodada de manutenção
+pós-Fase 8 (ver "Manutenção pós-Fase 8"). v1 (Fases 0–6) intacta. Fase 7
+(iOS) pausada de propósito — só Android por enquanto.
 
-**Fase atual:** 8 — CONCLUÍDA. As 7 features novas entregues (8.1→8.4).
-**Sub-fase concluída:** 8.4 — slider de volume + equalizador Android
-(on/off, presets Flat/Voz/Grave/Agudo, sliders por banda) no player.
-49 testes (era 43).
+**Fase atual:** nenhuma aberta. Backlog em "Dívidas técnicas conhecidas".
+**Última coisa concluída:** manutenção pós-Fase 8 — `riverpod_lint`
+reativado, `cmdline-tools` + licenças Android resolvidos, preferências
+(tema/volume/velocidade/equalizador) agora persistem entre sessões, doc
+reestruturada (armadilhas → notas). 55 testes (era 49).
 **Próximo passo concreto:** backlog solto ou Fase 7 (iOS, ainda pausada).
-Nada pendente da Fase 8.
-**Plano completo da Fase 8:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
+**Checks:** `dart analyze` (roda `riverpod_lint`) + `flutter test`.
+**Plano da rodada:** `~/.claude/plans/deve-ler-o-readmap-md-giggly-floyd.md`.
 
 ## Regra de ouro
 
@@ -225,11 +226,23 @@ Notas:
 
 ## Fase 7 — iOS e evolução
 
-- [ ] Instalar Xcode + CocoaPods
+Pausada de propósito (decisão do usuário: só Android por enquanto). Não é
+dívida esquecida.
+
+Pré-requisitos de ambiente (ausentes nesta máquina):
+
+- [ ] Xcode instalação completa (hoje: incompleta — `flutter doctor` ✗)
+- [ ] CocoaPods
+
+Trabalho da fase:
+
 - [ ] `UIBackgroundModes: audio` no `Info.plist`
+- [ ] Equalizador: `AndroidEqualizer` não existe no iOS — esconder ou usar
+      alternativa; volume já funciona
 - [ ] Testar no simulador iOS
 - [ ] `scripts/run_ios.sh`
-- [ ] Backlog: OPML import/export, fila de reprodução, sync entre aparelhos
+- [ ] Backlog: OPML import/export, fila de reprodução, sync entre aparelhos,
+      assinatura de release, widget test do equalizador
 
 ---
 
@@ -382,30 +395,63 @@ Feature 6.
 - [x] Testes: `player_state_test` estendido (defaults + `equalizerPresetGains`,
       6 novos, 49 no total).
 
-Armadilhas:
-
-- **`AudioPipeline` tem que ser passado na construção do `AudioPlayer`** — não
-  dá pra adicionar efeito depois. `_player` virou `late final` com
-  initializer que referencia `_equalizer` (campo não-late, já pronto).
-- **`AndroidEqualizer.parameters` só resolve depois que um áudio foi
-  carregado** (o `just_audio` só ativa o efeito com o player ativo) — por
-  isso `_loadEqualizer` roda no fim de `playEpisode`, não no `build`.
-- **Equalizador é Android-only** no `just_audio`. ViewModel usa
-  `Platform.isAndroid` (host, em `flutter test` = macOS → false, então os
-  testes não travam esperando o device). View usa
-  `defaultTargetPlatform == TargetPlatform.android` (em teste = android, mas
-  o botão fica nas `actions` da AppBar, que a tela ociosa nem monta).
-- Nº de bandas e faixa de dB variam por device — presets são uma curva de 5
-  pontos interpolada pro nº real de bandas, com `clamp(minDb, maxDb)`.
+Notas (detalhe completo em `CLAUDE.md` → "Notas de plataforma / libs"):
+`AudioPipeline` na construção do `AudioPlayer`; `AndroidEqualizer.parameters`
+só depois de tocar (por isso `_loadEqualizer` no fim de `playEpisode`);
+equalizador Android-only com dois checks de plataforma de propósito; nº de
+bandas/dB variam por device (presets interpolados + clamp). Volume e
+equalizador agora **persistem** entre sessões (ver "Preferências persistidas").
 
 ---
 
+## Manutenção pós-Fase 8
+
+Rodada de limpeza depois que as 7 features fecharam. As "armadilhas" por
+fase e a tabela de dívida foram trabalhadas: os itens que eram só fato de
+plataforma/lib viraram "Notas de plataforma" no `CLAUDE.md` (o conhecimento
+continua, só não é mais "dívida aberta"). O que foi resolvido de verdade:
+
+- **`riverpod_lint` reativado** (`^3.1.9`). A versão 3.x não usa mais
+  `custom_lint` — roda no `analysis_server_plugin` nativo, que pede `analyzer
+  >=13` (o lock tem 14.3.0, compatível com `drift_dev`). Config em
+  `analysis_options.yaml` (`plugins:`), regra
+  `scoped_providers_should_specify_dependencies` desligada (só usamos
+  `overrideWithValue` pra bootstrap/teste). **`dart analyze`** roda o plugin;
+  `flutter analyze` **não** — usar `dart analyze` pro check completo.
+  Ajustes que ele apontou: `dioClientProvider` e `podcastRepositoryProvider`
+  viraram `keepAlive` (`only_use_keep_alive_inside_keep_alive`).
+- **`cmdline-tools` + licenças Android**: instalado em
+  `~/Library/Android/sdk/cmdline-tools/latest` (zip oficial do Google — o
+  `sdkmanager` legado de `tools/bin` não roda em JDK 21) e licenças aceitas.
+  `flutter doctor` → Android toolchain ✓.
+- **Preferências persistidas** (ver seção abaixo) — resolve o tema não
+  sobreviver ao restart e o `shared_preferences` declarado sem uso.
+
+### Decisões de dependência (registro, não dívida)
+
+- **`rss_dart`, não `webfeed_plus`** — `webfeed_plus` fixa `intl ^0.19.0`,
+  incompatível com `go_router` 18.
+- **Não declarar `sqlite3_flutter_libs`** — publicado `0.6.0+eol`;
+  `drift_flutter` já resolve o sqlite nativo.
+- **`custom_lint` fora** — desnecessário (`riverpod_lint` 3.x não usa).
+
 ## Dívidas técnicas conhecidas
 
-| Item | Detalhe |
+| Item | Próximo passo |
 |---|---|
-| `custom_lint` / `riverpod_lint` | Fora do `pubspec.yaml`: `custom_lint` 0.8.x fixa `analyzer ^8.0.0`, `drift_dev` 2.34.x exige `analyzer >=13.0.0`. Reincluir quando `custom_lint` subir o analyzer. |
-| `webfeed_plus` | Descartado por fixar `intl ^0.19.0`, incompatível com `go_router` 18. Usamos `rss_dart`. |
-| `sqlite3_flutter_libs` | Publicado como `0.6.0+eol`. Não declarar direto — `drift_flutter` resolve o sqlite nativo. |
-| Android `cmdline-tools` | Ausente no SDK; `flutter doctor` reclama e as licenças ficam "unknown". Não bloqueou o build até agora. Se travar: instalar via Android Studio e rodar `flutter doctor --android-licenses`. |
-| Xcode / CocoaPods | Ausentes. Build iOS só na Fase 7. |
+| Assinatura de release | `frontend/android/app/build.gradle.kts` assina o `release` com a chave de **debug** (TODO no arquivo) e sem `isMinifyEnabled`/proguard. Antes de publicar: gerar keystore, `key.properties` (fora do git), configurar `signingConfigs` + minify + regras proguard. |
+| Warning KGP (`flutter_downloader`) | Upstream aplica o Kotlin Gradle Plugin; mitigado com `android.builtInKotlin=false`. Trocar por `background_downloader` só se virar erro de build no futuro. |
+| Cobertura de teste do equalizador | Só `equalizerPresetGains` (pura) e defaults têm teste. Falta widget test da bottom sheet e integração de `setVolume`/`setEqualizerBandGain` (dependem de platform channel). |
+
+## Preferências persistidas
+
+`frontend/lib/core/prefs/preferences_store.dart` — `PreferencesStore` sobre
+`shared_preferences`, único ponto do app que fala com ele. Provider
+`preferencesStoreProvider` lança `UnimplementedError` e é sobrescrito em
+`main.dart` (mesmo padrão de `audioHandlerProvider`). Persiste: tema
+(`themeModeProvider`), volume, velocidade e equalizador (on/off + ganhos por
+banda). Restauração: tema no `build()` do `ThemeModeNotifier`; volume/
+velocidade no `build()` do `PlayerViewModel`; equalizador em `_loadEqualizer`
+(quando as bandas do device são conhecidas). Comportamento default idêntico
+com store vazio. Testes: `test/core/prefs/preferences_store_test.dart` +
+helper `test/support/fake_preferences.dart`.

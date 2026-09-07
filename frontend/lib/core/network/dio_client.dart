@@ -5,7 +5,10 @@ part 'dio_client.g.dart';
 
 /// Cliente HTTP compartilhado por toda busca/feed do app. Timeout curto pra
 /// uma rede ruim não travar a UI por muito tempo.
-@riverpod
+///
+/// `keepAlive`: singleton de app — repositórios `keepAlive` dependem dele
+/// (`riverpod_lint: only_use_keep_alive_inside_keep_alive`).
+@Riverpod(keepAlive: true)
 Dio dioClient(Ref ref) {
   return Dio(
     BaseOptions(

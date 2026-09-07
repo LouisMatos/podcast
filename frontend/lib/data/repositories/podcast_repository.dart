@@ -67,7 +67,9 @@ class PodcastRepository {
   }
 }
 
-@riverpod
+/// `keepAlive`: sem estado próprio e usado por ViewModels `keepAlive`
+/// (`FeaturedViewModel`) — `riverpod_lint: only_use_keep_alive_inside_keep_alive`.
+@Riverpod(keepAlive: true)
 PodcastRepository podcastRepository(Ref ref) {
   final dio = ref.watch(dioClientProvider);
   return PodcastRepository(

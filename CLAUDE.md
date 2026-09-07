@@ -30,7 +30,7 @@ e deve ser atualizado ao fim de cada fase.
 
 ## Mapa do repositório
 
-Estado atual (Fase 8 concluída — 7 features novas entregues; ver `docs/ROADMAP.md`):
+Estado atual (Fase 8 + manutenção pós-Fase 8 concluídas; ver `docs/ROADMAP.md`):
 
 ```text
 podcast/
@@ -54,6 +54,7 @@ podcast/
       core/                      theme/, router/ (+ /player e /settings/downloads
                                   fora/dentro das abas, /discover/category dentro),
                                   network/, database/ (drift, schemaVersion 2),
+                                  prefs/ (PreferencesStore, shared_preferences),
                                   widgets/ (SoftCard, PillButton, SearchField,
                                   PodcastListTile, ...)
       data/                      models/, sources/ (itunes_search_api,
@@ -70,10 +71,10 @@ podcast/
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        49 testes — data/sources/, data/repositories/,
-                                  features/discover/, features/podcast_detail/,
-                                  features/episode_detail/, features/player/,
-                                  widget_test.dart
+    test/                        55 testes — core/prefs/, data/sources/,
+                                  data/repositories/, features/discover/,
+                                  features/podcast_detail/, features/episode_detail/,
+                                  features/player/, support/ (helpers), widget_test.dart
     android/                     projeto nativo Android (manifests, gradle)
                                   MainActivity estende AudioServiceActivity (Fase 4)
     ios/                         projeto nativo iOS (build só na Fase 7)
@@ -90,7 +91,8 @@ Todos rodam de dentro de `frontend/`.
 
 ```bash
 flutter pub get                 # resolver dependências
-flutter analyze                 # lint/analyze — deve ficar sempre limpo
+dart analyze                    # lint/analyze COMPLETO (inclui riverpod_lint) — sempre limpo
+flutter analyze                 # mais rápido, mas NÃO roda o plugin riverpod_lint
 flutter test                    # todos os testes
 flutter test test/caminho_test.dart                      # um arquivo
 flutter test test/caminho_test.dart --plain-name "nome"  # um teste
@@ -159,135 +161,126 @@ exata, valores de raio/sombra, durações e curvas de animação permitidas) em
 - Animações lentas e suaves: `Curves.easeOutCubic`/`easeInOutCubicEmphasized`,
   nunca `Curves.linear` ou "bounce". Loading é shimmer, não spinner girando.
 
-## Stack e armadilhas de dependência conhecidas
+## Stack
 
-Ver `frontend/pubspec.yaml` para a lista completa (Riverpod 3 + Freezed para
-estado/MVVM, go_router, dio + rss_dart para busca/RSS, drift para
-persistência local, just_audio + audio_service para player em
-background/lockscreen, flutter_downloader). Pontos que já causaram conflito
-de versão e por quê (mais detalhes em "Dívidas técnicas" no ROADMAP):
+Ver `frontend/pubspec.yaml` (Riverpod 3 + Freezed para estado/MVVM,
+go_router, dio + `rss_dart` para busca/RSS, drift para persistência local,
+just_audio + audio_service para player em background/lockscreen,
+flutter_downloader, `shared_preferences` para preferências,
+`flutter_widget_from_html_core` para a descrição do episódio). Projeto
+requer Flutter stable atual (3.47.2+ / Dart 3.13.2+) — versões mais antigas
+não resolvem freezed 4 + riverpod_generator 4 + drift_dev 2.34 juntos.
 
-- **`custom_lint`/`riverpod_lint` estão fora do projeto**: `custom_lint`
-  0.8.x fixa `analyzer ^8.0.0`, `drift_dev` 2.34.x exige `analyzer
-  >=13.0.0`. Não adicionar de volta sem checar essa compatibilidade primeiro.
-- **Use `rss_dart`, não `webfeed_plus`**: `webfeed_plus` fixa `intl
-  ^0.19.0`, incompatível com `go_router` 18.
-- **Não declarar `sqlite3_flutter_libs` direto** — está publicado como
-  `0.6.0+eol`. `drift_flutter` já resolve o sqlite nativo.
-- Projeto requer Flutter stable atual (3.47.2+ / Dart 3.13.2+) — versões
-  mais antigas não resolvem freezed 4 + riverpod_generator 4 + drift_dev
-  2.34 juntos.
-- **`StateProvider` não vem mais de `flutter_riverpod.dart`**: Riverpod 3
-  moveu pra `package:flutter_riverpod/legacy.dart`. Preferir `Notifier`/
-  `NotifierProvider` (ver `lib/features/settings/view_model/theme_mode_provider.dart`).
-- **Freezed 4 exige `abstract class Foo with _$Foo`** — sem `abstract` dá
-  erro "Missing concrete implementations" no analyze. Todo modelo Freezed
-  do projeto segue esse padrão (`lib/data/models/`, estados de ViewModel).
-- **A iTunes Search API devolve `Content-Type: text/javascript`**, não
-  `application/json` — o parser automático do Dio (`Dio.get<Map<...>>`) não
-  decodifica isso. `ItunesSearchApi` pede `ResponseType.plain` e decodifica
-  com `jsonDecode` na mão; seguir esse padrão pra qualquer API nova que não
-  declare `application/json` corretamente.
-- **Toda classe gerada pelo drift (`core/database/tables.dart`) termina em
-  `Row`** (`SubscriptionRow`, `EpisodeCacheRow`, ...) via `@DataClassName`.
-  Não tirar esse sufixo — sem ele, uma tabela como `EpisodeCache` geraria a
-  classe `Episode`, colidindo com o modelo de domínio `Episode` em
-  `data/models/`. Repositórios (`LibraryRepository`) só devolvem/recebem os
-  modelos de domínio, nunca essas `*Row`.
-- **Coluna primária int sem `.autoIncrement()` ainda é opcional no
-  `.insert()` gerado pelo drift** (`Value.absent()` por padrão) — para
-  `Subscriptions.id` (o `collectionId` da iTunes, não autogerado), sempre
-  passar `Value(podcast.id)` explícito, não o `int` cru.
-- **`AsyncValue.valueOrNull` não existe no Riverpod 3.4.3** — `value` já é
-  nullable (`ValueT? get value`). Usar `state.value`.
-- **Testes que montam `PodcastApp`/`MiniPlayer` precisam sobrescrever
-  `audioHandlerProvider`** (`overrideWithValue(PodcastAudioHandler())`) —
-  sem isso o provider lança `UnimplementedError` e todo o widget tree
-  quebra (aparece como "RenderFlex overflow" gigante, não como o erro
-  real — ver `test/widget_test.dart`).
-- **Navegar pro `/player` sem esperar `playEpisode` terminar**: dispara a
-  Future sem `await` e chama `context.push` na sequência. Esperar primeiro
-  deixa o toque no episódio parecendo sem resposta enquanto o áudio
-  buffereia — a tela do player já mostra `isBuffering`.
-- Emulador Android mata o `AudioService` por "app idle" depois de ~2m30s
-  de tela apagada, mesmo com foreground service + notificação ativos —
-  comportamento de energia do emulador, não bug do app (ver ROADMAP Fase 4).
-- **`PodcastDetailViewModel` cai pro cache local (`LibraryRepository.
-  cachedEpisodes`) se o fetch do RSS falhar** — é o que faz um episódio
-  baixado continuar acessível em modo avião. Sem esse fallback a tela de
-  detalhe trava no erro de rede antes de sequer mostrar a lista, mesmo
-  com o episódio já baixado no disco. Qualquer novo fetch de rede numa
-  tela que possa ter cache local deveria seguir esse padrão.
-- **Botão de download só aparece com o podcast assinado**: `Downloads` e
-  `EpisodeCache` têm FK em `Subscriptions.id` — baixar sem assinar não
-  teria onde guardar o episódio.
-- **`flutter_downloader` roda num isolate de background à parte** — a
-  comunicação de volta pro isolate principal é `IsolateNameServer`/
-  `ReceivePort` (não dá pra usar Riverpod ali dentro). O callback
-  top-level (`downloadCallback` em `services/download/download_service.dart`)
-  só repassa a mensagem; quem trata de verdade é `DownloadService`, do
-  lado de cá.
-- **`AppColors.onAccent`** é a cor certa pra texto/ícone sobre um
-  preenchimento sólido de `primary`/`secondary` (ex: `PillButton`
-  primário/secundário) — nunca `textPrimary` ali. `textPrimary` funciona
-  em cima do `background`/`surface`, mas no tema escuro ele é claro, e
-  claro sobre um pastel também claro não passa em contraste nenhum
-  (medido: 2.5:1, WCAG pede 4.5:1 pra texto normal). Achado testando de
-  verdade, não teórico — ver ROADMAP Fase 6.
-- **Provider `autoDispose` em teste precisa de um listener permanente**:
-  `container.listen(provider, (_, _) {})` no `setUp`. Sem isso, um
-  `container.read(x.notifier)` sozinho não segura o provider vivo — ele é
-  derrubado (e qualquer `Timer` interno, tipo o debounce do
-  `DiscoverViewModel`, cancelado) antes do teste conseguir `await` o
-  efeito. Ver `test/features/discover/discover_view_model_test.dart`.
-- **Widget test de tela real precisa de `MaterialApp(theme:
-  AppTheme.light(), ...)`** — sem isso `Theme.of(context).
-  extension<AppColors>()!` estoura null-check (o `ThemeData()` default do
-  Flutter não carrega nossa extensão).
-- **iTunes `/lookup` não devolve na ordem dos ids pedidos** —
-  `PodcastRepository._resolveRanked` reordena pelo índice original (o rank
-  do carrossel "Mais ouvidos") e descarta id sem `feedUrl`. Rankings vêm de
-  `AppleChartsApi` (Marketing Tools RSS geral / RSS legado por gênero),
-  ambos com o mesmo content-type ruim da Search API (`ResponseType.plain` +
-  `jsonDecode` na mão). genreIds de categoria são hardcoded em
-  `lib/features/discover/podcast_genres.dart`.
-- **Estado de erro dentro de um carrossel de altura fixa não pode ser
-  `EmptyState`** — ele tem altura natural maior que o `SizedBox` do
-  carrossel e estoura RenderFlex. Usar um card compacto (ver `_CarouselError`
-  em `discover_screen.dart`).
-- **`PodcastDetailScreen` usa `DefaultTabController` de 2 abas** (Episódios /
-  Baixados). Corpo = `Column` [header + `PillButton`, `TabBar`,
-  `Expanded(TabBarView)`], cada aba com `ListView` próprio — não é mais um
-  `ListView` único. `TabBar` sempre com `dividerColor: Colors.transparent` +
+`dart analyze` roda o `riverpod_lint` (plugin nativo `analysis_server_plugin`,
+configurado em `analysis_options.yaml`). `flutter analyze` **não** roda o
+plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
+(riverpod_lint 3.x não precisa dele).
+
+## Invariantes do projeto (seguir sempre)
+
+- **Cor/raio/sombra/duração**: nunca literal num widget — sempre de
+  `lib/core/theme/` (`AppColors`, `AppRadii`, `AppShadows`, `AppMotion`).
+- **`AppColors.onAccent`** pra texto/ícone sobre preenchimento sólido de
+  `primary`/`secondary` (`PillButton` primário/secundário). Nunca
+  `textPrimary` ali — no tema escuro ele é claro e não passa contraste sobre
+  pastel claro (medido 2.5:1, WCAG pede 4.5:1). Ver ROADMAP Fase 6.
+- **`TabBar`** sempre com `dividerColor: Colors.transparent` +
   `indicatorSize: TabBarIndicatorSize.label` (design sem borda dura).
-- **Progresso de episódio (`playbackProgress`) só existe pra podcast
-  assinado** (FK em `Subscriptions`). Filtro/ordenação da lista é função
-  pura `applyEpisodeControls` (`episode_list_controls.dart`, sem Flutter,
-  testável). Aba "Baixados" vem de `LibraryRepository.watchDownloadedEpisodes`
-  e reusa o mesmo `_EpisodeTile`.
+- **Estado que precisa persistir entre sessões** (tema, volume, velocidade,
+  equalizador): `PreferencesStore` (`core/prefs/`, sobre `shared_preferences`).
+  Não `StateProvider`, não drift. Posição de escuta e assinaturas continuam
+  em drift (`LibraryRepository`).
+- **`StateProvider`** não vem mais de `flutter_riverpod.dart` (Riverpod 3
+  moveu pra `.../legacy.dart`) — preferir `Notifier`/`NotifierProvider`.
+- **`AsyncValue.valueOrNull` não existe** no Riverpod 3.4.3 — usar `.value`
+  (já nullable).
+- **Provider `@Riverpod(keepAlive: true)` só pode depender de outro
+  `keepAlive`** (`riverpod_lint: only_use_keep_alive_inside_keep_alive`) —
+  por isso `dioClientProvider` e `podcastRepositoryProvider` são keepAlive.
+- **Freezed 4**: `abstract class Foo with _$Foo` (sem `abstract` dá "Missing
+  concrete implementations").
+- **Classes geradas pelo drift terminam em `Row`** (`@DataClassName`) — sem
+  o sufixo, `EpisodeCache` geraria `Episode` e colidiria com o modelo de
+  domínio. Repositórios só devolvem/recebem modelos de domínio, nunca `*Row`.
+- **Coluna PK int sem `.autoIncrement()`**: no `.insert()` gerado ela é
+  opcional (`Value.absent()`) — pra `Subscriptions.id` (o `collectionId` da
+  iTunes) sempre passar `Value(podcast.id)` explícito.
+- **Fetch de rede numa tela que pode ter cache local** deve cair pro cache
+  no erro (`PodcastDetailViewModel` → `LibraryRepository.cachedEpisodes`) —
+  é o que mantém episódio baixado acessível em modo avião.
+- **Selecionar episódio não toca**: tocar no card do `_EpisodeTile` abre
+  `/episode` (`EpisodeDetailScreen`). Play só via `IconButton` de play do
+  tile ou botão "Tocar" da tela — esses passam `autoPlay: true`.
+  `PlayerViewModel.playEpisode` tem `autoPlay` default `false`;
+  `PodcastAudioHandler.playQueue`/`skipToQueueItem` default `true` (o
+  auto-avanço no fim da fila continua). Ao navegar pro player, **não**
+  esperar `playEpisode` terminar antes do `context.push` (a tela já mostra
+  `isBuffering`).
+- **Botão de download / progresso de episódio só com podcast assinado** —
+  `Downloads`/`EpisodeCache`/`PlaybackProgress` têm FK em `Subscriptions.id`.
+- **Filtro/ordenação de episódio** é a função pura `applyEpisodeControls`
+  (`episode_list_controls.dart`, sem Flutter). Aba "Baixados" vem de
+  `LibraryRepository.watchDownloadedEpisodes` e reusa o `_EpisodeTile`.
+- **Estado de erro dentro de container de altura fixa** (carrossel) não pode
+  ser `EmptyState` (estoura RenderFlex) — card compacto (`_CarouselError`).
+- **Hero da capa**: `podcast-artwork-<id>` em toda tela; a tela de episódio
+  usa `episode-artwork-<guid>` pra não colidir com o mini-player.
+- **`rss_dart`, não `webfeed_plus`** (fixa `intl ^0.19.0`, quebra go_router 18).
+- **Não declarar `sqlite3_flutter_libs`** — publicado `0.6.0+eol`,
+  `drift_flutter` já resolve o sqlite nativo.
+
+## Notas de plataforma / libs (por que o código é assim)
+
+- **iTunes Search API + Apple Charts devolvem `Content-Type: text/javascript`**
+  — o decoder automático do Dio não pega. Os data sources pedem
+  `ResponseType.plain` e fazem `jsonDecode` na mão. Seguir esse padrão pra
+  qualquer API que não declare `application/json`.
+- **iTunes `/lookup` não devolve na ordem dos ids** —
+  `PodcastRepository._resolveRanked` reordena pelo índice pedido (o rank do
+  carrossel) e descarta id sem `feedUrl`. genreIds de categoria são
+  hardcoded em `lib/features/discover/podcast_genres.dart`.
+- **`flutter_downloader` roda em isolate de background separado** — a volta
+  pro isolate principal é `IsolateNameServer`/`ReceivePort` (não Riverpod).
+  O callback top-level (`downloadCallback`) só repassa; quem trata é
+  `DownloadService`. O warning KGP no build Android é upstream (o plugin
+  aplica o Kotlin Gradle Plugin) — mitigado com `android.builtInKotlin=false`
+  em `gradle.properties`, builda normal.
+- **Emulador Android mata o `AudioService` por "app idle"** depois de ~2m30s
+  de tela apagada, mesmo com foreground service — energia do emulador, não
+  bug (ver ROADMAP Fase 4).
+- **Equalizador só existe no Android** (`just_audio`); volume funciona nos
+  dois. `AndroidEqualizer` entra no `AudioPipeline` **na construção** do
+  `AudioPlayer` (`_player` é `late final`) — não dá pra adicionar depois.
+  `AndroidEqualizer.parameters` só resolve depois de um áudio carregado, por
+  isso `_loadEqualizer()` roda no fim de `playEpisode`. Dois checks de
+  plataforma, de propósito: `Platform.isAndroid` no ViewModel (OS do host —
+  `false` em `flutter test`, mantém o teste rápido) e
+  `defaultTargetPlatform == TargetPlatform.android` na View (alvo, pra UI).
+  Nº de bandas e faixa de dB variam por device — presets
+  (`equalizerPresetGains`, pura) interpolam uma curva de 5 pontos e fazem
+  `clamp(minDb, maxDb)`.
+
+## Setup de teste
+
+- **Overrides obrigatórios** em qualquer teste que monte `PodcastApp`,
+  `PlayerScreen`/`MiniPlayer`/`EpisodeDetailScreen` ou construa
+  `PlayerViewModel`/`themeModeProvider`:
+  `audioHandlerProvider.overrideWithValue(PodcastAudioHandler())` e
+  `preferencesStoreProvider.overrideWithValue(await fakePreferencesStore())`
+  (helper em `test/support/fake_preferences.dart`). Sem eles o provider
+  lança `UnimplementedError` e o widget tree quebra (às vezes aparece como
+  "RenderFlex overflow", não como o erro real).
+- **Widget test de tela real** precisa de `MaterialApp(theme: AppTheme.light())`
+  — senão `Theme.of(context).extension<AppColors>()!` estoura null-check.
+- **Provider `autoDispose` em `ProviderContainer`** precisa de um listener
+  permanente (`container.listen(provider, (_, _) {})` no `setUp`) — senão o
+  notifier (e seus `Timer`s, ex: debounce do `DiscoverViewModel`) é
+  derrubado antes do `await`.
+- **`test()` puro que instancia `PodcastAudioHandler`** precisa de
+  `TestWidgetsFlutterBinding.ensureInitialized()` (o `just_audio.AudioPlayer`
+  do construtor registra method channel handler).
+- **`HtmlWidget` vira `RichText`** — em teste usar `find.byType(HtmlWidget)`,
+  não `find.textContaining`.
 - **Teste de repositório drift**: `AppDatabase(NativeDatabase.memory())`
   (`package:drift/native.dart`) + `tearDown(() => db.close())`. Inserir a
-  `Subscriptions` antes de qualquer linha com FK (`playbackProgress`,
-  `downloads`, `episodeCache`).
-- **Selecionar episódio não toca** (Fase 8.3): tocar no card do
-  `_EpisodeTile` abre `/episode` (`EpisodeDetailScreen`, descrição em
-  `HtmlWidget`). Play só via `IconButton` de play do tile ou botão "Tocar"
-  da tela — esses passam `autoPlay: true`. `PlayerViewModel.playEpisode`
-  tem `autoPlay` default `false`; `PodcastAudioHandler.playQueue`/
-  `skipToQueueItem` têm `autoPlay` default `true` (o auto-avanço no fim da
-  fila continua tocando). `/episode` é rota de root e monta o próprio
-  `MiniPlayer` no rodapé. Hero da capa lá usa tag `episode-artwork-<guid>`
-  (o resto usa `podcast-artwork-<id>`).
-- **Teste que instancia `PodcastAudioHandler` em `test()` puro** precisa de
-  `TestWidgetsFlutterBinding.ensureInitialized()` (o `just_audio.AudioPlayer`
-  do construtor registra method channel handler). `HtmlWidget` vira
-  `RichText` — em teste usar `find.byType(HtmlWidget)`, não `textContaining`.
-- **Volume (`setVolume`) funciona nos dois OS; equalizador só Android**
-  (`just_audio`). `AndroidEqualizer` entra no `AudioPipeline` **na construção**
-  do `AudioPlayer` (`_player` é `late final`) — não dá pra adicionar depois.
-  `AndroidEqualizer.parameters` só resolve depois de um áudio carregado, então
-  `PlayerViewModel._loadEqualizer()` roda no fim de `playEpisode`, com guarda
-  `Platform.isAndroid` (host — false em `flutter test`) + `.timeout(3s)`.
-  Presets = `equalizerPresetGains()` (pura, top-level em `player_view_model.dart`).
-  Botão do equalizador na `PlayerScreen` só com
-  `defaultTargetPlatform == TargetPlatform.android`.
+  `Subscriptions` antes de qualquer linha com FK.

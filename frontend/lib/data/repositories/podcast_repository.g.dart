@@ -8,9 +8,14 @@ part of 'podcast_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// `keepAlive`: sem estado próprio e usado por ViewModels `keepAlive`
+/// (`FeaturedViewModel`) — `riverpod_lint: only_use_keep_alive_inside_keep_alive`.
 
 @ProviderFor(podcastRepository)
 final podcastRepositoryProvider = PodcastRepositoryProvider._();
+
+/// `keepAlive`: sem estado próprio e usado por ViewModels `keepAlive`
+/// (`FeaturedViewModel`) — `riverpod_lint: only_use_keep_alive_inside_keep_alive`.
 
 final class PodcastRepositoryProvider
     extends
@@ -20,13 +25,15 @@ final class PodcastRepositoryProvider
           PodcastRepository
         >
     with $Provider<PodcastRepository> {
+  /// `keepAlive`: sem estado próprio e usado por ViewModels `keepAlive`
+  /// (`FeaturedViewModel`) — `riverpod_lint: only_use_keep_alive_inside_keep_alive`.
   PodcastRepositoryProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'podcastRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -54,4 +61,4 @@ final class PodcastRepositoryProvider
   }
 }
 
-String _$podcastRepositoryHash() => r'bb5f20102edf61ba9f82832e8b5e1ac6a90aba53';
+String _$podcastRepositoryHash() => r'c22ca016aba57134320689848177da1b0fb161e6';

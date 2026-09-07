@@ -58,11 +58,13 @@ dev_dependencies:
   json_serializable: ^6.14.1
   drift_dev: ^2.34.6
 
-  # custom_lint / riverpod_lint estão fora por enquanto: custom_lint 0.8.x fixa
-  # analyzer ^8.0.0 e drift_dev 2.34.x exige analyzer >=13.0.0. Reavaliar quando
-  # custom_lint subir o analyzer.
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+
+  # riverpod_lint 3.x não usa mais custom_lint — roda no analysis_server_plugin
+  # nativo (analyzer >=13, compatível com drift_dev). Ativado em
+  # analysis_options.yaml via `plugins:`. custom_lint segue fora (desnecessário).
+  riverpod_lint: ^3.1.9
 
 flutter:
   uses-material-design: true
