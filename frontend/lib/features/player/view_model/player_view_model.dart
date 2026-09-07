@@ -1,22 +1,41 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart' as audio_service;
+// `foundation`/`services` (não `material`) — `visibleForTesting` e o
+// `HapticFeedback` do "agitar pra estender o timer" (Fase 14). Não viola a
+// regra de camada (que proíbe só `material.dart` no ViewModel).
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../../core/prefs/preferences_store.dart';
+import '../../../data/models/chapter.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/download_repository.dart';
 import '../../../data/repositories/library_repository.dart';
 import '../../../data/repositories/queue_repository.dart';
 import '../../../services/audio/podcast_audio_handler.dart';
+import '../../../services/chapters/chapter_service.dart';
 import 'player_state.dart';
 
 part 'player_view_model.g.dart';
 
 const _tickInterval = Duration(seconds: 1);
 const _ticksPerSave = 5; // salva progresso a cada ~5s, não a cada tick
+
+/// Estende o timer "agitar pra dormir mais um pouco" nesse tanto.
+const _shakeExtension = Duration(minutes: 5);
+
+/// Aceleração resultante (m/s²) acima da qual conta como "chacoalhada". ~2.5g
+/// — filtra o balanço normal de quem está deitado com o celular na mão.
+const _shakeThreshold = 24.0;
+
+/// Silêncio entre chacoalhadas aceitas (senão um tranco vira várias).
+const _shakeCooldown = Duration(seconds: 2);
 
 enum EqualizerPreset { flat, voz, grave, agudo }
 
@@ -64,10 +83,17 @@ List<double> equalizerPresetGains(EqualizerPreset preset, int bandCount, double 
 class PlayerViewModel extends _$PlayerViewModel {
   StreamSubscription<audio_service.MediaItem?>? _mediaItemSub;
   StreamSubscription<audio_service.PlaybackState>? _playbackStateSub;
+  StreamSubscription<List<Chapter>>? _chaptersSub;
+  StreamSubscription<AccelerometerEvent>? _shakeSub;
   Timer? _ticker;
   Timer? _sleepTimer;
   DateTime? _sleepTimerEndsAt;
+  DateTime? _lastShakeAt;
   int _tickCount = 0;
+
+  /// Último índice de capítulo já refletido na notificação — pra só
+  /// reescrever o `MediaItem` quando o capítulo realmente muda.
+  int? _lastChapterIndex;
 
   /// Última fila persistida vista — usada pra resolver o podcast/episódio do
   /// item que passou a tocar (o handler só devolve `MediaItem`).
@@ -96,6 +122,8 @@ class PlayerViewModel extends _$PlayerViewModel {
     ref.onDispose(() {
       _mediaItemSub?.cancel();
       _playbackStateSub?.cancel();
+      _chaptersSub?.cancel();
+      _shakeSub?.cancel();
       _ticker?.cancel();
       _sleepTimer?.cancel();
       handler.onItemConsumed = null;
@@ -108,7 +136,22 @@ class PlayerViewModel extends _$PlayerViewModel {
     final speed = _prefs.playbackSpeed;
     unawaited(_handler.setVolume(volume));
     unawaited(_handler.setSpeed(speed));
-    return PlayerState(volume: volume, speed: speed);
+
+    // Efeitos de áudio salvos (Fase 14) — pular silêncio e reforço de
+    // volume. Android apenas; no-op no resto.
+    final skipSilence = _prefs.skipSilenceEnabled;
+    final boostEnabled = _prefs.volumeBoostEnabled;
+    final boostGain = _prefs.volumeBoostGainDb;
+    unawaited(_handler.setSkipSilence(skipSilence));
+    unawaited(_handler.setVolumeBoost(enabled: boostEnabled, gainDb: boostGain));
+
+    return PlayerState(
+      volume: volume,
+      speed: speed,
+      skipSilenceEnabled: skipSilence,
+      volumeBoostEnabled: boostEnabled,
+      volumeBoostGainDb: boostGain,
+    );
   }
 
   /// Toca [episode] agora: a fila passa a ser **só ele** (Fase 12, decisão
@@ -124,11 +167,13 @@ class PlayerViewModel extends _$PlayerViewModel {
     // playEpisode costuma navegar pro player logo em seguida (sem esperar
     // essa Future), e a tela precisa ver podcast/episode desde o 1º frame.
     _entries = [(podcast: podcast, episode: episode)];
+    _lastChapterIndex = null;
     state = state.copyWith(
       podcast: podcast,
       episode: episode,
       queue: [episode],
       duration: episode.duration,
+      chapters: const [],
     );
 
     final savedPosition =
@@ -155,6 +200,71 @@ class PlayerViewModel extends _$PlayerViewModel {
     // carregado. Android apenas.
     unawaited(_loadEqualizer());
     unawaited(_applyPodcastSpeed(podcast.id));
+    unawaited(_loadChapters(podcast, episode));
+
+    // Efeitos de áudio não persistem entre trocas de `AudioSource` — reaplica.
+    unawaited(_handler.setSkipSilence(state.skipSilenceEnabled));
+    unawaited(_handler.setVolumeBoost(
+      enabled: state.volumeBoostEnabled,
+      gainDb: state.volumeBoostGainDb,
+    ));
+  }
+
+  /// Baixa (uma vez) e escuta os capítulos do episódio. `watchChapters`
+  /// emite `[]` primeiro; quando o JSON chega, a lista aparece no player.
+  Future<void> _loadChapters(Podcast podcast, Episode episode) async {
+    await _chaptersSub?.cancel();
+    final chapters = ref.read(chapterServiceProvider);
+    unawaited(chapters.ensureChapters(
+      podcastId: podcast.id,
+      episodeGuid: episode.guid,
+      chaptersUrl: episode.chaptersUrl,
+    ));
+    _chaptersSub = chapters.watchChapters(podcast.id, episode.guid).listen((list) {
+      if (!ref.mounted) return;
+      // Só do episódio que está tocando (troca rápida de episódio).
+      if (state.episode?.guid != episode.guid) return;
+      state = state.copyWith(chapters: list);
+      _syncChapterToNotification();
+    });
+  }
+
+  /// Reflete o capítulo atual no `MediaItem` (subtítulo da notificação /
+  /// lockscreen). Só reescreve quando o índice muda.
+  void _syncChapterToNotification() {
+    final index = state.currentChapterIndex;
+    if (index == _lastChapterIndex) return;
+    _lastChapterIndex = index;
+    _handler.setChapterTitle(index == null ? null : state.chapters[index].title);
+  }
+
+  /// Pula pro início do capítulo [index].
+  void skipToChapter(int index) {
+    if (index < 0 || index >= state.chapters.length) return;
+    _handler.seek(state.chapters[index].start);
+  }
+
+  /// Próximo capítulo (no-op se já no último ou sem capítulos).
+  void skipToNextChapter() {
+    final current = state.currentChapterIndex;
+    if (current == null) {
+      if (state.chapters.isNotEmpty) skipToChapter(0);
+      return;
+    }
+    skipToChapter(current + 1);
+  }
+
+  /// Capítulo anterior. Se já passou mais de 3s do início do capítulo atual,
+  /// volta pro início dele (comportamento de faixa de música).
+  void skipToPreviousChapter() {
+    final current = state.currentChapterIndex;
+    if (current == null) return;
+    final into = state.position - state.chapters[current].start;
+    if (into > const Duration(seconds: 3)) {
+      skipToChapter(current);
+    } else {
+      skipToChapter(current - 1);
+    }
   }
 
   /// Velocidade fixa por podcast (Fase 13) — `null` volta pra global salva.
@@ -238,7 +348,37 @@ class PlayerViewModel extends _$PlayerViewModel {
     final guid = consumed.extras?['guid'] as String?;
     final podcastId = consumed.extras?['podcastId'] as int?;
     if (guid == null || podcastId == null) return;
+
+    // Timer "fim do episódio": o episódio armado saiu de foco (terminou ou
+    // foi pulado) — pausa antes do próximo começar.
+    if (state.sleepTimerMode == SleepTimerMode.endOfEpisode && guid == _sleepAtEndGuid) {
+      _handler.pause();
+      cancelSleepTimer();
+    }
+
     unawaited(ref.read(queueRepositoryProvider).removeEpisode(podcastId, guid));
+  }
+
+  // ---- Efeitos de áudio (Fase 14) — Android apenas ----
+
+  Future<void> setSkipSilence(bool enabled) async {
+    state = state.copyWith(skipSilenceEnabled: enabled);
+    unawaited(_prefs.setSkipSilenceEnabled(enabled));
+    await _handler.setSkipSilence(enabled);
+  }
+
+  Future<void> setVolumeBoostEnabled(bool enabled) async {
+    state = state.copyWith(volumeBoostEnabled: enabled);
+    unawaited(_prefs.setVolumeBoostEnabled(enabled));
+    await _handler.setVolumeBoost(enabled: enabled, gainDb: state.volumeBoostGainDb);
+  }
+
+  Future<void> setVolumeBoostGain(double gainDb) async {
+    state = state.copyWith(volumeBoostGainDb: gainDb);
+    unawaited(_prefs.setVolumeBoostGainDb(gainDb));
+    if (state.volumeBoostEnabled) {
+      await _handler.setVolumeBoost(enabled: true, gainDb: gainDb);
+    }
   }
 
   void togglePlayPause() {
@@ -348,18 +488,55 @@ class PlayerViewModel extends _$PlayerViewModel {
   /// "Próximo": descarta o item atual da fila e toca o seguinte.
   Future<void> playNextInQueue() => _handler.skipToNext();
 
+  // ---- Temporizador para dormir (Fase 14) ----
+
+  /// Guid do episódio que estava tocando quando o modo "fim do episódio" foi
+  /// armado — o timer dispara quando ESSE episódio sai de foco.
+  String? _sleepAtEndGuid;
+
+  /// Fonte do acelerômetro. Trocável em teste — o `accelerometerEventStream`
+  /// do `sensors_plus` bate em platform channel.
+  @visibleForTesting
+  Stream<AccelerometerEvent> Function()? debugAccelerometerStream;
+
+  /// Conta [duration] e pausa ao zerar. "Agite" adiciona 5 min.
   void startSleepTimer(Duration duration) {
     _sleepTimer?.cancel();
+    _sleepAtEndGuid = null;
     _sleepTimerEndsAt = DateTime.now().add(duration);
-    state = state.copyWith(sleepTimerRemaining: duration);
+    state = state.copyWith(
+      sleepTimerMode: SleepTimerMode.duration,
+      sleepTimerRemaining: duration,
+    );
     _sleepTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tickSleepTimer());
+    _startShakeListener();
+  }
+
+  /// Pausa quando o episódio atual termina (sem contagem regressiva).
+  void startSleepTimerAtEndOfEpisode() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndsAt = null;
+    _sleepAtEndGuid = state.episode?.guid;
+    state = state.copyWith(
+      sleepTimerMode: SleepTimerMode.endOfEpisode,
+      sleepTimerRemaining: null,
+    );
+    _startShakeListener();
   }
 
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
     _sleepTimerEndsAt = null;
-    state = state.copyWith(sleepTimerRemaining: null);
+    _sleepAtEndGuid = null;
+    _shakeSub?.cancel();
+    _shakeSub = null;
+    _lastShakeAt = null;
+    state = state.copyWith(
+      sleepTimerMode: SleepTimerMode.off,
+      sleepTimerRemaining: null,
+    );
   }
 
   void _tickSleepTimer() {
@@ -368,14 +545,49 @@ class PlayerViewModel extends _$PlayerViewModel {
 
     final remaining = endsAt.difference(DateTime.now());
     if (remaining <= Duration.zero) {
-      _sleepTimer?.cancel();
-      _sleepTimer = null;
-      _sleepTimerEndsAt = null;
-      state = state.copyWith(sleepTimerRemaining: null);
       _handler.pause();
+      cancelSleepTimer();
     } else {
       state = state.copyWith(sleepTimerRemaining: remaining);
     }
+  }
+
+  void _startShakeListener() {
+    _shakeSub?.cancel();
+    final override = debugAccelerometerStream;
+    // Mesmo critério do equalizer (ver Notas de plataforma): `Platform` é o
+    // OS do host — `false` em `flutter test`, então o acelerômetro real não
+    // é tocado no teste (que injeta `debugAccelerometerStream`).
+    if (override == null && !(Platform.isAndroid || Platform.isIOS)) return;
+    final source = override ?? accelerometerEventStream;
+    _shakeSub = source().listen(_onAccelerometer, onError: (Object _) {});
+  }
+
+  void _onAccelerometer(AccelerometerEvent event) {
+    if (!state.hasSleepTimer) return;
+    final magnitude = math.sqrt(
+      event.x * event.x + event.y * event.y + event.z * event.z,
+    );
+    if (magnitude < _shakeThreshold) return;
+
+    final now = DateTime.now();
+    if (_lastShakeAt != null && now.difference(_lastShakeAt!) < _shakeCooldown) return;
+    _lastShakeAt = now;
+    _extendSleepTimer();
+  }
+
+  /// Chacoalhada aceita: dá mais 5 min. No modo "fim do episódio", converte
+  /// pra contagem de 5 min a partir de agora.
+  void _extendSleepTimer() {
+    final base = _sleepTimerEndsAt ?? DateTime.now();
+    _sleepTimerEndsAt = base.add(_shakeExtension);
+    _sleepAtEndGuid = null;
+    _sleepTimer ??= Timer.periodic(const Duration(seconds: 1), (_) => _tickSleepTimer());
+    state = state.copyWith(
+      sleepTimerMode: SleepTimerMode.duration,
+      sleepTimerRemaining: _sleepTimerEndsAt!.difference(DateTime.now()),
+    );
+    unawaited(HapticFeedback.mediumImpact());
   }
 
   void _onTick() {
@@ -386,6 +598,7 @@ class PlayerViewModel extends _$PlayerViewModel {
       position: playbackState.position,
       bufferedPosition: playbackState.bufferedPosition,
     );
+    _syncChapterToNotification();
 
     _tickCount++;
     if (playbackState.playing && _tickCount % _ticksPerSave == 0) {

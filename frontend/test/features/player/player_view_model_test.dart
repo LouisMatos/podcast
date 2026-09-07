@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:podcast_app/features/player/view_model/player_state.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
 import 'package:podcast_app/data/repositories/download_repository.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
 import 'package:podcast_app/data/repositories/queue_repository.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
+import 'package:podcast_app/data/models/chapter.dart';
 import 'package:podcast_app/features/player/view_model/player_view_model.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
+import 'package:podcast_app/services/chapters/chapter_service.dart';
 
 import '../../support/fake_preferences.dart';
 
@@ -40,6 +46,20 @@ class _MockDownloads extends Mock implements DownloadRepository {}
 
 class _MockQueue extends Mock implements QueueRepository {}
 
+class _MockChapters extends Mock implements ChapterService {}
+
+_MockChapters _stubChapters() {
+  final chapters = _MockChapters();
+  when(() => chapters.ensureChapters(
+        podcastId: any(named: 'podcastId'),
+        episodeGuid: any(named: 'episodeGuid'),
+        chaptersUrl: any(named: 'chaptersUrl'),
+      )).thenAnswer((_) async {});
+  when(() => chapters.watchChapters(any(), any()))
+      .thenAnswer((_) => Stream.value(const <Chapter>[]));
+  return chapters;
+}
+
 void main() {
   // `just_audio.AudioPlayer` (criado no construtor do handler) registra um
   // method channel handler — precisa do binding de teste inicializado.
@@ -62,6 +82,7 @@ void main() {
     final lib = _MockLibrary();
     final dl = _MockDownloads();
     final q = _MockQueue();
+    final chapters = _stubChapters();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
     when(() => lib.watchSubscriptionSettings(any()))
         .thenAnswer((_) => Stream.value(defaultSubscriptionSettings));
@@ -70,6 +91,7 @@ void main() {
     when(() => q.playNow(any(), any())).thenAnswer((_) async {});
     when(() => q.addToEnd(any(), any())).thenAnswer((_) async {});
     when(() => q.playNextAfter(any(), any(), any())).thenAnswer((_) async {});
+    when(() => q.removeEpisode(any(), any())).thenAnswer((_) async {});
 
     final c = ProviderContainer(
       overrides: [
@@ -77,6 +99,7 @@ void main() {
         libraryRepositoryProvider.overrideWithValue(lib),
         downloadRepositoryProvider.overrideWithValue(dl),
         queueRepositoryProvider.overrideWithValue(q),
+        chapterServiceProvider.overrideWithValue(chapters),
         queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
         preferencesStoreProvider.overrideWithValue(await fakePreferencesStore(prefs)),
       ],
@@ -137,6 +160,7 @@ void main() {
       libraryRepositoryProvider.overrideWithValue(lib),
       downloadRepositoryProvider.overrideWithValue(dl),
       queueRepositoryProvider.overrideWithValue(q),
+      chapterServiceProvider.overrideWithValue(_stubChapters()),
       queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
       preferencesStoreProvider.overrideWithValue(prefs),
     ]);
@@ -148,5 +172,101 @@ void main() {
 
     expect(prefs.volume, 0.25);
     expect(prefs.playbackSpeed, 2.0);
+  });
+
+  group('efeitos de áudio (Fase 14)', () {
+    test('build restaura pular silêncio / reforço de volume salvos', () async {
+      final c = await makeContainer({
+        'pref.skip_silence_enabled': true,
+        'pref.volume_boost_enabled': true,
+        'pref.volume_boost_gain_db': 6.0,
+      });
+      final state = c.read(playerViewModelProvider);
+      expect(state.skipSilenceEnabled, isTrue);
+      expect(state.volumeBoostEnabled, isTrue);
+      expect(state.volumeBoostGainDb, 6.0);
+    });
+
+    test('setSkipSilence persiste e atualiza o estado', () async {
+      final notifier = container.read(playerViewModelProvider.notifier);
+      await notifier.setSkipSilence(true);
+      expect(container.read(playerViewModelProvider).skipSilenceEnabled, isTrue);
+      expect(container.read(preferencesStoreProvider).skipSilenceEnabled, isTrue);
+    });
+
+    test('setVolumeBoostGain persiste', () async {
+      final notifier = container.read(playerViewModelProvider.notifier);
+      await notifier.setVolumeBoostGain(9.0);
+      expect(container.read(playerViewModelProvider).volumeBoostGainDb, 9.0);
+      expect(container.read(preferencesStoreProvider).volumeBoostGainDb, 9.0);
+    });
+  });
+
+  group('capítulos (Fase 14)', () {
+    test('playEpisode carrega os capítulos do episódio', () async {
+      final c = await makeContainer();
+      final cs = c.read(chapterServiceProvider) as _MockChapters;
+      when(() => cs.watchChapters(any(), any())).thenAnswer(
+        (_) => Stream.value(const [
+          Chapter(start: Duration.zero, title: 'Intro'),
+          Chapter(start: Duration(minutes: 5), title: 'Miolo'),
+        ]),
+      );
+
+      await c.read(playerViewModelProvider.notifier).playEpisode(podcast, episode);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(c.read(playerViewModelProvider).chapters, hasLength(2));
+      verify(() => cs.ensureChapters(
+            podcastId: 1,
+            episodeGuid: 'g1',
+            chaptersUrl: any(named: 'chaptersUrl'),
+          )).called(1);
+    });
+  });
+
+  group('temporizador para dormir (Fase 14)', () {
+    test('startSleepTimer arma o modo duração; cancel volta pra off', () {
+      final notifier = container.read(playerViewModelProvider.notifier);
+      notifier.startSleepTimer(const Duration(minutes: 15));
+      expect(container.read(playerViewModelProvider).sleepTimerMode, SleepTimerMode.duration);
+
+      notifier.cancelSleepTimer();
+      expect(container.read(playerViewModelProvider).sleepTimerMode, SleepTimerMode.off);
+      expect(container.read(playerViewModelProvider).sleepTimerRemaining, isNull);
+    });
+
+    test('modo "fim do episódio": pausa quando o episódio armado é consumido', () async {
+      final notifier = container.read(playerViewModelProvider.notifier);
+      await notifier.playEpisode(podcast, episode);
+      notifier.startSleepTimerAtEndOfEpisode();
+      expect(container.read(playerViewModelProvider).sleepTimerMode, SleepTimerMode.endOfEpisode);
+
+      // Handler avisa que o item em foco saiu da fila (episódio terminou).
+      handler.onItemConsumed?.call(const MediaItem(
+        id: 'x',
+        title: 'E1',
+        extras: {'guid': 'g1', 'podcastId': 1},
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(playerViewModelProvider).sleepTimerMode, SleepTimerMode.off);
+    });
+
+    test('agitar estende o timer em 5 min', () async {
+      final shakes = StreamController<AccelerometerEvent>.broadcast();
+      addTearDown(shakes.close);
+      final notifier = container.read(playerViewModelProvider.notifier)
+        ..debugAccelerometerStream = () => shakes.stream;
+
+      notifier.startSleepTimer(const Duration(minutes: 10));
+      final before = container.read(playerViewModelProvider).sleepTimerRemaining!;
+
+      shakes.add(AccelerometerEvent(0, 30, 30, DateTime.now()));
+      await Future<void>.delayed(Duration.zero);
+
+      final after = container.read(playerViewModelProvider).sleepTimerRemaining!;
+      expect(after, greaterThan(before + const Duration(minutes: 4)));
+    });
   });
 }

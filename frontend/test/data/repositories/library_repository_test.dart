@@ -290,4 +290,51 @@ void main() {
       expect(prune, ['velho']);
     });
   });
+
+  group('Fase 14 — metadados avançados', () {
+    test('round-trip dos campos novos pelo cache', () async {
+      await repo.subscribe(podcast, [
+        const Episode(
+          guid: 'g1',
+          title: 'E1',
+          audioUrl: 'u1',
+          seasonNumber: 2,
+          episodeNumber: 7,
+          episodeType: 'bonus',
+          link: 'https://x/eps/1',
+          chaptersUrl: 'https://x/eps/1/chapters.json',
+        ),
+      ]);
+
+      final cached = (await repo.cachedEpisodes(1)).single;
+      expect(cached.seasonNumber, 2);
+      expect(cached.episodeNumber, 7);
+      expect(cached.episodeType, 'bonus');
+      expect(cached.link, 'https://x/eps/1');
+      expect(cached.chaptersUrl, 'https://x/eps/1/chapters.json');
+    });
+
+    test('refresh atualiza os campos novos de episódio já cacheado', () async {
+      // Cacheado antes do feed declarar temporada/capítulos.
+      await repo.subscribe(podcast, [
+        const Episode(guid: 'g1', title: 'E1', audioUrl: 'u1'),
+      ]);
+      when(() => feedParser.fetchEpisodes(any())).thenAnswer((_) async => [
+            const Episode(
+              guid: 'g1',
+              title: 'E1',
+              audioUrl: 'u1',
+              seasonNumber: 4,
+              chaptersUrl: 'https://x/eps/1/chapters.json',
+            ),
+          ]);
+
+      final novos = await repo.refreshFeed(1, force: true);
+
+      expect(novos, isEmpty); // não é episódio inédito, só metadado novo
+      final cached = (await repo.cachedEpisodes(1)).single;
+      expect(cached.seasonNumber, 4);
+      expect(cached.chaptersUrl, 'https://x/eps/1/chapters.json');
+    });
+  });
 }

@@ -24,6 +24,9 @@ class PreferencesStore {
   static const _kBackgroundRefresh = 'pref.background_refresh_enabled';
   static const _kNewEpisodeNotifications = 'pref.new_episode_notifications';
   static const _kRefreshWifiOnly = 'pref.refresh_wifi_only';
+  static const _kSkipSilence = 'pref.skip_silence_enabled';
+  static const _kVolumeBoostEnabled = 'pref.volume_boost_enabled';
+  static const _kVolumeBoostGainDb = 'pref.volume_boost_gain_db';
 
   /// Nome do `AppThemeMode` (a tradução pro enum fica no ViewModel, pra
   /// não acoplar `core/` a `features/settings/`).
@@ -71,6 +74,22 @@ class PreferencesStore {
   bool get refreshWifiOnly => _prefs.getBool(_kRefreshWifiOnly) ?? false;
   Future<void> setRefreshWifiOnly(bool value) =>
       _prefs.setBool(_kRefreshWifiOnly, value);
+
+  /// Pular trechos de silêncio na reprodução (Fase 14). Android apenas.
+  /// Desligado por padrão.
+  bool get skipSilenceEnabled => _prefs.getBool(_kSkipSilence) ?? false;
+  Future<void> setSkipSilenceEnabled(bool value) =>
+      _prefs.setBool(_kSkipSilence, value);
+
+  /// Reforço de volume (Fase 14). Android apenas. Desligado por padrão.
+  bool get volumeBoostEnabled => _prefs.getBool(_kVolumeBoostEnabled) ?? false;
+  Future<void> setVolumeBoostEnabled(bool value) =>
+      _prefs.setBool(_kVolumeBoostEnabled, value);
+
+  /// Ganho do reforço de volume em decibéis (Fase 14). Default `0`.
+  double get volumeBoostGainDb => _prefs.getDouble(_kVolumeBoostGainDb) ?? 0.0;
+  Future<void> setVolumeBoostGainDb(double value) =>
+      _prefs.setDouble(_kVolumeBoostGainDb, value);
 }
 
 /// Sobrescrito em `main.dart` com a instância real (mesmo padrão de

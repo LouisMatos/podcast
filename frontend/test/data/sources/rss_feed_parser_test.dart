@@ -36,6 +36,53 @@ const _sampleRss = '''
 </rss>
 ''';
 
+/// Feed "completo": metadados avançados da Fase 14 (temporada/número/tipo,
+/// `<link>`, `content:encoded` e `<podcast:chapters>`).
+const _richRss = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <title>Podcast Completo</title>
+    <item>
+      <title>Episódio rico</title>
+      <link>https://example.com/eps/rico</link>
+      <guid>ep-rico</guid>
+      <itunes:summary>Resumo curto.</itunes:summary>
+      <content:encoded><![CDATA[<p>Show notes <b>bem</b> mais longos que o resumo curto.</p>]]></content:encoded>
+      <itunes:season>3</itunes:season>
+      <itunes:episode>12</itunes:episode>
+      <itunes:episodeType>bonus</itunes:episodeType>
+      <podcast:chapters url="https://example.com/eps/rico/chapters.json" type="application/json+chapters"/>
+      <enclosure url="https://example.com/rico.mp3" type="audio/mpeg" length="1"/>
+    </item>
+    <item>
+      <title>Episódio simples</title>
+      <guid>ep-simples</guid>
+      <enclosure url="https://example.com/simples.mp3" type="audio/mpeg" length="1"/>
+    </item>
+  </channel>
+</rss>
+''';
+
+/// Mesmo `<podcast:chapters>`, mas com outro prefixo de namespace — o parse
+/// casa pelo nome local, não pelo prefixo.
+const _oddPrefixRss = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:pi="https://podcastindex.org/namespace/1.0">
+  <channel>
+    <item>
+      <title>Prefixo esquisito</title>
+      <guid>ep-prefixo</guid>
+      <pi:chapters url="https://example.com/outro/chapters.json"/>
+      <enclosure url="https://example.com/prefixo.mp3" type="audio/mpeg" length="1"/>
+    </item>
+  </channel>
+</rss>
+''';
+
 void main() {
   late _MockDio dio;
   late RssFeedParser parser;
@@ -106,5 +153,47 @@ void main() {
 ''';
     final episodes = await fetchWith(xml);
     expect(episodes.single.publishedAt, isNull);
+  });
+
+  test('extrai temporada, número, tipo, link e url dos capítulos', () async {
+    final episodes = await fetchWith(_richRss);
+    final rico = episodes.firstWhere((e) => e.guid == 'ep-rico');
+
+    expect(rico.seasonNumber, 3);
+    expect(rico.episodeNumber, 12);
+    expect(rico.episodeType, 'bonus');
+    expect(rico.link, 'https://example.com/eps/rico');
+    expect(rico.chaptersUrl, 'https://example.com/eps/rico/chapters.json');
+  });
+
+  test('prefere content:encoded quando é mais longo que o itunes:summary', () async {
+    final episodes = await fetchWith(_richRss);
+    final rico = episodes.firstWhere((e) => e.guid == 'ep-rico');
+
+    expect(rico.description, 'Show notes bem mais longos que o resumo curto.');
+  });
+
+  test('item sem os elementos avançados deixa os campos nulos, sem crash', () async {
+    final episodes = await fetchWith(_richRss);
+    final simples = episodes.firstWhere((e) => e.guid == 'ep-simples');
+
+    expect(simples.seasonNumber, isNull);
+    expect(simples.episodeNumber, isNull);
+    // `rss_dart` assumiria "full" aqui; queremos distinguir ausência.
+    expect(simples.episodeType, isNull);
+    expect(simples.link, isNull);
+    expect(simples.chaptersUrl, isNull);
+    expect(simples.description, isNull);
+  });
+
+  test('feed antigo (sem namespace podcast:) não ganha chaptersUrl', () async {
+    final episodes = await fetchWith(_sampleRss);
+    expect(episodes.every((e) => e.chaptersUrl == null), isTrue);
+    expect(episodes.every((e) => e.episodeType == null), isTrue);
+  });
+
+  test('acha os capítulos mesmo com outro prefixo de namespace', () async {
+    final episodes = await fetchWith(_oddPrefixRss);
+    expect(episodes.single.chaptersUrl, 'https://example.com/outro/chapters.json');
   });
 }

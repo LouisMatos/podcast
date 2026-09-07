@@ -12,11 +12,10 @@
 
 ## Onde parei
 
-**Fase 13 concluída** (gestão de episódios). 95 testes (era 84), `dart
-analyze` limpo, verificado no emulador (schema v5 migra, ajustes do podcast
-reativos e persistem, arquivar/desarquivar + filtro "arquivados", marcar
-ouvido). Próximo: **Fase 15** (transições e gestos).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 15 → 14 → 16 → 17 → 18**.
+**Fase 14 concluída** (player avançado). 123 testes, `dart analyze` limpo,
+verificado no emulador (schema v6 migra, capítulos, sleep timer com shake,
+normalização de volume, pular silêncio). Próximo: **Fase 15** (transições e gestos).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -260,29 +259,35 @@ espera a Future explode com "Ref after dispose").
 **Não quebrou:** defaults = tudo desligado → comportamento idêntico.
 Global defaults em Ajustes ficaram de fora (per-podcast cobre; nice-to-have).
 
-## Fase 14 — Player avançado · ALTO · esforço G
+## Fase 14 — Player avançado · ALTO · esforço G ✅
 
-- [ ] `RssFeedParser`: extrair `podcast:chapters` (URL → fetch JSON),
+- [x] `RssFeedParser`: extrair `podcast:chapters` (URL JSON via namespace XML),
       `itunes:episode`/`season`/`episodeType`, `<link>`, `content:encoded`
-      (descrição melhor). Capítulos embutidos no ID3 só se `just_audio` expuser.
-- [ ] `Episode` + `EpisodeCache` ganham `seasonNumber?`, `episodeNumber?`,
-      `episodeType?`, `link?`. Schema v6. Tabela `Chapters` (`podcastId`,
-      `episodeGuid`, `startMs`, `title`, `imageUrl?`).
-- [ ] Player: lista de capítulos + pular capítulo + capítulo atual destacado +
-      no título da notificação.
-- [ ] Pular silêncio: `_player.setSkipSilenceEnabled(true)` (ExoPlayer) —
-      toggle no player, persistido.
-- [ ] Normalização de volume: `AndroidLoudnessEnhancer` no `AudioPipeline`
-      (junto do `AndroidEqualizer`, na construção do `_player`) — toggle + ganho.
-- [ ] Velocidade por podcast — `SubscriptionSettings.playbackSpeedOverride`,
-      cai pra global.
-- [ ] Sleep timer: "fim do episódio" + "agitar pra estender 5min"
-      (dep `sensors_plus`).
-- [ ] Testes: parser de capítulos (fixtures); `player_state` com capítulos.
+      (descrição melhor). Capítulos embutidos no ID3 não expostos por `just_audio`.
+- [x] `Episode` + `EpisodeCache` ganham `seasonNumber?`, `episodeNumber?`,
+      `episodeType?`, `link?`, `chaptersUrl?`. Schema **v6**. Tabela `Chapters`
+      (`podcastId`, `episodeGuid`, `startMs`, `title`, `imageUrl?`; PK
+      `{podcastId, episodeGuid, startMs}`, sem FK).
+- [x] Player: lista de capítulos + pular capítulo + capítulo atual destacado +
+      no título da notificação (via `MediaItem.displaySubtitle`).
+- [x] Pular silêncio: `_player.setSkipSilenceEnabled(true)` (ExoPlayer, Android) —
+      toggle no player, persistido em prefs.
+- [x] Normalização de volume: `AndroidLoudnessEnhancer` no `AudioPipeline`
+      (junto do `AndroidEqualizer`, na construção do `_player`) — toggle + slider 0–15 dB.
+- [x] Velocidade por podcast — `SubscriptionSettings.playbackSpeedOverride`,
+      já entregue na **Fase 13** (`_applyPodcastSpeed`, cai pra global).
+- [x] Sleep timer: "fim do episódio" + "agitar pra estender 5min"
+      (dep `sensors_plus`, acelerômetro real em Android/iOS apenas).
+- [x] Corpo do player rolável (`SingleChildScrollView` + `ConstrainedBox`) —
+      faixa de capítulos + aviso do timer estouravam RenderFlex em telas pequenas.
+- [x] Testes: 123 no total (95→123). Novos: parser capítulos + chapters,
+      migration v5→v6, `player_state`/`player_view_model` com capítulos/sleep/efeitos,
+      player_screen overflow.
 
-**Não quebra:** tudo opt-in; feed sem capítulo funciona igual. `AudioPipeline`
-tem que ser montado na construção do `AudioPlayer` (ver `CLAUDE.md` → Notas de
-plataforma) — o `AndroidLoudnessEnhancer` entra junto do equalizer.
+**Não quebrou:** tudo opt-in (defaults = desligado); feed sem capítulo funciona igual.
+`AndroidLoudnessEnhancer`/`setSkipSilenceEnabled` precisam estar no `AudioPipeline`
+na construção do `AudioPlayer` — não dá adicionar depois. `sensors_plus` acelerômetro
+só assina em Android/iOS (`Platform.isAndroid || Platform.isIOS`).
 
 ## Fase 15 — Transições e gestos (fluidez) · MÉDIO-ALTO · M
 
@@ -367,9 +372,10 @@ Checar conflito (`flutter pub get` + `dart analyze`) logo após adicionar cada u
 | 10 | `permission_handler` | `POST_NOTIFICATIONS` runtime |
 | 13 | `connectivity_plus` | política "só no wifi" |
 | 14 | `sensors_plus` | "agitar pra estender" no sleep timer |
+| 14 | `xml` | parse namespace `podcast:chapters` no RSS (já entra na 14) |
 | 16 | `share_plus` | compartilhar episódio |
 | 16 | `quick_actions` | app shortcuts (ou `shortcuts.xml` nativo) |
-| 17 | `xml` | OPML (talvez já transitivo via `rss_dart`) |
+| 17 | — | — |
 
 ---
 

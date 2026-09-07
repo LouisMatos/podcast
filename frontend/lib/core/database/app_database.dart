@@ -6,12 +6,14 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Subscriptions, EpisodeCache, PlaybackProgress, Downloads, QueueItems])
+@DriftDatabase(
+  tables: [Subscriptions, EpisodeCache, PlaybackProgress, Downloads, QueueItems, Chapters],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +51,17 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(subscriptions, subscriptions.autoDownloadLimit);
             await m.addColumn(subscriptions, subscriptions.autoDeletePlayedDays);
             await m.addColumn(subscriptions, subscriptions.playbackSpeedOverride);
+          }
+          // v5 -> v6 (Fase 14 — player avançado): metadados avançados do
+          // episódio + tabela de capítulos. As 5 colunas são nullable (sem
+          // default), então o `ADD COLUMN` passa.
+          if (from < 6) {
+            await m.addColumn(episodeCache, episodeCache.seasonNumber);
+            await m.addColumn(episodeCache, episodeCache.episodeNumber);
+            await m.addColumn(episodeCache, episodeCache.episodeType);
+            await m.addColumn(episodeCache, episodeCache.link);
+            await m.addColumn(episodeCache, episodeCache.chaptersUrl);
+            await m.createTable(chapters);
           }
         },
       );

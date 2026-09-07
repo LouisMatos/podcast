@@ -918,6 +918,59 @@ class $EpisodeCacheTable extends EpisodeCache
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _seasonNumberMeta = const VerificationMeta(
+    'seasonNumber',
+  );
+  @override
+  late final GeneratedColumn<int> seasonNumber = GeneratedColumn<int>(
+    'season_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _episodeNumberMeta = const VerificationMeta(
+    'episodeNumber',
+  );
+  @override
+  late final GeneratedColumn<int> episodeNumber = GeneratedColumn<int>(
+    'episode_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _episodeTypeMeta = const VerificationMeta(
+    'episodeType',
+  );
+  @override
+  late final GeneratedColumn<String> episodeType = GeneratedColumn<String>(
+    'episode_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linkMeta = const VerificationMeta('link');
+  @override
+  late final GeneratedColumn<String> link = GeneratedColumn<String>(
+    'link',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _chaptersUrlMeta = const VerificationMeta(
+    'chaptersUrl',
+  );
+  @override
+  late final GeneratedColumn<String> chaptersUrl = GeneratedColumn<String>(
+    'chapters_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     podcastId,
@@ -930,6 +983,11 @@ class $EpisodeCacheTable extends EpisodeCache
     publishedAt,
     addedAt,
     archived,
+    seasonNumber,
+    episodeNumber,
+    episodeType,
+    link,
+    chaptersUrl,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1020,6 +1078,48 @@ class $EpisodeCacheTable extends EpisodeCache
         archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
       );
     }
+    if (data.containsKey('season_number')) {
+      context.handle(
+        _seasonNumberMeta,
+        seasonNumber.isAcceptableOrUnknown(
+          data['season_number']!,
+          _seasonNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('episode_number')) {
+      context.handle(
+        _episodeNumberMeta,
+        episodeNumber.isAcceptableOrUnknown(
+          data['episode_number']!,
+          _episodeNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('episode_type')) {
+      context.handle(
+        _episodeTypeMeta,
+        episodeType.isAcceptableOrUnknown(
+          data['episode_type']!,
+          _episodeTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('link')) {
+      context.handle(
+        _linkMeta,
+        link.isAcceptableOrUnknown(data['link']!, _linkMeta),
+      );
+    }
+    if (data.containsKey('chapters_url')) {
+      context.handle(
+        _chaptersUrlMeta,
+        chaptersUrl.isAcceptableOrUnknown(
+          data['chapters_url']!,
+          _chaptersUrlMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1069,6 +1169,26 @@ class $EpisodeCacheTable extends EpisodeCache
         DriftSqlType.bool,
         data['${effectivePrefix}archived'],
       )!,
+      seasonNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season_number'],
+      ),
+      episodeNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}episode_number'],
+      ),
+      episodeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_type'],
+      ),
+      link: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}link'],
+      ),
+      chaptersUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapters_url'],
+      ),
     );
   }
 
@@ -1098,6 +1218,23 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
   /// Arquivado (Fase 13) — some das listas mas não desassina nem apaga o
   /// cache. Default `false` = comportamento atual.
   final bool archived;
+
+  /// Metadados avançados do feed (Fase 14). Todos nullable: feed antigo /
+  /// linha antiga simplesmente não tem, e `ADD COLUMN NOT NULL` com default
+  /// de expressão trava a migração.
+  final int? seasonNumber;
+  final int? episodeNumber;
+
+  /// `full` | `trailer` | `bonus` (itunes:episodeType). `null` = o feed não
+  /// declarou.
+  final String? episodeType;
+
+  /// `<link>` do item — página do episódio no site do podcast.
+  final String? link;
+
+  /// URL do JSON de capítulos (`<podcast:chapters url="...">`). Quem baixa e
+  /// persiste é o `ChapterService`.
+  final String? chaptersUrl;
   const EpisodeCacheRow({
     required this.podcastId,
     required this.guid,
@@ -1109,6 +1246,11 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     this.publishedAt,
     this.addedAt,
     required this.archived,
+    this.seasonNumber,
+    this.episodeNumber,
+    this.episodeType,
+    this.link,
+    this.chaptersUrl,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1133,6 +1275,21 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       map['added_at'] = Variable<DateTime>(addedAt);
     }
     map['archived'] = Variable<bool>(archived);
+    if (!nullToAbsent || seasonNumber != null) {
+      map['season_number'] = Variable<int>(seasonNumber);
+    }
+    if (!nullToAbsent || episodeNumber != null) {
+      map['episode_number'] = Variable<int>(episodeNumber);
+    }
+    if (!nullToAbsent || episodeType != null) {
+      map['episode_type'] = Variable<String>(episodeType);
+    }
+    if (!nullToAbsent || link != null) {
+      map['link'] = Variable<String>(link);
+    }
+    if (!nullToAbsent || chaptersUrl != null) {
+      map['chapters_url'] = Variable<String>(chaptersUrl);
+    }
     return map;
   }
 
@@ -1158,6 +1315,19 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           ? const Value.absent()
           : Value(addedAt),
       archived: Value(archived),
+      seasonNumber: seasonNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(seasonNumber),
+      episodeNumber: episodeNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(episodeNumber),
+      episodeType: episodeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(episodeType),
+      link: link == null && nullToAbsent ? const Value.absent() : Value(link),
+      chaptersUrl: chaptersUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(chaptersUrl),
     );
   }
 
@@ -1177,6 +1347,11 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       publishedAt: serializer.fromJson<DateTime?>(json['publishedAt']),
       addedAt: serializer.fromJson<DateTime?>(json['addedAt']),
       archived: serializer.fromJson<bool>(json['archived']),
+      seasonNumber: serializer.fromJson<int?>(json['seasonNumber']),
+      episodeNumber: serializer.fromJson<int?>(json['episodeNumber']),
+      episodeType: serializer.fromJson<String?>(json['episodeType']),
+      link: serializer.fromJson<String?>(json['link']),
+      chaptersUrl: serializer.fromJson<String?>(json['chaptersUrl']),
     );
   }
   @override
@@ -1193,6 +1368,11 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
       'publishedAt': serializer.toJson<DateTime?>(publishedAt),
       'addedAt': serializer.toJson<DateTime?>(addedAt),
       'archived': serializer.toJson<bool>(archived),
+      'seasonNumber': serializer.toJson<int?>(seasonNumber),
+      'episodeNumber': serializer.toJson<int?>(episodeNumber),
+      'episodeType': serializer.toJson<String?>(episodeType),
+      'link': serializer.toJson<String?>(link),
+      'chaptersUrl': serializer.toJson<String?>(chaptersUrl),
     };
   }
 
@@ -1207,6 +1387,11 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     Value<DateTime?> publishedAt = const Value.absent(),
     Value<DateTime?> addedAt = const Value.absent(),
     bool? archived,
+    Value<int?> seasonNumber = const Value.absent(),
+    Value<int?> episodeNumber = const Value.absent(),
+    Value<String?> episodeType = const Value.absent(),
+    Value<String?> link = const Value.absent(),
+    Value<String?> chaptersUrl = const Value.absent(),
   }) => EpisodeCacheRow(
     podcastId: podcastId ?? this.podcastId,
     guid: guid ?? this.guid,
@@ -1220,6 +1405,13 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     publishedAt: publishedAt.present ? publishedAt.value : this.publishedAt,
     addedAt: addedAt.present ? addedAt.value : this.addedAt,
     archived: archived ?? this.archived,
+    seasonNumber: seasonNumber.present ? seasonNumber.value : this.seasonNumber,
+    episodeNumber: episodeNumber.present
+        ? episodeNumber.value
+        : this.episodeNumber,
+    episodeType: episodeType.present ? episodeType.value : this.episodeType,
+    link: link.present ? link.value : this.link,
+    chaptersUrl: chaptersUrl.present ? chaptersUrl.value : this.chaptersUrl,
   );
   EpisodeCacheRow copyWithCompanion(EpisodeCacheCompanion data) {
     return EpisodeCacheRow(
@@ -1239,6 +1431,19 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           : this.publishedAt,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       archived: data.archived.present ? data.archived.value : this.archived,
+      seasonNumber: data.seasonNumber.present
+          ? data.seasonNumber.value
+          : this.seasonNumber,
+      episodeNumber: data.episodeNumber.present
+          ? data.episodeNumber.value
+          : this.episodeNumber,
+      episodeType: data.episodeType.present
+          ? data.episodeType.value
+          : this.episodeType,
+      link: data.link.present ? data.link.value : this.link,
+      chaptersUrl: data.chaptersUrl.present
+          ? data.chaptersUrl.value
+          : this.chaptersUrl,
     );
   }
 
@@ -1254,7 +1459,12 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           ..write('durationSeconds: $durationSeconds, ')
           ..write('publishedAt: $publishedAt, ')
           ..write('addedAt: $addedAt, ')
-          ..write('archived: $archived')
+          ..write('archived: $archived, ')
+          ..write('seasonNumber: $seasonNumber, ')
+          ..write('episodeNumber: $episodeNumber, ')
+          ..write('episodeType: $episodeType, ')
+          ..write('link: $link, ')
+          ..write('chaptersUrl: $chaptersUrl')
           ..write(')'))
         .toString();
   }
@@ -1271,6 +1481,11 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
     publishedAt,
     addedAt,
     archived,
+    seasonNumber,
+    episodeNumber,
+    episodeType,
+    link,
+    chaptersUrl,
   );
   @override
   bool operator ==(Object other) =>
@@ -1285,7 +1500,12 @@ class EpisodeCacheRow extends DataClass implements Insertable<EpisodeCacheRow> {
           other.durationSeconds == this.durationSeconds &&
           other.publishedAt == this.publishedAt &&
           other.addedAt == this.addedAt &&
-          other.archived == this.archived);
+          other.archived == this.archived &&
+          other.seasonNumber == this.seasonNumber &&
+          other.episodeNumber == this.episodeNumber &&
+          other.episodeType == this.episodeType &&
+          other.link == this.link &&
+          other.chaptersUrl == this.chaptersUrl);
 }
 
 class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
@@ -1299,6 +1519,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
   final Value<DateTime?> publishedAt;
   final Value<DateTime?> addedAt;
   final Value<bool> archived;
+  final Value<int?> seasonNumber;
+  final Value<int?> episodeNumber;
+  final Value<String?> episodeType;
+  final Value<String?> link;
+  final Value<String?> chaptersUrl;
   final Value<int> rowid;
   const EpisodeCacheCompanion({
     this.podcastId = const Value.absent(),
@@ -1311,6 +1536,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.publishedAt = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.archived = const Value.absent(),
+    this.seasonNumber = const Value.absent(),
+    this.episodeNumber = const Value.absent(),
+    this.episodeType = const Value.absent(),
+    this.link = const Value.absent(),
+    this.chaptersUrl = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EpisodeCacheCompanion.insert({
@@ -1324,6 +1554,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     this.publishedAt = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.archived = const Value.absent(),
+    this.seasonNumber = const Value.absent(),
+    this.episodeNumber = const Value.absent(),
+    this.episodeType = const Value.absent(),
+    this.link = const Value.absent(),
+    this.chaptersUrl = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : podcastId = Value(podcastId),
        guid = Value(guid),
@@ -1340,6 +1575,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Expression<DateTime>? publishedAt,
     Expression<DateTime>? addedAt,
     Expression<bool>? archived,
+    Expression<int>? seasonNumber,
+    Expression<int>? episodeNumber,
+    Expression<String>? episodeType,
+    Expression<String>? link,
+    Expression<String>? chaptersUrl,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1353,6 +1593,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       if (publishedAt != null) 'published_at': publishedAt,
       if (addedAt != null) 'added_at': addedAt,
       if (archived != null) 'archived': archived,
+      if (seasonNumber != null) 'season_number': seasonNumber,
+      if (episodeNumber != null) 'episode_number': episodeNumber,
+      if (episodeType != null) 'episode_type': episodeType,
+      if (link != null) 'link': link,
+      if (chaptersUrl != null) 'chapters_url': chaptersUrl,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1368,6 +1613,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     Value<DateTime?>? publishedAt,
     Value<DateTime?>? addedAt,
     Value<bool>? archived,
+    Value<int?>? seasonNumber,
+    Value<int?>? episodeNumber,
+    Value<String?>? episodeType,
+    Value<String?>? link,
+    Value<String?>? chaptersUrl,
     Value<int>? rowid,
   }) {
     return EpisodeCacheCompanion(
@@ -1381,6 +1631,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
       publishedAt: publishedAt ?? this.publishedAt,
       addedAt: addedAt ?? this.addedAt,
       archived: archived ?? this.archived,
+      seasonNumber: seasonNumber ?? this.seasonNumber,
+      episodeNumber: episodeNumber ?? this.episodeNumber,
+      episodeType: episodeType ?? this.episodeType,
+      link: link ?? this.link,
+      chaptersUrl: chaptersUrl ?? this.chaptersUrl,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1418,6 +1673,21 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (seasonNumber.present) {
+      map['season_number'] = Variable<int>(seasonNumber.value);
+    }
+    if (episodeNumber.present) {
+      map['episode_number'] = Variable<int>(episodeNumber.value);
+    }
+    if (episodeType.present) {
+      map['episode_type'] = Variable<String>(episodeType.value);
+    }
+    if (link.present) {
+      map['link'] = Variable<String>(link.value);
+    }
+    if (chaptersUrl.present) {
+      map['chapters_url'] = Variable<String>(chaptersUrl.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1437,6 +1707,11 @@ class EpisodeCacheCompanion extends UpdateCompanion<EpisodeCacheRow> {
           ..write('publishedAt: $publishedAt, ')
           ..write('addedAt: $addedAt, ')
           ..write('archived: $archived, ')
+          ..write('seasonNumber: $seasonNumber, ')
+          ..write('episodeNumber: $episodeNumber, ')
+          ..write('episodeType: $episodeType, ')
+          ..write('link: $link, ')
+          ..write('chaptersUrl: $chaptersUrl, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3121,6 +3396,380 @@ class QueueItemsCompanion extends UpdateCompanion<QueueItemRow> {
   }
 }
 
+class $ChaptersTable extends Chapters
+    with TableInfo<$ChaptersTable, ChapterRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChaptersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _podcastIdMeta = const VerificationMeta(
+    'podcastId',
+  );
+  @override
+  late final GeneratedColumn<int> podcastId = GeneratedColumn<int>(
+    'podcast_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _episodeGuidMeta = const VerificationMeta(
+    'episodeGuid',
+  );
+  @override
+  late final GeneratedColumn<String> episodeGuid = GeneratedColumn<String>(
+    'episode_guid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startMsMeta = const VerificationMeta(
+    'startMs',
+  );
+  @override
+  late final GeneratedColumn<int> startMs = GeneratedColumn<int>(
+    'start_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    podcastId,
+    episodeGuid,
+    startMs,
+    title,
+    imageUrl,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chapters';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChapterRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('podcast_id')) {
+      context.handle(
+        _podcastIdMeta,
+        podcastId.isAcceptableOrUnknown(data['podcast_id']!, _podcastIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastIdMeta);
+    }
+    if (data.containsKey('episode_guid')) {
+      context.handle(
+        _episodeGuidMeta,
+        episodeGuid.isAcceptableOrUnknown(
+          data['episode_guid']!,
+          _episodeGuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_episodeGuidMeta);
+    }
+    if (data.containsKey('start_ms')) {
+      context.handle(
+        _startMsMeta,
+        startMs.isAcceptableOrUnknown(data['start_ms']!, _startMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startMsMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {podcastId, episodeGuid, startMs};
+  @override
+  ChapterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChapterRow(
+      podcastId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}podcast_id'],
+      )!,
+      episodeGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_guid'],
+      )!,
+      startMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_ms'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
+    );
+  }
+
+  @override
+  $ChaptersTable createAlias(String alias) {
+    return $ChaptersTable(attachedDatabase, alias);
+  }
+}
+
+class ChapterRow extends DataClass implements Insertable<ChapterRow> {
+  final int podcastId;
+  final String episodeGuid;
+
+  /// Início do capítulo em milissegundos (o JSON traz segundos fracionários).
+  final int startMs;
+  final String title;
+  final String? imageUrl;
+  const ChapterRow({
+    required this.podcastId,
+    required this.episodeGuid,
+    required this.startMs,
+    required this.title,
+    this.imageUrl,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['podcast_id'] = Variable<int>(podcastId);
+    map['episode_guid'] = Variable<String>(episodeGuid);
+    map['start_ms'] = Variable<int>(startMs);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    return map;
+  }
+
+  ChaptersCompanion toCompanion(bool nullToAbsent) {
+    return ChaptersCompanion(
+      podcastId: Value(podcastId),
+      episodeGuid: Value(episodeGuid),
+      startMs: Value(startMs),
+      title: Value(title),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+    );
+  }
+
+  factory ChapterRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChapterRow(
+      podcastId: serializer.fromJson<int>(json['podcastId']),
+      episodeGuid: serializer.fromJson<String>(json['episodeGuid']),
+      startMs: serializer.fromJson<int>(json['startMs']),
+      title: serializer.fromJson<String>(json['title']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'podcastId': serializer.toJson<int>(podcastId),
+      'episodeGuid': serializer.toJson<String>(episodeGuid),
+      'startMs': serializer.toJson<int>(startMs),
+      'title': serializer.toJson<String>(title),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+    };
+  }
+
+  ChapterRow copyWith({
+    int? podcastId,
+    String? episodeGuid,
+    int? startMs,
+    String? title,
+    Value<String?> imageUrl = const Value.absent(),
+  }) => ChapterRow(
+    podcastId: podcastId ?? this.podcastId,
+    episodeGuid: episodeGuid ?? this.episodeGuid,
+    startMs: startMs ?? this.startMs,
+    title: title ?? this.title,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+  );
+  ChapterRow copyWithCompanion(ChaptersCompanion data) {
+    return ChapterRow(
+      podcastId: data.podcastId.present ? data.podcastId.value : this.podcastId,
+      episodeGuid: data.episodeGuid.present
+          ? data.episodeGuid.value
+          : this.episodeGuid,
+      startMs: data.startMs.present ? data.startMs.value : this.startMs,
+      title: data.title.present ? data.title.value : this.title,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChapterRow(')
+          ..write('podcastId: $podcastId, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('startMs: $startMs, ')
+          ..write('title: $title, ')
+          ..write('imageUrl: $imageUrl')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(podcastId, episodeGuid, startMs, title, imageUrl);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChapterRow &&
+          other.podcastId == this.podcastId &&
+          other.episodeGuid == this.episodeGuid &&
+          other.startMs == this.startMs &&
+          other.title == this.title &&
+          other.imageUrl == this.imageUrl);
+}
+
+class ChaptersCompanion extends UpdateCompanion<ChapterRow> {
+  final Value<int> podcastId;
+  final Value<String> episodeGuid;
+  final Value<int> startMs;
+  final Value<String> title;
+  final Value<String?> imageUrl;
+  final Value<int> rowid;
+  const ChaptersCompanion({
+    this.podcastId = const Value.absent(),
+    this.episodeGuid = const Value.absent(),
+    this.startMs = const Value.absent(),
+    this.title = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChaptersCompanion.insert({
+    required int podcastId,
+    required String episodeGuid,
+    required int startMs,
+    required String title,
+    this.imageUrl = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : podcastId = Value(podcastId),
+       episodeGuid = Value(episodeGuid),
+       startMs = Value(startMs),
+       title = Value(title);
+  static Insertable<ChapterRow> custom({
+    Expression<int>? podcastId,
+    Expression<String>? episodeGuid,
+    Expression<int>? startMs,
+    Expression<String>? title,
+    Expression<String>? imageUrl,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (podcastId != null) 'podcast_id': podcastId,
+      if (episodeGuid != null) 'episode_guid': episodeGuid,
+      if (startMs != null) 'start_ms': startMs,
+      if (title != null) 'title': title,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChaptersCompanion copyWith({
+    Value<int>? podcastId,
+    Value<String>? episodeGuid,
+    Value<int>? startMs,
+    Value<String>? title,
+    Value<String?>? imageUrl,
+    Value<int>? rowid,
+  }) {
+    return ChaptersCompanion(
+      podcastId: podcastId ?? this.podcastId,
+      episodeGuid: episodeGuid ?? this.episodeGuid,
+      startMs: startMs ?? this.startMs,
+      title: title ?? this.title,
+      imageUrl: imageUrl ?? this.imageUrl,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (podcastId.present) {
+      map['podcast_id'] = Variable<int>(podcastId.value);
+    }
+    if (episodeGuid.present) {
+      map['episode_guid'] = Variable<String>(episodeGuid.value);
+    }
+    if (startMs.present) {
+      map['start_ms'] = Variable<int>(startMs.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChaptersCompanion(')
+          ..write('podcastId: $podcastId, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('startMs: $startMs, ')
+          ..write('title: $title, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3131,6 +3780,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $DownloadsTable downloads = $DownloadsTable(this);
   late final $QueueItemsTable queueItems = $QueueItemsTable(this);
+  late final $ChaptersTable chapters = $ChaptersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3141,6 +3791,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     playbackProgress,
     downloads,
     queueItems,
+    chapters,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3847,6 +4498,11 @@ typedef $$EpisodeCacheTableCreateCompanionBuilder =
       Value<DateTime?> publishedAt,
       Value<DateTime?> addedAt,
       Value<bool> archived,
+      Value<int?> seasonNumber,
+      Value<int?> episodeNumber,
+      Value<String?> episodeType,
+      Value<String?> link,
+      Value<String?> chaptersUrl,
       Value<int> rowid,
     });
 typedef $$EpisodeCacheTableUpdateCompanionBuilder =
@@ -3861,6 +4517,11 @@ typedef $$EpisodeCacheTableUpdateCompanionBuilder =
       Value<DateTime?> publishedAt,
       Value<DateTime?> addedAt,
       Value<bool> archived,
+      Value<int?> seasonNumber,
+      Value<int?> episodeNumber,
+      Value<String?> episodeType,
+      Value<String?> link,
+      Value<String?> chaptersUrl,
       Value<int> rowid,
     });
 
@@ -3938,6 +4599,31 @@ class $$EpisodeCacheTableFilterComposer
 
   ColumnFilters<bool> get archived => $composableBuilder(
     column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seasonNumber => $composableBuilder(
+    column: $table.seasonNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get episodeNumber => $composableBuilder(
+    column: $table.episodeNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeType => $composableBuilder(
+    column: $table.episodeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get link => $composableBuilder(
+    column: $table.link,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get chaptersUrl => $composableBuilder(
+    column: $table.chaptersUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4019,6 +4705,31 @@ class $$EpisodeCacheTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get seasonNumber => $composableBuilder(
+    column: $table.seasonNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get episodeNumber => $composableBuilder(
+    column: $table.episodeNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeType => $composableBuilder(
+    column: $table.episodeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get link => $composableBuilder(
+    column: $table.link,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get chaptersUrl => $composableBuilder(
+    column: $table.chaptersUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SubscriptionsTableOrderingComposer get podcastId {
     final $$SubscriptionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4085,6 +4796,29 @@ class $$EpisodeCacheTableAnnotationComposer
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
 
+  GeneratedColumn<int> get seasonNumber => $composableBuilder(
+    column: $table.seasonNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get episodeNumber => $composableBuilder(
+    column: $table.episodeNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get episodeType => $composableBuilder(
+    column: $table.episodeType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get link =>
+      $composableBuilder(column: $table.link, builder: (column) => column);
+
+  GeneratedColumn<String> get chaptersUrl => $composableBuilder(
+    column: $table.chaptersUrl,
+    builder: (column) => column,
+  );
+
   $$SubscriptionsTableAnnotationComposer get podcastId {
     final $$SubscriptionsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -4147,6 +4881,11 @@ class $$EpisodeCacheTableTableManager
                 Value<DateTime?> publishedAt = const Value.absent(),
                 Value<DateTime?> addedAt = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
+                Value<int?> seasonNumber = const Value.absent(),
+                Value<int?> episodeNumber = const Value.absent(),
+                Value<String?> episodeType = const Value.absent(),
+                Value<String?> link = const Value.absent(),
+                Value<String?> chaptersUrl = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion(
                 podcastId: podcastId,
@@ -4159,6 +4898,11 @@ class $$EpisodeCacheTableTableManager
                 publishedAt: publishedAt,
                 addedAt: addedAt,
                 archived: archived,
+                seasonNumber: seasonNumber,
+                episodeNumber: episodeNumber,
+                episodeType: episodeType,
+                link: link,
+                chaptersUrl: chaptersUrl,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4173,6 +4917,11 @@ class $$EpisodeCacheTableTableManager
                 Value<DateTime?> publishedAt = const Value.absent(),
                 Value<DateTime?> addedAt = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
+                Value<int?> seasonNumber = const Value.absent(),
+                Value<int?> episodeNumber = const Value.absent(),
+                Value<String?> episodeType = const Value.absent(),
+                Value<String?> link = const Value.absent(),
+                Value<String?> chaptersUrl = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => EpisodeCacheCompanion.insert(
                 podcastId: podcastId,
@@ -4185,6 +4934,11 @@ class $$EpisodeCacheTableTableManager
                 publishedAt: publishedAt,
                 addedAt: addedAt,
                 archived: archived,
+                seasonNumber: seasonNumber,
+                episodeNumber: episodeNumber,
+                episodeType: episodeType,
+                link: link,
+                chaptersUrl: chaptersUrl,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5315,6 +6069,212 @@ typedef $$QueueItemsTableProcessedTableManager =
       QueueItemRow,
       PrefetchHooks Function()
     >;
+typedef $$ChaptersTableCreateCompanionBuilder = ChaptersCompanion Function({
+  required int podcastId,
+  required String episodeGuid,
+  required int startMs,
+  required String title,
+  Value<String?> imageUrl,
+  Value<int> rowid,
+});
+typedef $$ChaptersTableUpdateCompanionBuilder = ChaptersCompanion Function({
+  Value<int> podcastId,
+  Value<String> episodeGuid,
+  Value<int> startMs,
+  Value<String> title,
+  Value<String?> imageUrl,
+  Value<int> rowid,
+});
+
+class $$ChaptersTableFilterComposer
+    extends Composer<_$AppDatabase, $ChaptersTable> {
+  $$ChaptersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startMs => $composableBuilder(
+    column: $table.startMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ChaptersTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChaptersTable> {
+  $$ChaptersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startMs => $composableBuilder(
+    column: $table.startMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ChaptersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChaptersTable> {
+  $$ChaptersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get podcastId =>
+      $composableBuilder(column: $table.podcastId, builder: (column) => column);
+
+  GeneratedColumn<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startMs =>
+      $composableBuilder(column: $table.startMs, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+}
+
+class $$ChaptersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ChaptersTable,
+          ChapterRow,
+          $$ChaptersTableFilterComposer,
+          $$ChaptersTableOrderingComposer,
+          $$ChaptersTableAnnotationComposer,
+          $$ChaptersTableCreateCompanionBuilder,
+          $$ChaptersTableUpdateCompanionBuilder,
+          (
+            ChapterRow,
+            BaseReferences<_$AppDatabase, $ChaptersTable, ChapterRow>,
+          ),
+          ChapterRow,
+          PrefetchHooks Function()
+        > {
+  $$ChaptersTableTableManager(_$AppDatabase db, $ChaptersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChaptersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChaptersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChaptersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> podcastId = const Value.absent(),
+                Value<String> episodeGuid = const Value.absent(),
+                Value<int> startMs = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChaptersCompanion(
+                podcastId: podcastId,
+                episodeGuid: episodeGuid,
+                startMs: startMs,
+                title: title,
+                imageUrl: imageUrl,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int podcastId,
+                required String episodeGuid,
+                required int startMs,
+                required String title,
+                Value<String?> imageUrl = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChaptersCompanion.insert(
+                podcastId: podcastId,
+                episodeGuid: episodeGuid,
+                startMs: startMs,
+                title: title,
+                imageUrl: imageUrl,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ChaptersTable, ChapterRow>(table),
+                  BaseReferences<_$AppDatabase, $ChaptersTable, ChapterRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ChaptersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ChaptersTable,
+      ChapterRow,
+      $$ChaptersTableFilterComposer,
+      $$ChaptersTableOrderingComposer,
+      $$ChaptersTableAnnotationComposer,
+      $$ChaptersTableCreateCompanionBuilder,
+      $$ChaptersTableUpdateCompanionBuilder,
+      (ChapterRow, BaseReferences<_$AppDatabase, $ChaptersTable, ChapterRow>),
+      ChapterRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5329,6 +6289,8 @@ class $AppDatabaseManager {
       $$DownloadsTableTableManager(_db, _db.downloads);
   $$QueueItemsTableTableManager get queueItems =>
       $$QueueItemsTableTableManager(_db, _db.queueItems);
+  $$ChaptersTableTableManager get chapters =>
+      $$ChaptersTableTableManager(_db, _db.chapters);
 }
 
 // **************************************************************************

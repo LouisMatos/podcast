@@ -1,10 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:podcast_app/data/models/chapter.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/features/player/view_model/player_state.dart';
 import 'package:podcast_app/features/player/view_model/player_view_model.dart';
 
 const _ep1 = Episode(guid: '1', title: 'Um', audioUrl: 'https://x.com/1.mp3');
 const _ep2 = Episode(guid: '2', title: 'Dois', audioUrl: 'https://x.com/2.mp3');
+
+const _chapters = [
+  Chapter(start: Duration.zero, title: 'Intro'),
+  Chapter(start: Duration(minutes: 2), title: 'Assunto'),
+  Chapter(start: Duration(minutes: 10), title: 'Fim'),
+];
 
 void main() {
   group('isIdle', () {
@@ -36,6 +43,38 @@ void main() {
       const outro = Episode(guid: '3', title: 'Três', audioUrl: 'https://x.com/3.mp3');
       const state = PlayerState(episode: outro, queue: [_ep1, _ep2]);
       expect(state.hasNextInQueue, isFalse);
+    });
+  });
+
+  group('currentChapterIndex', () {
+    test('null sem capítulos', () {
+      expect(const PlayerState().currentChapterIndex, isNull);
+    });
+
+    test('null antes do primeiro capítulo (posição < start[0] impossível aqui, mas lista vazia)', () {
+      const s = PlayerState(position: Duration(seconds: 30));
+      expect(s.currentChapterIndex, isNull);
+    });
+
+    test('acompanha a posição', () {
+      const s0 = PlayerState(chapters: _chapters, position: Duration(seconds: 10));
+      const s1 = PlayerState(chapters: _chapters, position: Duration(minutes: 3));
+      const s2 = PlayerState(chapters: _chapters, position: Duration(minutes: 42));
+      expect(s0.currentChapterIndex, 0);
+      expect(s1.currentChapterIndex, 1);
+      expect(s2.currentChapterIndex, 2);
+      expect(s1.currentChapter?.title, 'Assunto');
+    });
+  });
+
+  group('hasSleepTimer', () {
+    test('off por padrão', () {
+      expect(const PlayerState().hasSleepTimer, isFalse);
+    });
+
+    test('true nos dois modos', () {
+      expect(const PlayerState(sleepTimerMode: SleepTimerMode.duration).hasSleepTimer, isTrue);
+      expect(const PlayerState(sleepTimerMode: SleepTimerMode.endOfEpisode).hasSleepTimer, isTrue);
     });
   });
 

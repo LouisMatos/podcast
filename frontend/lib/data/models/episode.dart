@@ -16,5 +16,19 @@ abstract class Episode with _$Episode {
     String? imageUrl,
     Duration? duration,
     DateTime? publishedAt,
+
+    /// Metadados avançados (Fase 14) — todos opcionais, o feed pode não
+    /// declarar nenhum.
+    int? seasonNumber,
+    int? episodeNumber,
+
+    /// `full` | `trailer` | `bonus`, do `itunes:episodeType`.
+    String? episodeType,
+
+    /// `<link>` do item — página do episódio no site do podcast.
+    String? link,
+
+    /// URL do JSON de capítulos (`<podcast:chapters>`).
+    String? chaptersUrl,
   }) = _Episode;
 }

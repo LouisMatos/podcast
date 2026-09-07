@@ -11,7 +11,23 @@ import '../view_model/player_state.dart';
 import '../view_model/player_view_model.dart';
 
 const _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
-const _sleepOptions = [Duration(minutes: 5), Duration(minutes: 15), Duration(minutes: 30), Duration(minutes: 60)];
+const _sleepOptions = [
+  Duration(minutes: 5),
+  Duration(minutes: 15),
+  Duration(minutes: 30),
+  Duration(minutes: 60),
+];
+
+/// Valor do item "fim do episódio" no menu do temporizador (o resto são
+/// `Duration`; `null` = cancelar).
+const _sleepEndOfEpisode = 'end';
+
+String _formatClock(Duration d) {
+  final h = d.inHours;
+  final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return h > 0 ? '$h:$m:$s' : '$m:$s';
+}
 
 /// Player em tela cheia. Aberto a partir do mini-player, em qualquer aba —
 /// por isso mora numa rota de topo (`/player`), fora das 3 abas.
@@ -36,7 +52,11 @@ class PlayerScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(podcast?.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          podcast?.title ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             icon: Badge(
@@ -47,124 +67,188 @@ class PlayerScreen extends ConsumerWidget {
             tooltip: 'Fila',
             onPressed: () => _showQueueSheet(context),
           ),
+          if (player.chapters.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.list_alt),
+              tooltip: 'Capítulos',
+              onPressed: () => _showChaptersSheet(context),
+            ),
           if (defaultTargetPlatform == TargetPlatform.android)
             IconButton(
               icon: const Icon(Icons.tune),
-              tooltip: 'Equalizador',
+              tooltip: 'Áudio',
               onPressed: () => _showEqualizerSheet(context),
             ),
-          _SleepTimerButton(remaining: player.sleepTimerRemaining, notifier: notifier),
+          _SleepTimerButton(state: player, notifier: notifier),
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              const Spacer(),
-              Hero(
-                tag: 'podcast-artwork-${podcast?.id}',
-                child: ClipRRect(
-                  borderRadius: AppRadii.surfaceAll,
-                  child: artUrl == null
-                      ? Container(
-                          width: 260,
-                          height: 260,
-                          color: colors.primary.withValues(alpha: 0.5),
-                          child: Icon(Icons.graphic_eq, size: 64, color: colors.textPrimary),
-                        )
-                      : CachedNetworkImage(imageUrl: artUrl, width: 260, height: 260, fit: BoxFit.cover),
-                ),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                episode.title,
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                podcast?.title ?? '',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 24),
-              _SeekBar(player: player, onSeek: notifier.seek),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.replay_10),
-                    iconSize: 28,
-                    tooltip: 'Voltar 15 segundos',
-                    onPressed: () => notifier.skipBackward(const Duration(seconds: 15)),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
                   ),
-                  IconButton(
-                    icon: Icon(player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill),
-                    iconSize: 72,
-                    color: colors.primary,
-                    tooltip: player.isPlaying ? 'Pausar' : 'Tocar',
-                    onPressed: player.isBuffering ? null : notifier.togglePlayPause,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.forward_30),
-                    iconSize: 28,
-                    tooltip: 'Avançar 30 segundos',
-                    onPressed: () => notifier.skipForward(const Duration(seconds: 30)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(Icons.volume_down, color: colors.textMuted, size: 20),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(trackHeight: 3),
-                      child: Slider(
-                        value: player.volume.clamp(0.0, 1.0),
-                        onChanged: notifier.setVolume,
+                  child: Column(
+                    children: [
+                      const Spacer(),
+                      Hero(
+                        tag: 'podcast-artwork-${podcast?.id}',
+                        child: ClipRRect(
+                          borderRadius: AppRadii.surfaceAll,
+                          child: artUrl == null
+                              ? Container(
+                                  width: 260,
+                                  height: 260,
+                                  color: colors.primary.withValues(alpha: 0.5),
+                                  child: Icon(
+                                    Icons.graphic_eq,
+                                    size: 64,
+                                    color: colors.textPrimary,
+                                  ),
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: artUrl,
+                                  width: 260,
+                                  height: 260,
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
                       ),
-                    ),
-                  ),
-                  Icon(Icons.volume_up, color: colors.textMuted, size: 20),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _SpeedButton(speed: player.speed, onChanged: notifier.setSpeed),
-                  if (player.hasNextInQueue) ...[
-                    const SizedBox(width: 12),
-                    PillButton(
-                      label: 'Próximo',
-                      icon: Icons.skip_next,
-                      variant: PillButtonVariant.ghost,
-                      onPressed: notifier.playNextInQueue,
-                    ),
-                  ],
-                ],
-              ),
-              if (player.queue.length > 1) ...[
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => _showQueueSheet(context),
-                  child: Text(
-                    'A seguir: ${player.queue[1].title}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                      const SizedBox(height: 32),
+                      Text(
+                        episode.title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        podcast?.title ?? '',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 24),
+                      _SeekBar(player: player, onSeek: notifier.seek),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_10),
+                            iconSize: 28,
+                            tooltip: 'Voltar 15 segundos',
+                            onPressed: () => notifier.skipBackward(
+                              const Duration(seconds: 15),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              player.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_fill,
+                            ),
+                            iconSize: 72,
+                            color: colors.primary,
+                            tooltip: player.isPlaying ? 'Pausar' : 'Tocar',
+                            onPressed: player.isBuffering
+                                ? null
+                                : notifier.togglePlayPause,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.forward_30),
+                            iconSize: 28,
+                            tooltip: 'Avançar 30 segundos',
+                            onPressed: () => notifier.skipForward(
+                              const Duration(seconds: 30),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.volume_down,
+                            color: colors.textMuted,
+                            size: 20,
+                          ),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context)
+                                  .copyWith(trackHeight: 3),
+                              child: Slider(
+                                value: player.volume.clamp(0.0, 1.0),
+                                onChanged: notifier.setVolume,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.volume_up,
+                            color: colors.textMuted,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _SpeedButton(
+                            speed: player.speed,
+                            onChanged: notifier.setSpeed,
+                          ),
+                          if (player.hasNextInQueue) ...[
+                            const SizedBox(width: 12),
+                            PillButton(
+                              label: 'Próximo',
+                              icon: Icons.skip_next,
+                              variant: PillButtonVariant.ghost,
+                              onPressed: notifier.playNextInQueue,
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (player.chapters.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _ChapterStrip(state: player, notifier: notifier),
+                      ],
+                      if (player.hasSleepTimer) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          player.sleepTimerMode == SleepTimerMode.endOfEpisode
+                              ? 'Dormir no fim do episódio · agite para +5 min'
+                              : 'Dormir em ${_formatClock(player.sleepTimerRemaining ?? Duration.zero)} · agite para +5 min',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.textMuted),
+                        ),
+                      ],
+                      if (player.queue.length > 1) ...[
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => _showQueueSheet(context),
+                          child: Text(
+                            'A seguir: ${player.queue[1].title}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: colors.textMuted),
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                    ],
                   ),
                 ),
-              ],
-              const Spacer(),
-            ],
+              ),
+            ),
           ),
         ),
       ),
@@ -182,7 +266,10 @@ class _SeekBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final duration = player.duration ?? Duration.zero;
     final maxMs = duration.inMilliseconds.toDouble();
-    final valueMs = player.position.inMilliseconds.toDouble().clamp(0.0, maxMs <= 0 ? 1.0 : maxMs);
+    final valueMs = player.position.inMilliseconds.toDouble().clamp(
+      0.0,
+      maxMs <= 0 ? 1.0 : maxMs,
+    );
 
     return Column(
       children: [
@@ -192,7 +279,9 @@ class _SeekBar extends StatelessWidget {
             min: 0,
             max: maxMs <= 0 ? 1.0 : maxMs,
             value: valueMs,
-            onChanged: maxMs <= 0 ? null : (v) => onSeek(Duration(milliseconds: v.round())),
+            onChanged: maxMs <= 0
+                ? null
+                : (v) => onSeek(Duration(milliseconds: v.round())),
           ),
         ),
         Padding(
@@ -200,8 +289,14 @@ class _SeekBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_format(player.position), style: Theme.of(context).textTheme.bodyMedium),
-              Text(_format(duration), style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                _format(player.position),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              Text(
+                _format(duration),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
           ),
         ),
@@ -250,7 +345,9 @@ void _showQueueSheet(BuildContext context) {
     showDragHandle: true,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadii.surface),
+      ),
     ),
     builder: (_) => const _QueueSheet(),
   );
@@ -301,14 +398,18 @@ class _QueueSheet extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                subtitle: Text('Tocando agora', style: Theme.of(context).textTheme.bodySmall),
+                subtitle: Text(
+                  'Tocando agora',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
             if (upcoming.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
                   'Nada na fila. Use "Adicionar à fila" num episódio.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: colors.textMuted),
                   textAlign: TextAlign.center,
                 ),
               )
@@ -334,7 +435,10 @@ class _QueueSheet extends ConsumerWidget {
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       trailing: IconButton(
-                        icon: Icon(Icons.remove_circle_outline, color: colors.textMuted),
+                        icon: Icon(
+                          Icons.remove_circle_outline,
+                          color: colors.textMuted,
+                        ),
                         tooltip: 'Tirar da fila',
                         onPressed: () => notifier.removeFromQueueAt(i + 1),
                       ),
@@ -356,7 +460,9 @@ void _showEqualizerSheet(BuildContext context) {
     backgroundColor: colors.surface,
     showDragHandle: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadii.surface),
+      ),
     ),
     builder: (_) => const _EqualizerSheet(),
   );
@@ -378,10 +484,61 @@ class _EqualizerSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text('Áudio', style: Theme.of(context).textTheme.titleMedium),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Pular silêncio'),
+              subtitle: Text(
+                'Corta pausas longas na fala',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.textMuted),
+              ),
+              value: player.skipSilenceEnabled,
+              onChanged: notifier.setSkipSilence,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Reforço de volume'),
+              subtitle: Text(
+                'Equilibra episódios gravados baixo',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: colors.textMuted),
+              ),
+              value: player.volumeBoostEnabled,
+              onChanged: notifier.setVolumeBoostEnabled,
+            ),
+            if (player.volumeBoostEnabled)
+              Row(
+                children: [
+                  Icon(Icons.volume_up, color: colors.textMuted, size: 20),
+                  Expanded(
+                    child: Slider(
+                      value: player.volumeBoostGainDb.clamp(0.0, 15.0),
+                      max: 15,
+                      divisions: 15,
+                      label: '${player.volumeBoostGainDb.round()} dB',
+                      onChanged: notifier.setVolumeBoostGain,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      '${player.volumeBoostGainDb.round()} dB',
+                      textAlign: TextAlign.end,
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Equalizador', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Equalizador',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 Switch(
                   value: player.equalizerEnabled,
                   onChanged: (v) => notifier.toggleEqualizer(v),
@@ -393,7 +550,8 @@ class _EqualizerSheet extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
                   'Toque um episódio pra ajustar o equalizador.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: colors.textMuted),
                 ),
               )
             else ...[
@@ -418,12 +576,16 @@ class _EqualizerSheet extends ConsumerWidget {
                       width: 56,
                       child: Text(
                         _hzLabel(band.centerHz),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: colors.textMuted),
                       ),
                     ),
                     Expanded(
                       child: Slider(
-                        value: band.gain.clamp(player.equalizerMinDb, player.equalizerMaxDb),
+                        value: band.gain.clamp(
+                          player.equalizerMinDb,
+                          player.equalizerMaxDb,
+                        ),
                         min: player.equalizerMinDb,
                         max: player.equalizerMaxDb,
                         onChanged: player.equalizerEnabled
@@ -436,7 +598,8 @@ class _EqualizerSheet extends ConsumerWidget {
                       child: Text(
                         '${band.gain.round()} dB',
                         textAlign: TextAlign.end,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: colors.textMuted),
                       ),
                     ),
                   ],
@@ -449,38 +612,164 @@ class _EqualizerSheet extends ConsumerWidget {
   }
 
   String _presetLabel(EqualizerPreset p) => switch (p) {
-        EqualizerPreset.flat => 'Flat',
-        EqualizerPreset.voz => 'Voz',
-        EqualizerPreset.grave => 'Grave',
-        EqualizerPreset.agudo => 'Agudo',
-      };
+    EqualizerPreset.flat => 'Flat',
+    EqualizerPreset.voz => 'Voz',
+    EqualizerPreset.grave => 'Grave',
+    EqualizerPreset.agudo => 'Agudo',
+  };
 
-  String _hzLabel(double hz) => hz >= 1000 ? '${(hz / 1000).toStringAsFixed(hz % 1000 == 0 ? 0 : 1)}k' : '${hz.round()}';
+  String _hzLabel(double hz) => hz >= 1000
+      ? '${(hz / 1000).toStringAsFixed(hz % 1000 == 0 ? 0 : 1)}k'
+      : '${hz.round()}';
 }
 
 class _SleepTimerButton extends StatelessWidget {
-  const _SleepTimerButton({required this.remaining, required this.notifier});
+  const _SleepTimerButton({required this.state, required this.notifier});
 
-  final Duration? remaining;
+  final PlayerState state;
   final PlayerViewModel notifier;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<Duration?>(
-      icon: Icon(remaining != null ? Icons.bedtime : Icons.bedtime_outlined),
+    return PopupMenuButton<Object?>(
+      icon: Icon(state.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined),
       tooltip: 'Temporizador para dormir',
-      onSelected: (duration) {
-        if (duration == null) {
+      onSelected: (choice) {
+        if (choice == null) {
           notifier.cancelSleepTimer();
-        } else {
-          notifier.startSleepTimer(duration);
+        } else if (choice == _sleepEndOfEpisode) {
+          notifier.startSleepTimerAtEndOfEpisode();
+        } else if (choice is Duration) {
+          notifier.startSleepTimer(choice);
         }
       },
       itemBuilder: (context) => [
         for (final option in _sleepOptions)
           PopupMenuItem(value: option, child: Text('${option.inMinutes} min')),
-        if (remaining != null) const PopupMenuItem(value: null, child: Text('Cancelar')),
+        const PopupMenuItem(
+          value: _sleepEndOfEpisode,
+          child: Text('Fim do episódio'),
+        ),
+        if (state.hasSleepTimer)
+          const PopupMenuItem(value: null, child: Text('Cancelar')),
       ],
+    );
+  }
+}
+
+/// Faixa compacta de navegação de capítulos, abaixo dos controles.
+class _ChapterStrip extends StatelessWidget {
+  const _ChapterStrip({required this.state, required this.notifier});
+
+  final PlayerState state;
+  final PlayerViewModel notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final current = state.currentChapter;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.skip_previous),
+          iconSize: 22,
+          tooltip: 'Capítulo anterior',
+          onPressed: notifier.skipToPreviousChapter,
+        ),
+        Flexible(
+          child: TextButton(
+            onPressed: () => _showChaptersSheet(context),
+            child: Text(
+              current?.title ?? 'Capítulos',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: colors.textMuted),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.skip_next),
+          iconSize: 22,
+          tooltip: 'Próximo capítulo',
+          onPressed: notifier.skipToNextChapter,
+        ),
+      ],
+    );
+  }
+}
+
+void _showChaptersSheet(BuildContext context) {
+  final colors = Theme.of(context).extension<AppColors>()!;
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: colors.surface,
+    showDragHandle: true,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadii.surface),
+      ),
+    ),
+    builder: (_) => const _ChaptersSheet(),
+  );
+}
+
+class _ChaptersSheet extends ConsumerWidget {
+  const _ChaptersSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final player = ref.watch(playerViewModelProvider);
+    final notifier = ref.read(playerViewModelProvider.notifier);
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final chapters = player.chapters;
+    final currentIndex = player.currentChapterIndex;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Capítulos', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: chapters.length,
+                itemBuilder: (context, i) {
+                  final chapter = chapters[i];
+                  final isCurrent = i == currentIndex;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Text(
+                      _formatClock(chapter.start),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.textMuted),
+                    ),
+                    title: Text(
+                      chapter.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: isCurrent ? colors.primary : null,
+                        fontWeight: isCurrent ? FontWeight.w700 : null,
+                      ),
+                    ),
+                    onTap: () {
+                      notifier.skipToChapter(i);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

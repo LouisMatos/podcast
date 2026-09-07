@@ -69,8 +69,45 @@ class EpisodeCache extends Table {
   /// cache. Default `false` = comportamento atual.
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
 
+  /// Metadados avançados do feed (Fase 14). Todos nullable: feed antigo /
+  /// linha antiga simplesmente não tem, e `ADD COLUMN NOT NULL` com default
+  /// de expressão trava a migração.
+  IntColumn get seasonNumber => integer().nullable()();
+  IntColumn get episodeNumber => integer().nullable()();
+
+  /// `full` | `trailer` | `bonus` (itunes:episodeType). `null` = o feed não
+  /// declarou.
+  TextColumn get episodeType => text().nullable()();
+
+  /// `<link>` do item — página do episódio no site do podcast.
+  TextColumn get link => text().nullable()();
+
+  /// URL do JSON de capítulos (`<podcast:chapters url="...">`). Quem baixa e
+  /// persiste é o `ChapterService`.
+  TextColumn get chaptersUrl => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {podcastId, guid};
+}
+
+/// Capítulos de um episódio (Fase 14), vindos do JSON apontado por
+/// `episodeCache.chaptersUrl` (podcast namespace).
+///
+/// **Sem FK de propósito**: a fila pode tocar episódio de podcast não
+/// assinado, então nem sempre existe linha em `subscriptions`/`episodeCache`
+/// pra referenciar. A limpeza é por reescrita, não por cascade.
+@DataClassName('ChapterRow')
+class Chapters extends Table {
+  IntColumn get podcastId => integer()();
+  TextColumn get episodeGuid => text()();
+
+  /// Início do capítulo em milissegundos (o JSON traz segundos fracionários).
+  IntColumn get startMs => integer()();
+  TextColumn get title => text()();
+  TextColumn get imageUrl => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {podcastId, episodeGuid, startMs};
 }
 
 /// Posição de escuta de cada episódio. O schema já existe agora; quem

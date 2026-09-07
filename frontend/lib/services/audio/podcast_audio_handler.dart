@@ -26,13 +26,38 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   /// o efeito fica no pipeline mas é ignorado; o volume funciona nos dois.
   final just_audio.AndroidEqualizer _equalizer = just_audio.AndroidEqualizer();
 
+  /// Normalização/reforço de volume (Fase 14). Android apenas. Precisa entrar
+  /// no pipeline na construção do player, junto do equalizer — não dá pra
+  /// adicionar efeito depois.
+  final just_audio.AndroidLoudnessEnhancer _loudnessEnhancer =
+      just_audio.AndroidLoudnessEnhancer();
+
   late final just_audio.AudioPlayer _player = just_audio.AudioPlayer(
-    audioPipeline: just_audio.AudioPipeline(androidAudioEffects: [_equalizer]),
+    audioPipeline: just_audio.AudioPipeline(
+      androidAudioEffects: [_loudnessEnhancer, _equalizer],
+    ),
   );
 
   Future<void> setVolume(double volume) => _player.setVolume(volume);
 
   Future<void> setEqualizerEnabled(bool enabled) => _equalizer.setEnabled(enabled);
+
+  /// Pular trechos de silêncio (Fase 14). Android apenas — no-op no resto.
+  Future<void> setSkipSilence(bool enabled) => _player.setSkipSilenceEnabled(enabled);
+
+  /// Reforço de volume (Fase 14). [gainDb] em decibéis (0 = sem reforço).
+  Future<void> setVolumeBoost({required bool enabled, required double gainDb}) async {
+    await _loudnessEnhancer.setTargetGain(enabled ? gainDb : 0.0);
+    await _loudnessEnhancer.setEnabled(enabled);
+  }
+
+  /// Reflete o capítulo atual no subtítulo da notificação/lockscreen
+  /// (Fase 14). `null` volta pro autor do podcast.
+  void setChapterTitle(String? chapterTitle) {
+    final current = mediaItem.value;
+    if (current == null) return;
+    mediaItem.add(current.copyWith(displaySubtitle: chapterTitle ?? current.artist));
+  }
 
   /// Bandas do equalizador do device. Só resolve depois que um áudio foi
   /// carregado (o `just_audio` só ativa o efeito com o player ativo).

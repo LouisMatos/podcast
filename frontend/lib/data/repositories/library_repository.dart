@@ -444,6 +444,14 @@ class LibraryRepository {
       durationSeconds: Value(episode.duration?.inSeconds),
       publishedAt: Value(episode.publishedAt),
       addedAt: addedAt,
+      // Fase 14 — entram nas DUAS passadas do `_cacheEpisodes` de propósito:
+      // um feed que só depois passou a declarar temporada/capítulos precisa
+      // atualizar episódio já cacheado.
+      seasonNumber: Value(episode.seasonNumber),
+      episodeNumber: Value(episode.episodeNumber),
+      episodeType: Value(episode.episodeType),
+      link: Value(episode.link),
+      chaptersUrl: Value(episode.chaptersUrl),
     );
   }
 
@@ -468,6 +476,11 @@ class LibraryRepository {
       imageUrl: row.imageUrl,
       duration: row.durationSeconds == null ? null : Duration(seconds: row.durationSeconds!),
       publishedAt: row.publishedAt,
+      seasonNumber: row.seasonNumber,
+      episodeNumber: row.episodeNumber,
+      episodeType: row.episodeType,
+      link: row.link,
+      chaptersUrl: row.chaptersUrl,
     );
   }
 }
