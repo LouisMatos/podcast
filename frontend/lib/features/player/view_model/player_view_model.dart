@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:audio_service/audio_service.dart' as audio_service;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/prefs/preferences_store.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/download_repository.dart';
@@ -71,6 +72,7 @@ class PlayerViewModel extends _$PlayerViewModel {
   List<Episode> _queue = const [];
 
   PodcastAudioHandler get _handler => ref.read(audioHandlerProvider);
+  PreferencesStore get _prefs => ref.read(preferencesStoreProvider);
 
   @override
   PlayerState build() {
@@ -87,7 +89,14 @@ class PlayerViewModel extends _$PlayerViewModel {
       _sleepTimer?.cancel();
     });
 
-    return const PlayerState();
+    // Restaura volume/velocidade salvos (Fase pós-8). O equalizador é
+    // restaurado em `_loadEqualizer`, quando as bandas do device são
+    // conhecidas.
+    final volume = _prefs.volume;
+    final speed = _prefs.playbackSpeed;
+    unawaited(_handler.setVolume(volume));
+    unawaited(_handler.setSpeed(speed));
+    return PlayerState(volume: volume, speed: speed);
   }
 
   /// Carrega [episode], começando a fila em [queue] (a lista de episódios do
@@ -147,15 +156,18 @@ class PlayerViewModel extends _$PlayerViewModel {
   void setSpeed(double speed) {
     _handler.setSpeed(speed);
     state = state.copyWith(speed: speed);
+    unawaited(_prefs.setPlaybackSpeed(speed));
   }
 
   Future<void> setVolume(double volume) async {
     state = state.copyWith(volume: volume);
+    unawaited(_prefs.setVolume(volume));
     await _handler.setVolume(volume);
   }
 
   Future<void> toggleEqualizer(bool enabled) async {
     state = state.copyWith(equalizerEnabled: enabled);
+    unawaited(_prefs.setEqualizerEnabled(enabled));
     await _handler.setEqualizerEnabled(enabled);
     if (enabled && state.equalizerBands.isEmpty) await _loadEqualizer();
   }
@@ -166,6 +178,7 @@ class PlayerViewModel extends _$PlayerViewModel {
         if (b.index == index) (index: b.index, centerHz: b.centerHz, gain: gain) else b,
     ];
     state = state.copyWith(equalizerBands: bands);
+    unawaited(_prefs.setEqualizerGains([for (final b in bands) b.gain]));
     await _handler.setEqualizerBandGain(index, gain);
   }
 
@@ -185,6 +198,7 @@ class PlayerViewModel extends _$PlayerViewModel {
           (index: current[i].index, centerHz: current[i].centerHz, gain: gains[i]),
       ],
     );
+    unawaited(_prefs.setEqualizerGains(gains));
     for (var i = 0; i < current.length; i++) {
       await _handler.setEqualizerBandGain(current[i].index, gains[i]);
     }
@@ -194,12 +208,36 @@ class PlayerViewModel extends _$PlayerViewModel {
     if (!Platform.isAndroid || state.equalizerBands.isNotEmpty) return;
     try {
       final snapshot = await _handler.equalizerSnapshot().timeout(const Duration(seconds: 3));
+      final savedGains = _prefs.equalizerGains;
+      final savedEnabled = _prefs.equalizerEnabled;
+
+      // Se há ganhos salvos, aplica-os por índice (com clamp à faixa do
+      // device); senão usa o que o device reportou.
+      final bands = [
+        for (final b in snapshot.bands)
+          (
+            index: b.index,
+            centerHz: b.centerHz,
+            gain: b.index < savedGains.length
+                ? savedGains[b.index].clamp(snapshot.minDb, snapshot.maxDb).toDouble()
+                : b.gain,
+          ),
+      ];
+
       state = state.copyWith(
         equalizerAvailable: true,
+        equalizerEnabled: savedEnabled,
         equalizerMinDb: snapshot.minDb,
         equalizerMaxDb: snapshot.maxDb,
-        equalizerBands: snapshot.bands,
+        equalizerBands: bands,
       );
+
+      if (savedGains.isNotEmpty) {
+        for (final b in bands) {
+          await _handler.setEqualizerBandGain(b.index, b.gain);
+        }
+      }
+      if (savedEnabled) await _handler.setEqualizerEnabled(true);
     } catch (_) {
       // Device sem equalizador, ou não respondeu — a UI some sozinha.
     }

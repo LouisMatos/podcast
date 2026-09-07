@@ -2,8 +2,10 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/prefs/preferences_store.dart';
 import 'services/audio/podcast_audio_handler.dart';
 import 'services/download/download_service.dart';
 
@@ -26,9 +28,14 @@ Future<void> main() async {
   await FlutterDownloader.initialize();
   await FlutterDownloader.registerCallback(downloadCallback, step: 1);
 
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
     ProviderScope(
-      overrides: [audioHandlerProvider.overrideWithValue(handler)],
+      overrides: [
+        audioHandlerProvider.overrideWithValue(handler),
+        preferencesStoreProvider.overrideWithValue(PreferencesStore(prefs)),
+      ],
       child: const PodcastApp(),
     ),
   );

@@ -6,9 +6,12 @@ import 'package:mocktail/mocktail.dart';
 import 'package:podcast_app/core/theme/app_theme.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
+import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
 import 'package:podcast_app/features/episode_detail/view/episode_detail_screen.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
+
+import '../../support/fake_preferences.dart';
 
 class _MockLibrary extends Mock implements LibraryRepository {}
 
@@ -24,12 +27,14 @@ void main() {
   testWidgets('mostra título, descrição e botões sem tocar nada', (tester) async {
     final lib = _MockLibrary();
     when(() => lib.watchIsSubscribed(any())).thenAnswer((_) => Stream.value(false));
+    final prefs = await fakePreferencesStore();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           audioHandlerProvider.overrideWithValue(PodcastAudioHandler()),
           libraryRepositoryProvider.overrideWithValue(lib),
+          preferencesStoreProvider.overrideWithValue(prefs),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),

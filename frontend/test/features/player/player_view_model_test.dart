@@ -6,8 +6,11 @@ import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
 import 'package:podcast_app/data/repositories/download_repository.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
+import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/features/player/view_model/player_view_model.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
+
+import '../../support/fake_preferences.dart';
 
 /// Handler real (os BehaviorSubjects de `BaseAudioHandler` já funcionam),
 /// mas `playQueue` é interceptado — assim nada bate em platform channel e
@@ -43,21 +46,27 @@ void main() {
   const podcast = Podcast(id: 1, title: 'P', author: 'A', feedUrl: 'https://x/f.xml');
   const episode = Episode(guid: 'g1', title: 'E1', audioUrl: 'https://x/e1.mp3');
 
-  setUp(() {
+  Future<ProviderContainer> makeContainer([Map<String, Object> prefs = const {}]) async {
     handler = _FakeHandler();
     final lib = _MockLibrary();
     final dl = _MockDownloads();
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
 
-    container = ProviderContainer(
+    final c = ProviderContainer(
       overrides: [
         audioHandlerProvider.overrideWithValue(handler),
         libraryRepositoryProvider.overrideWithValue(lib),
         downloadRepositoryProvider.overrideWithValue(dl),
+        preferencesStoreProvider.overrideWithValue(await fakePreferencesStore(prefs)),
       ],
     );
-    addTearDown(container.dispose);
+    addTearDown(c.dispose);
+    return c;
+  }
+
+  setUp(() async {
+    container = await makeContainer();
   });
 
   test('playEpisode não toca sozinho (autoPlay padrão = false)', () async {
@@ -83,5 +92,36 @@ void main() {
         .playEpisode(podcast, episode, queue: const [episode]);
 
     expect(container.read(playerViewModelProvider).episode?.guid, 'g1');
+  });
+
+  test('build restaura volume e velocidade salvos', () async {
+    final c = await makeContainer({'pref.volume': 0.4, 'pref.playback_speed': 1.5});
+
+    final state = c.read(playerViewModelProvider);
+    expect(state.volume, 0.4);
+    expect(state.speed, 1.5);
+  });
+
+  test('setVolume e setSpeed persistem no store', () async {
+    final prefs = await fakePreferencesStore();
+    handler = _FakeHandler();
+    final lib = _MockLibrary();
+    final dl = _MockDownloads();
+    when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
+    when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
+    final c = ProviderContainer(overrides: [
+      audioHandlerProvider.overrideWithValue(handler),
+      libraryRepositoryProvider.overrideWithValue(lib),
+      downloadRepositoryProvider.overrideWithValue(dl),
+      preferencesStoreProvider.overrideWithValue(prefs),
+    ]);
+    addTearDown(c.dispose);
+
+    await c.read(playerViewModelProvider.notifier).setVolume(0.25);
+    c.read(playerViewModelProvider.notifier).setSpeed(2.0);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(prefs.volume, 0.25);
+    expect(prefs.playbackSpeed, 2.0);
   });
 }

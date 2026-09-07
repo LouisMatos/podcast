@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/core/theme/app_theme.dart';
 import 'package:podcast_app/features/player/view/mini_player.dart';
 import 'package:podcast_app/features/player/view/player_screen.dart';
 import 'package:podcast_app/services/audio/podcast_audio_handler.dart';
+
+import '../../support/fake_preferences.dart';
 
 /// `PodcastAudioHandler()` aqui não toca nada de verdade: seu construtor só
 /// cria um `just_audio.AudioPlayer` e assina os próprios streams — nenhum
 /// método que bata em platform channel (`setAudioSource`/`play`) é chamado
 /// enquanto a tela só observa o estado ocioso.
 void main() {
+  late PreferencesStore prefs;
+
+  setUp(() async {
+    prefs = await fakePreferencesStore();
+  });
+
   Widget wrap(Widget child) {
     return ProviderScope(
-      overrides: [audioHandlerProvider.overrideWithValue(PodcastAudioHandler())],
+      overrides: [
+        audioHandlerProvider.overrideWithValue(PodcastAudioHandler()),
+        preferencesStoreProvider.overrideWithValue(prefs),
+      ],
       child: MaterialApp(theme: AppTheme.light(), home: child),
     );
   }
