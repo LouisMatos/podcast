@@ -11,9 +11,10 @@ App de escuta de podcasts para Android e iOS. Monorepo com duas pastas de topo:
   recomendação). Vazia de propósito na v1: o app é local-only, sem login, sem
   sync, tudo em SQLite embutido via `drift`.
 
-**Antes de qualquer trabalho, leia `docs/ROADMAP.md`** — é a fonte de verdade
-do estado do projeto (fase atual, o que já foi feito, próximo passo concreto)
-e deve ser atualizado ao fim de cada fase.
+**Antes de qualquer trabalho, leia `docs/ROADMAP.md`** (histórico v1 — Fases
+0–8, concluídas) e **`docs/ROADMAP_V2.md`** (evolução em andamento — Fases 9+).
+São a fonte de verdade do estado do projeto e devem ser atualizados ao fim de
+cada fase. Trabalho novo = uma fase do `ROADMAP_V2.md`.
 
 ## Estilo de resposta
 
@@ -36,7 +37,8 @@ Estado atual (Fase 8 + manutenção pós-Fase 8 concluídas; ver `docs/ROADMAP.m
 podcast/
   CLAUDE.md                  este arquivo
   docs/
-    ROADMAP.md                estado do projeto, fase atual, dívidas técnicas
+    ROADMAP.md                histórico v1 (Fases 0–8), dívidas técnicas
+    ROADMAP_V2.md             evolução (Fases 9+) — menu priorizado, pausável
     ARCHITECTURE.md           contrato MVVM entre camadas
     DESIGN_SYSTEM.md          paleta, raios, sombras, regras de animação
   backend/

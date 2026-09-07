@@ -1,6 +1,8 @@
-# Roadmap — estado do projeto
+# Roadmap — estado do projeto (v1: Fases 0–8)
 
-> **Este arquivo é a fonte de verdade para retomar o trabalho.**
+> **Histórico da v1.** Fases 0–8 concluídas. Evolução (Fases 9+) em
+> **`docs/ROADMAP_V2.md`** — é lá que mora o trabalho novo.
+>
 > Ao terminar uma fase: marque os checkboxes, atualize "Onde parei" e faça commit.
 > Ao voltar depois de dias: leia "Onde parei", depois `docs/ARCHITECTURE.md`, depois a fase atual.
 
