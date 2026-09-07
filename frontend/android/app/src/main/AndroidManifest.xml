@@ -7,6 +7,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <!-- Fase 10: notificação de episódio novo (Android 13+ pede em runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- WorkManager reagenda o refresh periódico depois de um reboot. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:label="podcast_app"

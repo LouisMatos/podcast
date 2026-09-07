@@ -52,11 +52,13 @@ final class QueueRepositoryProvider
 String _$queueRepositoryHash() => r'2ce760897cdb0b76c26cd744083fcbfacc3363f5';
 
 /// Stream reativo da fila persistida — a fonte de verdade da ordem.
+/// `keepAlive`: consumido pelo `PlayerViewModel` (que também é keepAlive).
 
 @ProviderFor(queue)
 final queueProvider = QueueProvider._();
 
 /// Stream reativo da fila persistida — a fonte de verdade da ordem.
+/// `keepAlive`: consumido pelo `PlayerViewModel` (que também é keepAlive).
 
 final class QueueProvider
     extends
@@ -67,13 +69,14 @@ final class QueueProvider
         >
     with $FutureModifier<List<QueueEntry>>, $StreamProvider<List<QueueEntry>> {
   /// Stream reativo da fila persistida — a fonte de verdade da ordem.
+  /// `keepAlive`: consumido pelo `PlayerViewModel` (que também é keepAlive).
   QueueProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'queueProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -93,4 +96,4 @@ final class QueueProvider
   }
 }
 
-String _$queueHash() => r'8864982a8cdc70dc9bdfee5765e21d021783636b';
+String _$queueHash() => r'ec60456fcb3d7c3649e5ff3a4b7cb233ba6ed765';

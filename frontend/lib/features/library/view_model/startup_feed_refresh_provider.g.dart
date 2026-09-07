@@ -54,4 +54,4 @@ final class StartupFeedRefreshProvider
 }
 
 String _$startupFeedRefreshHash() =>
-    r'33d78ca2c53b7e03f01d27079e2320be029c8b60';
+    r'59094de4b11fe4809914237e4c74e8ae44bec295';

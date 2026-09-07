@@ -9,6 +9,7 @@ part 'startup_feed_refresh_provider.g.dart';
 /// o que está velho). Observado uma vez pela casca (`AppShell`) — o
 /// resultado não importa pra UI.
 @riverpod
-Future<int> startupFeedRefresh(Ref ref) {
-  return ref.read(libraryRepositoryProvider).refreshAllSubscriptions();
+Future<int> startupFeedRefresh(Ref ref) async {
+  final results = await ref.read(libraryRepositoryProvider).refreshAllSubscriptions();
+  return results.fold<int>(0, (total, r) => total + r.newEpisodes.length);
 }

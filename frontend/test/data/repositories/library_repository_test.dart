@@ -84,7 +84,7 @@ void main() {
 
       final novos = await repo.refreshFeed(1, force: true);
 
-      expect(novos, 1);
+      expect(novos.map((e) => e.guid), ['g2']);
       expect((await repo.cachedEpisodes(1)).map((e) => e.guid).toSet(), {'g1', 'g2'});
     });
 
@@ -95,7 +95,7 @@ void main() {
       await repo.refreshFeed(1, force: true);
       final novos = await repo.refreshFeed(1, force: true);
 
-      expect(novos, 0);
+      expect(novos, isEmpty);
       expect((await repo.cachedEpisodes(1)).length, 1);
     });
 
@@ -106,7 +106,7 @@ void main() {
       await repo.refreshFeed(1, force: true); // marca lastRefreshedAt = agora
       final novos = await repo.refreshFeed(1); // sem force → throttle
 
-      expect(novos, 0);
+      expect(novos, isEmpty);
       verify(() => feedParser.fetchEpisodes(any())).called(1); // não rebuscou de novo
     });
 
@@ -120,9 +120,11 @@ void main() {
       when(() => feedParser.fetchEpisodes('https://x/f2.xml'))
           .thenAnswer((_) async => [ep('h1'), ep('h2')]);
 
-      final total = await repo.refreshAllSubscriptions(force: true);
+      final results = await repo.refreshAllSubscriptions(force: true);
 
-      expect(total, 1); // só o h2 do podcast 2
+      // só o podcast 2 teve episódio inédito (h2)
+      expect(results.map((r) => r.podcast.id), [2]);
+      expect(results.single.newEpisodes.map((e) => e.guid), ['h2']);
       expect((await repo.cachedEpisodes(2)).length, 2);
     });
 

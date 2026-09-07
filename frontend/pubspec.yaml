@@ -41,6 +41,10 @@ dependencies:
   # Download
   flutter_downloader: ^1.12.1
 
+  # Refresh em background + notificação de episódio novo (Fase 10)
+  workmanager: ^0.10.10
+  flutter_local_notifications: ^22.3.0
+
   # UI
   google_fonts: ^8.2.1
   cached_network_image: ^4.0.0

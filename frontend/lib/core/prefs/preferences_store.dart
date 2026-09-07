@@ -21,6 +21,9 @@ class PreferencesStore {
   static const _kSpeed = 'pref.playback_speed';
   static const _kEqualizerEnabled = 'pref.equalizer_enabled';
   static const _kEqualizerGains = 'pref.equalizer_gains';
+  static const _kBackgroundRefresh = 'pref.background_refresh_enabled';
+  static const _kNewEpisodeNotifications = 'pref.new_episode_notifications';
+  static const _kRefreshWifiOnly = 'pref.refresh_wifi_only';
 
   /// Nome do `AppThemeMode` (a tradução pro enum fica no ViewModel, pra
   /// não acoplar `core/` a `features/settings/`).
@@ -51,6 +54,23 @@ class PreferencesStore {
 
   Future<void> setEqualizerGains(List<double> gains) =>
       _prefs.setString(_kEqualizerGains, jsonEncode(gains));
+
+  /// Refresh automático dos feeds em background (Fase 10). Ligado por
+  /// padrão — é o que mantém "Novos episódios" fresco sem abrir o app.
+  bool get backgroundRefreshEnabled => _prefs.getBool(_kBackgroundRefresh) ?? true;
+  Future<void> setBackgroundRefreshEnabled(bool value) =>
+      _prefs.setBool(_kBackgroundRefresh, value);
+
+  /// Notificação quando sai episódio novo. Desligado por padrão — exige a
+  /// permissão `POST_NOTIFICATIONS` (Android 13+), pedida ao ligar.
+  bool get newEpisodeNotifications => _prefs.getBool(_kNewEpisodeNotifications) ?? false;
+  Future<void> setNewEpisodeNotifications(bool value) =>
+      _prefs.setBool(_kNewEpisodeNotifications, value);
+
+  /// Só rebuscar feeds em background numa rede não tarifada (wifi).
+  bool get refreshWifiOnly => _prefs.getBool(_kRefreshWifiOnly) ?? false;
+  Future<void> setRefreshWifiOnly(bool value) =>
+      _prefs.setBool(_kRefreshWifiOnly, value);
 }
 
 /// Sobrescrito em `main.dart` com a instância real (mesmo padrão de

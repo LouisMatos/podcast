@@ -31,7 +31,7 @@ cada fase. Trabalho novo = uma fase do `ROADMAP_V2.md`.
 
 ## Mapa do repositório
 
-Estado atual (v1 completa; v2 Fase 12 concluída — ver `docs/ROADMAP_V2.md`):
+Estado atual (v1 completa; v2 Fase 10 concluída — ver `docs/ROADMAP_V2.md`):
 
 ```text
 podcast/
@@ -69,7 +69,8 @@ podcast/
                                   podcast_detail/ (abas Episódios/Baixados,
                                   busca/filtro/ordenação, progresso no tile),
                                   episode_detail/ (descrição HTML, /episode),
-                                  settings/,
+                                  settings/ (tema + seção "Atualização" —
+                                  refresh em background / notificação),
                                   player/ (mini-player + tela cheia + volume/
                                   equalizador + fila reordenável + widgets/
                                   QueueMenuButton), downloads/ (+ widgets/DownloadButton)
@@ -77,7 +78,10 @@ podcast/
       services/audio/            PodcastAudioHandler (just_audio + audio_service;
                                   AndroidEqualizer no AudioPipeline)
       services/download/         DownloadService (flutter_downloader)
-    test/                        74 testes — core/prefs/, core/database/ (migração),
+      services/notifications/    NotificationService (flutter_local_notifications)
+      services/sync/             background_sync (callbackDispatcher do
+                                  WorkManager) + FeedSyncScheduler
+    test/                        84 testes — core/prefs/, core/database/ (migração),
                                   data/sources/, data/repositories/, features/discover/,
                                   features/podcast_detail/, features/episode_detail/,
                                   features/player/, support/ (helpers), widget_test.dart
@@ -173,7 +177,9 @@ Ver `frontend/pubspec.yaml` (Riverpod 3 + Freezed para estado/MVVM,
 go_router, dio + `rss_dart` para busca/RSS, drift para persistência local,
 just_audio + audio_service para player em background/lockscreen,
 flutter_downloader, `shared_preferences` para preferências,
-`flutter_widget_from_html_core` para a descrição do episódio). Projeto
+`flutter_widget_from_html_core` para a descrição do episódio,
+`workmanager` + `flutter_local_notifications` para refresh em background e
+aviso de episódio novo). Projeto
 requer Flutter stable atual (3.47.2+ / Dart 3.13.2+) — versões mais antigas
 não resolvem freezed 4 + riverpod_generator 4 + drift_dev 2.34 juntos.
 
@@ -220,7 +226,19 @@ plugin — use `dart analyze` pra o check completo. `custom_lint` continua fora
   `force` respeitam `Subscriptions.lastRefreshedAt` (throttle de 1h).
   `PodcastDetailViewModel.build` chama `cacheEpisodesIfSubscribed` (no-op se
   não assinado). `startupFeedRefreshProvider` roda ao abrir o app
-  (`AppShell` é `ConsumerWidget`, faz `ref.listen`).
+  (`AppShell` é `ConsumerWidget`, faz `ref.listen`). `refreshFeed` devolve os
+  `Episode` inéditos; `refreshAllSubscriptions` devolve `List<FeedRefreshResult>`
+  (`{podcast, newEpisodes}`) só dos feeds que renderam episódio novo.
+- **Refresh em background (v2 Fase 10)**: `feedSyncCallbackDispatcher`
+  (`services/sync/background_sync.dart`, `@pragma('vm:entry-point')`) roda no
+  isolate do WorkManager — reconstrói `AppDatabase`/`Dio`/`LibraryRepository`
+  **na mão, sem Riverpod**. Abre o **mesmo** arquivo drift do app (SQLite WAL
+  cobre 1 escritor + N leitores entre isolates). `FeedSyncScheduler.apply`
+  registra/cancela a task periódica (6h, `ExistingPeriodicWorkPolicy.update`,
+  constraint `unmetered`/`connected`). `NotificationService` só notifica se
+  `PreferencesStore.newEpisodeNotifications`; o dispatcher checa
+  `backgroundRefreshEnabled` antes de qualquer coisa. `main.dart` inicializa
+  os três (Workmanager, NotificationService, scheduler) antes do `runApp`.
 - **`ADD COLUMN NOT NULL` com default de expressão trava o app** — SQLite
   não aceita, a migração drift lança e o banco nunca abre (tela fica no
   shimmer pra sempre, sem erro visível). Coluna nova numa tabela existente:

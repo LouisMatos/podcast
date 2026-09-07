@@ -29,6 +29,10 @@ typedef ContinueListeningItem = ({Podcast podcast, Episode episode, int position
 /// Um episódio recente de qualquer assinatura, pra seção "Novos episódios".
 typedef RecentEpisodeItem = ({Podcast podcast, Episode episode});
 
+/// Resultado do refresh de um feed: o podcast e os episódios inéditos que
+/// entraram no cache agora (pra notificação da Fase 10).
+typedef FeedRefreshResult = ({Podcast podcast, List<Episode> newEpisodes});
+
 /// Biblioteca do usuário: assinaturas e o cache local de episódios, tudo em
 /// SQLite via drift. Um ViewModel nunca fala com `AppDatabase` direto — só
 /// com este repositório, que devolve/recebe os modelos de domínio
@@ -105,18 +109,18 @@ class LibraryRepository {
     await _cacheEpisodes(podcastId, episodes);
   }
 
-  /// Rebusca o RSS de um podcast assinado e faz upsert no cache. Devolve
-  /// quantos episódios são novos (guid inédito). Sem `force`, pula se o
-  /// feed foi atualizado há menos de [_refreshThrottle].
-  Future<int> refreshFeed(int podcastId, {bool force = false}) async {
+  /// Rebusca o RSS de um podcast assinado e faz upsert no cache. Devolve os
+  /// episódios inéditos (guid nunca visto). Sem `force`, pula se o feed foi
+  /// atualizado há menos de [_refreshThrottle] (devolve lista vazia).
+  Future<List<Episode>> refreshFeed(int podcastId, {bool force = false}) async {
     final sub =
         await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId))).getSingleOrNull();
-    if (sub == null) return 0;
+    if (sub == null) return const [];
 
     if (!force &&
         sub.lastRefreshedAt != null &&
         DateTime.now().difference(sub.lastRefreshedAt!) < _refreshThrottle) {
-      return 0;
+      return const [];
     }
 
     final fresh = await _feedParser.fetchEpisodes(sub.feedUrl);
@@ -124,29 +128,32 @@ class LibraryRepository {
     final existing =
         await (_db.select(_db.episodeCache)..where((t) => t.podcastId.equals(podcastId))).get();
     final existingGuids = {for (final row in existing) row.guid};
-    final newCount = fresh.where((e) => !existingGuids.contains(e.guid)).length;
+    final newEpisodes = fresh.where((e) => !existingGuids.contains(e.guid)).toList();
 
     await _cacheEpisodes(podcastId, fresh);
     await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
         .write(SubscriptionsCompanion(lastRefreshedAt: Value(DateTime.now())));
 
-    return newCount;
+    return newEpisodes;
   }
 
   /// Rebusca todos os feeds assinados (respeitando o throttle por feed).
-  /// Um feed fora do ar não impede os outros. Devolve o total de episódios
-  /// novos.
-  Future<int> refreshAllSubscriptions({bool force = false}) async {
+  /// Um feed fora do ar não impede os outros. Devolve só os feeds que
+  /// tiveram episódio inédito.
+  Future<List<FeedRefreshResult>> refreshAllSubscriptions({bool force = false}) async {
     final subs = await _db.select(_db.subscriptions).get();
-    var total = 0;
+    final results = <FeedRefreshResult>[];
     for (final sub in subs) {
       try {
-        total += await refreshFeed(sub.id, force: force);
+        final newEpisodes = await refreshFeed(sub.id, force: force);
+        if (newEpisodes.isNotEmpty) {
+          results.add((podcast: _podcastFromRow(sub), newEpisodes: newEpisodes));
+        }
       } catch (_) {
         // sem rede / feed quebrado — ignora, tenta os próximos
       }
     }
-    return total;
+    return results;
   }
 
   /// Posição salva de um episódio, ou `null` se nunca tocou. Usado pelo

@@ -12,11 +12,12 @@
 
 ## Onde parei
 
-**Fase 12 concluída** (fila de reprodução real). 74 testes (era 64),
-`dart analyze` limpo, app rodando e verificado no emulador (fila persiste ao
-kill, add/tocar-a-seguir, sheet reordenável, skip consome a frente,
-cross-podcast). Próximo: **Fase 10** (refresh em background + notificação).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 → 13 → 15 → 14 → 16 → 17 → 18**.
+**Fase 10 concluída** (refresh em background + notificação). 84 testes
+(era 74), `dart analyze` limpo, verificado no emulador (task do WorkManager
+registra + roda o isolate de background com sucesso, feeds atualizam sem
+abrir o app, toggles de Ajustes persistem e reagendam). Próximo: **Fase 13**
+(gestão de episódios).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 → 15 → 14 → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -104,22 +105,43 @@ a tela de detalhe ficava presa no shimmer, nunca carregava.
   migração roda, as colunas entram e os dados sobrevivem. 61 testes no total.
 - Teste formal com o schema tooling do `drift_dev` ainda fica pra Fase 18.
 
-## Fase 10 — Refresh em background + notificação de episódio novo · ALTO · M
+## Fase 10 — Refresh em background + notificação de episódio novo · ALTO · M ✅
 
-- [ ] Dep `workmanager` — task headless periódica (default 6h, ~15min é o
-      mínimo real no Android) chamando `refreshAllSubscriptions()`. Registrada
-      em `main.dart`.
-- [ ] Dep `flutter_local_notifications` — notificação agrupada "Podcast X: novo
-      episódio", toca → abre `/library/podcast` (ou Início, se a Fase 11 já
-      existir).
-- [ ] Dep `permission_handler` — `POST_NOTIFICATIONS` runtime (Android 13+),
-      pedido na 1ª vez que o usuário liga a notificação.
-- [ ] Ajustes → nova seção "Atualização": refresh automático on/off,
-      notificação on/off, "só no wifi". Persistido no `PreferencesStore`.
-- [ ] Testes: task de sync (unit, repo fake); diff de "quais são novos".
+- [x] Dep `workmanager ^0.10.10` — task periódica (6h; ~15min é o mínimo real
+      do Android). `feedSyncCallbackDispatcher` (`services/sync/background_sync.dart`,
+      `@pragma('vm:entry-point')`) reconstrói banco+Dio+`LibraryRepository`
+      **sem Riverpod** e chama `refreshAllSubscriptions()`. `FeedSyncScheduler`
+      (`services/sync/`) registra/cancela conforme a preferência —
+      `ExistingPeriodicWorkPolicy.update`, constraint de rede
+      `unmetered`/`connected` conforme "só Wi-Fi".
+- [x] Dep `flutter_local_notifications ^22.3.0` — `NotificationService`
+      (`services/notifications/`): 1 notificação por podcast (id = `podcast.id`,
+      substitui) + resumo do grupo se >1 podcast. Tocar abre `/home`.
+      `permission_handler` **não** foi preciso — a própria fln pede
+      `POST_NOTIFICATIONS` (`requestNotificationsPermission`).
+- [x] `LibraryRepository`: `refreshFeed` devolve `List<Episode>` inéditos;
+      `refreshAllSubscriptions` devolve `List<FeedRefreshResult>`
+      (`{podcast, newEpisodes}`) — só os feeds que tiveram episódio novo.
+- [x] Ajustes → seção "Atualização" (`_FeedRefreshCard`): atualizar em segundo
+      plano / só no Wi-Fi / avisar de episódio novo.
+      `feedRefreshSettingsProvider` (Notifier) persiste no `PreferencesStore` e
+      reagenda; ligar a notificação pede permissão (negada → volta pra off).
+- [x] `main.dart`: `Workmanager().initialize` + `NotificationService.create` +
+      `FeedSyncScheduler().apply(...)` conforme a preferência ao abrir.
+- [x] Manifest: `POST_NOTIFICATIONS` + `RECEIVE_BOOT_COMPLETED`.
+      `build.gradle.kts`: core library desugaring (`desugar_jdk_libs 2.1.4`,
+      exigência da fln).
+- [x] Testes: `notification_service_test` (4 — formatação 1/N/resumo),
+      `feed_refresh_settings_test` (6 — persistência, reagenda, permissão
+      negada), `library_repository_test` Fase 9 atualizado pro novo retorno.
 
-**Não quebra:** permissão negada → refresh continua, só sem notificação.
-`workmanager` respeita Doze.
+**Não quebrou:** permissão negada → refresh segue, só sem notificação.
+`startupFeedRefreshProvider` continua (agora soma `newEpisodes.length`).
+
+Armadilha: o isolate de background do WorkManager abre o **mesmo** arquivo
+drift que o app — SQLite WAL cobre 1 escritor + N leitores entre isolates.
+`refreshAllSubscriptions()` respeita o throttle de 1h por feed, então rodar a
+task logo após um refresh não rebusca nada (nem notifica).
 
 ## Fase 11 — Aba Início · CRÍTICO · M ✅
 
