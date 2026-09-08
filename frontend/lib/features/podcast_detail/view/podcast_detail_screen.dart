@@ -21,6 +21,7 @@ import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
+import '../../player/widgets/episode_swipe_actions.dart';
 import '../../player/widgets/queue_menu_button.dart';
 import '../view_model/downloaded_episodes_provider.dart';
 import '../view_model/episode_list_controls.dart';
@@ -39,11 +40,16 @@ class PodcastDetailScreen extends ConsumerWidget {
     final detail = ref.watch(podcastDetailViewModelProvider(podcast));
     final notifier = ref.read(podcastDetailViewModelProvider(podcast).notifier);
 
-    final isSubscribed = ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+    final isSubscribed =
+        ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          podcast.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           if (isSubscribed)
             IconButton(
@@ -69,7 +75,8 @@ class PodcastDetailScreen extends ConsumerWidget {
             icon: Icons.wifi_off,
             title: 'Não foi possível carregar os episódios',
             message: 'Verifique sua conexão e tente de novo.',
-            onRetry: () => ref.invalidate(podcastDetailViewModelProvider(podcast)),
+            onRetry: () =>
+                ref.invalidate(podcastDetailViewModelProvider(podcast)),
           ),
           data: (state) => _PodcastDetailBody(
             podcast: state.podcast,
@@ -102,7 +109,8 @@ class _PodcastDetailBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final isSubscribed = ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+    final isSubscribed =
+        ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
 
     return DefaultTabController(
       length: 2,
@@ -124,13 +132,20 @@ class _PodcastDetailBody extends ConsumerWidget {
             indicatorColor: colors.primary,
             labelColor: colors.textPrimary,
             unselectedLabelColor: colors.textMuted,
-            tabs: const [Tab(text: 'Episódios'), Tab(text: 'Baixados')],
+            tabs: const [
+              Tab(text: 'Episódios'),
+              Tab(text: 'Baixados'),
+            ],
           ),
           const SizedBox(height: 8),
           Expanded(
             child: TabBarView(
               children: [
-                _EpisodesTab(podcast: podcast, episodes: episodes, isSubscribed: isSubscribed),
+                _EpisodesTab(
+                  podcast: podcast,
+                  episodes: episodes,
+                  isSubscribed: isSubscribed,
+                ),
                 _DownloadsTab(podcast: podcast),
               ],
             ),
@@ -175,8 +190,10 @@ class _Header extends StatelessWidget {
                         width: 96,
                         height: 96,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) => const ShimmerBox(width: 96, height: 96),
-                        errorWidget: (context, url, error) => _artworkFallback(colors, size: 96),
+                        placeholder: (context, url) =>
+                            const ShimmerBox(width: 96, height: 96),
+                        errorWidget: (context, url, error) =>
+                            _artworkFallback(colors, size: 96),
                       ),
               ),
             ),
@@ -185,15 +202,22 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(podcast.title, style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    podcast.title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 4),
-                  Text(podcast.author, style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    podcast.author,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      if (podcast.genre case final genre?) PastelChip(label: genre),
+                      if (podcast.genre case final genre?)
+                        PastelChip(label: genre),
                       PastelChip(
                         label: podcast.episodeCount == 1
                             ? '1 episódio'
@@ -211,7 +235,9 @@ class _Header extends StatelessWidget {
         PillButton(
           label: isSubscribed ? 'Assinado' : 'Assinar',
           icon: isSubscribed ? Icons.check : Icons.add,
-          variant: isSubscribed ? PillButtonVariant.secondary : PillButtonVariant.primary,
+          variant: isSubscribed
+              ? PillButtonVariant.secondary
+              : PillButtonVariant.primary,
           onPressed: isSubscribed ? onUnsubscribe : onSubscribe,
         ),
       ],
@@ -220,7 +246,11 @@ class _Header extends StatelessWidget {
 }
 
 class _EpisodesTab extends ConsumerWidget {
-  const _EpisodesTab({required this.podcast, required this.episodes, required this.isSubscribed});
+  const _EpisodesTab({
+    required this.podcast,
+    required this.episodes,
+    required this.isSubscribed,
+  });
 
   final Podcast podcast;
   final List<Episode>? episodes;
@@ -249,86 +279,102 @@ class _EpisodesTab extends ConsumerWidget {
     }
 
     final controls = ref.watch(episodeListControlsProvider(podcast.id));
-    final controlsNotifier = ref.read(episodeListControlsProvider(podcast.id).notifier);
-    final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
-    final archived = ref.watch(archivedGuidsProvider(podcast.id)).value ?? const <String>{};
-    final visible = applyEpisodeControls(episodes!, controls, progress, archivedGuids: archived);
+    final controlsNotifier = ref.read(
+      episodeListControlsProvider(podcast.id).notifier,
+    );
+    final progress =
+        ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
+    final archived =
+        ref.watch(archivedGuidsProvider(podcast.id)).value ?? const <String>{};
+    final visible = applyEpisodeControls(
+      episodes!,
+      controls,
+      progress,
+      archivedGuids: archived,
+    );
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
+      onRefresh: () =>
+          ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
-        SearchField(
-          hintText: 'Buscar episódio',
-          onChanged: controlsNotifier.setQuery,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final f in EpisodeFilter.values) ...[
-                      _SelectableChip(
-                        label: _filterLabel(f),
-                        selected: controls.filter == f,
-                        onTap: () => controlsNotifier.setFilter(f),
-                      ),
-                      const SizedBox(width: 8),
+          SearchField(
+            hintText: 'Buscar episódio',
+            onChanged: controlsNotifier.setQuery,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final f in EpisodeFilter.values) ...[
+                        _SelectableChip(
+                          label: _filterLabel(f),
+                          selected: controls.filter == f,
+                          onTap: () => controlsNotifier.setFilter(f),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            _SortButton(current: controls.sort, onSelected: controlsNotifier.setSort),
-          ],
-        ),
-        if (isSubscribed && (controls.showArchived || archived.isNotEmpty)) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _SelectableChip(
-              label: controls.showArchived ? 'Vendo arquivados' : 'Mostrar arquivados',
-              selected: controls.showArchived,
-              onTap: controlsNotifier.toggleShowArchived,
-            ),
+              _SortButton(
+                current: controls.sort,
+                onSelected: controlsNotifier.setSort,
+              ),
+            ],
           ),
-        ],
-        const SizedBox(height: 12),
-        if (visible.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Text(
-              'Nenhum episódio com esse filtro.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+          if (isSubscribed &&
+              (controls.showArchived || archived.isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _SelectableChip(
+                label: controls.showArchived
+                    ? 'Vendo arquivados'
+                    : 'Mostrar arquivados',
+                selected: controls.showArchived,
+                onTap: controlsNotifier.toggleShowArchived,
+              ),
             ),
-          )
-        else
-          for (final episode in visible) ...[
-            _EpisodeTile(
-              podcast: podcast,
-              episode: episode,
-              queue: visible,
-              isSubscribed: isSubscribed,
-              progress: progress[episode.guid],
-              isArchived: archived.contains(episode.guid),
-            ),
-            const SizedBox(height: 12),
           ],
+          const SizedBox(height: 12),
+          if (visible.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Text(
+                'Nenhum episódio com esse filtro.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            )
+          else
+            for (final episode in visible) ...[
+              _EpisodeTile(
+                podcast: podcast,
+                episode: episode,
+                queue: visible,
+                isSubscribed: isSubscribed,
+                progress: progress[episode.guid],
+                isArchived: archived.contains(episode.guid),
+              ),
+              const SizedBox(height: 12),
+            ],
         ],
       ),
     );
   }
 
   String _filterLabel(EpisodeFilter f) => switch (f) {
-        EpisodeFilter.todos => 'Todos',
-        EpisodeFilter.naoOuvidos => 'Não ouvidos',
-        EpisodeFilter.ouvidos => 'Ouvidos',
-      };
+    EpisodeFilter.todos => 'Todos',
+    EpisodeFilter.naoOuvidos => 'Não ouvidos',
+    EpisodeFilter.ouvidos => 'Ouvidos',
+  };
 }
 
 class _DownloadsTab extends ConsumerWidget {
@@ -339,12 +385,17 @@ class _DownloadsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final downloaded = ref.watch(downloadedEpisodesProvider(podcast.id));
-    final progress = ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
+    final progress =
+        ref.watch(episodeProgressProvider(podcast.id)).value ?? const {};
 
     return downloaded.when(
       loading: () => ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: const [_EpisodeSkeleton(), SizedBox(height: 12), _EpisodeSkeleton()],
+        children: const [
+          _EpisodeSkeleton(),
+          SizedBox(height: 12),
+          _EpisodeSkeleton(),
+        ],
       ),
       error: (_, _) => const EmptyState(
         icon: Icons.error_outline,
@@ -381,7 +432,11 @@ class _DownloadsTab extends ConsumerWidget {
 }
 
 class _SelectableChip extends StatelessWidget {
-  const _SelectableChip({required this.label, required this.selected, required this.onTap});
+  const _SelectableChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -402,13 +457,18 @@ class _SelectableChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadii.pill),
           boxShadow: selected
               ? null
-              : [BoxShadow(color: colors.shadow, blurRadius: 16, offset: const Offset(0, 4))],
+              : [
+                  BoxShadow(
+                    color: colors.shadow,
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected ? colors.onAccent : colors.textMuted,
-              ),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: selected ? colors.onAccent : colors.textMuted),
         ),
       ),
     );
@@ -438,10 +498,10 @@ class _SortButton extends StatelessWidget {
   }
 
   String _sortLabel(EpisodeSort s) => switch (s) {
-        EpisodeSort.recentes => 'Mais recentes',
-        EpisodeSort.antigos => 'Mais antigos',
-        EpisodeSort.maisLongos => 'Mais longos',
-      };
+    EpisodeSort.recentes => 'Mais recentes',
+    EpisodeSort.antigos => 'Mais antigos',
+    EpisodeSort.maisLongos => 'Mais longos',
+  };
 }
 
 class _EpisodeTile extends ConsumerWidget {
@@ -467,74 +527,93 @@ class _EpisodeTile extends ConsumerWidget {
     final player = ref.watch(playerViewModelProvider);
     final isCurrent = player.episode?.guid == episode.guid;
 
-    return SoftCard(
-      // Tocar no tile abre a descrição do episódio — NÃO toca (Fase 8.3).
-      // O play rápido fica no ícone à esquerda.
-      onTap: () => context.push(
-        '/episode',
-        extra: (podcast: podcast, episode: episode, queue: queue),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          IconButton(
-            icon: Icon(
-              isCurrent && player.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline,
-              color: colors.primary,
-              size: 32,
+    return EpisodeSwipeActions(
+      podcast: podcast,
+      episode: episode,
+      // Fila / marcar ouvido só valem pra assinatura.
+      enabled: isSubscribed,
+      child: SoftCard(
+        // Tocar no tile abre a descrição do episódio — NÃO toca (Fase 8.3).
+        // O play rápido fica no ícone à esquerda.
+        onTap: () => context.push(
+          '/episode',
+          extra: (podcast: podcast, episode: episode, queue: queue),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            IconButton(
+              icon: Icon(
+                isCurrent && player.isPlaying
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_outline,
+                color: colors.primary,
+                size: 32,
+              ),
+              tooltip: isCurrent && player.isPlaying ? 'Pausar' : 'Tocar',
+              onPressed: () {
+                final n = ref.read(playerViewModelProvider.notifier);
+                if (isCurrent) {
+                  n.togglePlayPause();
+                } else {
+                  unawaited(n.playEpisode(podcast, episode, autoPlay: true));
+                }
+              },
             ),
-            tooltip: isCurrent && player.isPlaying ? 'Pausar' : 'Tocar',
-            onPressed: () {
-              final n = ref.read(playerViewModelProvider.notifier);
-              if (isCurrent) {
-                n.togglePlayPause();
-              } else {
-                unawaited(n.playEpisode(podcast, episode, autoPlay: true));
-              }
-            },
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  episode.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(_meta(episode), style: Theme.of(context).textTheme.bodyMedium),
-                if (progress case final p?) ...[
-                  const SizedBox(height: 8),
-                  _EpisodeProgressLine(progress: p, duration: episode.duration),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    episode.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _meta(episode),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  if (progress case final p?) ...[
+                    const SizedBox(height: 8),
+                    _EpisodeProgressLine(
+                      progress: p,
+                      duration: episode.duration,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          QueueMenuButton(
-            podcast: podcast,
-            episode: episode,
-            manage: isSubscribed
-                ? (
-                    isCompleted: progress?.completed ?? false,
-                    isArchived: isArchived,
-                    onToggleCompleted: () => ref.read(libraryRepositoryProvider).setEpisodeCompleted(
-                          podcast.id,
-                          episode.guid,
-                          !(progress?.completed ?? false),
-                        ),
-                    onToggleArchived: () => ref.read(libraryRepositoryProvider).setEpisodeArchived(
-                          podcast.id,
-                          episode.guid,
-                          !isArchived,
-                        ),
-                  )
-                : null,
-          ),
-          if (isSubscribed) DownloadButton(podcast: podcast, episode: episode),
-        ],
+            QueueMenuButton(
+              podcast: podcast,
+              episode: episode,
+              manage: isSubscribed
+                  ? (
+                      isCompleted: progress?.completed ?? false,
+                      isArchived: isArchived,
+                      onToggleCompleted: () => ref
+                          .read(libraryRepositoryProvider)
+                          .setEpisodeCompleted(
+                            podcast.id,
+                            episode.guid,
+                            !(progress?.completed ?? false),
+                          ),
+                      onToggleArchived: () => ref
+                          .read(libraryRepositoryProvider)
+                          .setEpisodeArchived(
+                            podcast.id,
+                            episode.guid,
+                            !isArchived,
+                          ),
+                    )
+                  : null,
+            ),
+            if (isSubscribed)
+              DownloadButton(podcast: podcast, episode: episode),
+          ],
+        ),
       ),
     );
   }
@@ -572,7 +651,8 @@ class _EpisodeProgressLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.secondary);
+    final style = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: colors.secondary);
 
     if (progress.completed) {
       return Row(
@@ -587,8 +667,12 @@ class _EpisodeProgressLine extends StatelessWidget {
     if (progress.positionSeconds <= 0) return const SizedBox.shrink();
 
     final total = duration?.inSeconds ?? 0;
-    final fraction = total > 0 ? (progress.positionSeconds / total).clamp(0.0, 1.0) : null;
-    final remaining = total > 0 ? Duration(seconds: total - progress.positionSeconds) : null;
+    final fraction = total > 0
+        ? (progress.positionSeconds / total).clamp(0.0, 1.0)
+        : null;
+    final remaining = total > 0
+        ? Duration(seconds: total - progress.positionSeconds)
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,7 +689,8 @@ class _EpisodeProgressLine extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           remaining == null ? 'Começado' : 'Faltam ${_minutes(remaining)}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: colors.textMuted),
         ),
       ],
     );
@@ -613,7 +698,9 @@ class _EpisodeProgressLine extends StatelessWidget {
 
   String _minutes(Duration d) {
     final m = d.inMinutes;
-    if (m >= 60) return '${d.inHours}h${(m % 60).toString().padLeft(2, '0')}min';
+    if (m >= 60) {
+      return '${d.inHours}h${(m % 60).toString().padLeft(2, '0')}min';
+    }
     return '${m}min';
   }
 }
@@ -626,7 +713,11 @@ class _EpisodeSkeleton extends StatelessWidget {
     return SoftCard(
       child: Row(
         children: [
-          const ShimmerBox(width: 32, height: 32, borderRadius: BorderRadius.all(Radius.circular(16))),
+          const ShimmerBox(
+            width: 32,
+            height: 32,
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/motion.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../data/models/episode.dart';
 import '../view_model/player_state.dart';
@@ -30,9 +31,21 @@ String _formatClock(Duration d) {
 }
 
 /// Player em tela cheia. Aberto a partir do mini-player, em qualquer aba —
-/// por isso mora numa rota de topo (`/player`), fora das 3 abas.
+/// por isso mora numa rota de topo (`/player`), usada em deep link / Android
+/// Auto. No uso normal o player abre como sheet arrastável (`showPlayerSheet`).
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const Scaffold(body: SafeArea(child: PlayerView()));
+  }
+}
+
+/// Corpo do player, sem `Scaffold`. Renderizado tanto pela rota `/player`
+/// (`PlayerScreen`) quanto pelo sheet arrastável (`showPlayerSheet`).
+class PlayerView extends ConsumerWidget {
+  const PlayerView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,31 +56,229 @@ class PlayerScreen extends ConsumerWidget {
     if (player.isIdle) {
       // Não deveria acontecer (só se navegar direto pra rota sem nada
       // tocando), mas evita crash se acontecer.
-      return const Scaffold(body: Center(child: Text('Nada tocando')));
+      return const Center(child: Text('Nada tocando'));
     }
 
     final episode = player.episode!;
     final podcast = player.podcast;
     final artUrl = episode.imageUrl ?? podcast?.artworkUrl;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          podcast?.title ?? '',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+    return Column(
+      children: [
+        _PlayerTopBar(state: player, notifier: notifier),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      children: [
+                        const Spacer(),
+                        Hero(
+                          tag: 'podcast-artwork-${podcast?.id}',
+                          child: ClipRRect(
+                            borderRadius: AppRadii.surfaceAll,
+                            child: artUrl == null
+                                ? Container(
+                                    width: 260,
+                                    height: 260,
+                                    color: colors.primary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    child: Icon(
+                                      Icons.graphic_eq,
+                                      size: 64,
+                                      color: colors.textPrimary,
+                                    ),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: artUrl,
+                                    width: 260,
+                                    height: 260,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Text(
+                          episode.title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          podcast?.title ?? '',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 24),
+                        _SeekBar(player: player, onSeek: notifier.seek),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.replay_10),
+                              iconSize: 28,
+                              tooltip: 'Voltar 15 segundos',
+                              onPressed: () => notifier.skipBackward(
+                                const Duration(seconds: 15),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                player.isPlaying
+                                    ? Icons.pause_circle_filled
+                                    : Icons.play_circle_fill,
+                              ),
+                              iconSize: 72,
+                              color: colors.primary,
+                              tooltip: player.isPlaying ? 'Pausar' : 'Tocar',
+                              onPressed: player.isBuffering
+                                  ? null
+                                  : notifier.togglePlayPause,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.forward_30),
+                              iconSize: 28,
+                              tooltip: 'Avançar 30 segundos',
+                              onPressed: () => notifier.skipForward(
+                                const Duration(seconds: 30),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.volume_down,
+                              color: colors.textMuted,
+                              size: 20,
+                            ),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderTheme.of(context)
+                                    .copyWith(trackHeight: 3),
+                                child: Slider(
+                                  value: player.volume.clamp(0.0, 1.0),
+                                  onChanged: notifier.setVolume,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.volume_up,
+                              color: colors.textMuted,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _SpeedButton(
+                              speed: player.speed,
+                              onChanged: notifier.setSpeed,
+                            ),
+                            if (player.hasNextInQueue) ...[
+                              const SizedBox(width: 12),
+                              PillButton(
+                                label: 'Próximo',
+                                icon: Icons.skip_next,
+                                variant: PillButtonVariant.ghost,
+                                onPressed: notifier.playNextInQueue,
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (player.chapters.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _ChapterStrip(state: player, notifier: notifier),
+                        ],
+                        if (player.hasSleepTimer) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            player.sleepTimerMode == SleepTimerMode.endOfEpisode
+                                ? 'Dormir no fim do episódio · agite para +5 min'
+                                : 'Dormir em ${_formatClock(player.sleepTimerRemaining ?? Duration.zero)} · agite para +5 min',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.textMuted),
+                          ),
+                        ],
+                        if (player.queue.length > 1) ...[
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () => _showQueueSheet(context),
+                            child: Text(
+                              'A seguir: ${player.queue[1].title}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: colors.textMuted),
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-        actions: [
+      ],
+    );
+  }
+}
+
+/// Barra de topo do player (não é `AppBar` — o player vive num sheet).
+class _PlayerTopBar extends StatelessWidget {
+  const _PlayerTopBar({required this.state, required this.notifier});
+
+  final PlayerState state;
+  final PlayerViewModel notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.keyboard_arrow_down),
+            tooltip: 'Fechar',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          Expanded(
+            child: Text(
+              state.podcast?.title ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
           IconButton(
             icon: Badge(
-              isLabelVisible: player.queue.length > 1,
-              label: Text('${player.queue.length - 1}'),
+              isLabelVisible: state.queue.length > 1,
+              label: Text('${state.queue.length - 1}'),
               child: const Icon(Icons.queue_music),
             ),
             tooltip: 'Fila',
             onPressed: () => _showQueueSheet(context),
           ),
-          if (player.chapters.isNotEmpty)
+          if (state.chapters.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.list_alt),
               tooltip: 'Capítulos',
@@ -79,178 +290,8 @@ class PlayerScreen extends ConsumerWidget {
               tooltip: 'Áudio',
               onPressed: () => _showEqualizerSheet(context),
             ),
-          _SleepTimerButton(state: player, notifier: notifier),
+          _SleepTimerButton(state: state, notifier: notifier),
         ],
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    children: [
-                      const Spacer(),
-                      Hero(
-                        tag: 'podcast-artwork-${podcast?.id}',
-                        child: ClipRRect(
-                          borderRadius: AppRadii.surfaceAll,
-                          child: artUrl == null
-                              ? Container(
-                                  width: 260,
-                                  height: 260,
-                                  color: colors.primary.withValues(alpha: 0.5),
-                                  child: Icon(
-                                    Icons.graphic_eq,
-                                    size: 64,
-                                    color: colors.textPrimary,
-                                  ),
-                                )
-                              : CachedNetworkImage(
-                                  imageUrl: artUrl,
-                                  width: 260,
-                                  height: 260,
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        episode.title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        podcast?.title ?? '',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 24),
-                      _SeekBar(player: player, onSeek: notifier.seek),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.replay_10),
-                            iconSize: 28,
-                            tooltip: 'Voltar 15 segundos',
-                            onPressed: () => notifier.skipBackward(
-                              const Duration(seconds: 15),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              player.isPlaying
-                                  ? Icons.pause_circle_filled
-                                  : Icons.play_circle_fill,
-                            ),
-                            iconSize: 72,
-                            color: colors.primary,
-                            tooltip: player.isPlaying ? 'Pausar' : 'Tocar',
-                            onPressed: player.isBuffering
-                                ? null
-                                : notifier.togglePlayPause,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.forward_30),
-                            iconSize: 28,
-                            tooltip: 'Avançar 30 segundos',
-                            onPressed: () => notifier.skipForward(
-                              const Duration(seconds: 30),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.volume_down,
-                            color: colors.textMuted,
-                            size: 20,
-                          ),
-                          Expanded(
-                            child: SliderTheme(
-                              data: SliderTheme.of(context)
-                                  .copyWith(trackHeight: 3),
-                              child: Slider(
-                                value: player.volume.clamp(0.0, 1.0),
-                                onChanged: notifier.setVolume,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.volume_up,
-                            color: colors.textMuted,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _SpeedButton(
-                            speed: player.speed,
-                            onChanged: notifier.setSpeed,
-                          ),
-                          if (player.hasNextInQueue) ...[
-                            const SizedBox(width: 12),
-                            PillButton(
-                              label: 'Próximo',
-                              icon: Icons.skip_next,
-                              variant: PillButtonVariant.ghost,
-                              onPressed: notifier.playNextInQueue,
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (player.chapters.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _ChapterStrip(state: player, notifier: notifier),
-                      ],
-                      if (player.hasSleepTimer) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          player.sleepTimerMode == SleepTimerMode.endOfEpisode
-                              ? 'Dormir no fim do episódio · agite para +5 min'
-                              : 'Dormir em ${_formatClock(player.sleepTimerRemaining ?? Duration.zero)} · agite para +5 min',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.textMuted),
-                        ),
-                      ],
-                      if (player.queue.length > 1) ...[
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: () => _showQueueSheet(context),
-                          child: Text(
-                            'A seguir: ${player.queue[1].title}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: colors.textMuted),
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -289,9 +330,15 @@ class _SeekBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _format(player.position),
-                style: Theme.of(context).textTheme.bodyMedium,
+              AnimatedSwitcher(
+                duration: AppMotion.effective(context, AppMotion.fast),
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: Text(
+                  _format(player.position),
+                  key: ValueKey(_format(player.position)),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
               Text(
                 _format(duration),
@@ -680,12 +727,17 @@ class _ChapterStrip extends StatelessWidget {
         Flexible(
           child: TextButton(
             onPressed: () => _showChaptersSheet(context),
-            child: Text(
-              current?.title ?? 'Capítulos',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: colors.textMuted),
+            child: AnimatedSwitcher(
+              duration: AppMotion.effective(context, AppMotion.base),
+              switchInCurve: AppMotion.enter,
+              child: Text(
+                current?.title ?? 'Capítulos',
+                key: ValueKey(current?.title ?? ''),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.textMuted),
+              ),
             ),
           ),
         ),

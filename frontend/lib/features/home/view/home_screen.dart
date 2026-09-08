@@ -12,6 +12,7 @@ import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../player/widgets/episode_swipe_actions.dart';
 import '../../player/widgets/queue_menu_button.dart';
 import '../view_model/home_providers.dart';
 
@@ -32,7 +33,9 @@ class HomeScreen extends ConsumerWidget {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => ref.read(libraryRepositoryProvider).refreshAllSubscriptions(force: true),
+        onRefresh: () => ref
+            .read(libraryRepositoryProvider)
+            .refreshAllSubscriptions(force: true),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           children: [
@@ -49,7 +52,8 @@ class HomeScreen extends ConsumerWidget {
                 child: EmptyState(
                   icon: Icons.podcasts,
                   title: 'Nada por aqui ainda',
-                  message: 'Assine podcasts na aba Descobrir e eles aparecem aqui.',
+                  message:
+                      'Assine podcasts na aba Descobrir e eles aparecem aqui.',
                 ),
               )
             else ...[
@@ -61,7 +65,8 @@ class HomeScreen extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     itemCount: continueItems.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 12),
-                    itemBuilder: (context, i) => _ContinueCard(item: continueItems[i]),
+                    itemBuilder: (context, i) =>
+                        _ContinueCard(item: continueItems[i]),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -83,7 +88,12 @@ class HomeScreen extends ConsumerWidget {
                 )
               else
                 for (final item in recentItems) ...[
-                  _RecentEpisodeRow(item: item),
+                  EpisodeSwipeActions(
+                    key: ValueKey('recent-swipe-${item.episode.guid}'),
+                    podcast: item.podcast,
+                    episode: item.episode,
+                    child: _RecentEpisodeRow(item: item),
+                  ),
                   const SizedBox(height: 12),
                 ],
             ],
@@ -95,7 +105,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 void _openEpisode(BuildContext context, Podcast podcast, Episode episode) {
-  context.push('/episode', extra: (podcast: podcast, episode: episode, queue: <Episode>[episode]));
+  context.push(
+    '/episode',
+    extra: (podcast: podcast, episode: episode, queue: <Episode>[episode]),
+  );
 }
 
 class _ContinueCard extends StatelessWidget {
@@ -109,7 +122,9 @@ class _ContinueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final total = item.episode.duration?.inSeconds ?? 0;
-    final fraction = total > 0 ? (item.positionSeconds / total).clamp(0.0, 1.0) : null;
+    final fraction = total > 0
+        ? (item.positionSeconds / total).clamp(0.0, 1.0)
+        : null;
     final artUrl = item.episode.imageUrl ?? item.podcast.artworkUrl;
 
     return SizedBox(
@@ -157,11 +172,11 @@ class _ContinueCard extends StatelessWidget {
   }
 
   Widget _fallback(AppColors colors) => Container(
-        width: _width - 20,
-        height: _width - 20,
-        color: colors.primary.withValues(alpha: 0.5),
-        child: Icon(Icons.graphic_eq, color: colors.textPrimary),
-      );
+    width: _width - 20,
+    height: _width - 20,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }
 
 class _RecentEpisodeRow extends StatelessWidget {
@@ -187,7 +202,8 @@ class _RecentEpisodeRow extends StatelessWidget {
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => const ShimmerBox(width: 56, height: 56),
+                    placeholder: (_, _) =>
+                        const ShimmerBox(width: 56, height: 56),
                     errorWidget: (_, _, _) => _fallback(colors),
                   ),
           ),
@@ -229,11 +245,11 @@ class _RecentEpisodeRow extends StatelessWidget {
   }
 
   Widget _fallback(AppColors colors) => Container(
-        width: 56,
-        height: 56,
-        color: colors.primary.withValues(alpha: 0.5),
-        child: Icon(Icons.graphic_eq, color: colors.textPrimary),
-      );
+    width: 56,
+    height: 56,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }
 
 class _EpisodeRowSkeleton extends StatelessWidget {
@@ -261,4 +277,3 @@ class _EpisodeRowSkeleton extends StatelessWidget {
     );
   }
 }
-

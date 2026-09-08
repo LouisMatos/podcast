@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
 import '../view_model/player_state.dart';
 import '../view_model/player_view_model.dart';
+import 'player_sheet.dart';
 
 /// Barra fina persistente acima da navegação — só aparece depois que algo
 /// já tocou pelo menos uma vez. Toque nela abre o player cheio.
@@ -20,7 +20,7 @@ class MiniPlayer extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return AnimatedSize(
-      duration: AppMotion.base,
+      duration: AppMotion.effective(context, AppMotion.base),
       curve: AppMotion.transform,
       alignment: Alignment.bottomCenter,
       child: player.isIdle
@@ -42,21 +42,27 @@ class _Bar extends ConsumerWidget {
     final podcast = player.podcast;
     final progress = player.duration == null || player.duration == Duration.zero
         ? 0.0
-        : (player.position.inMilliseconds / player.duration!.inMilliseconds).clamp(0.0, 1.0);
+        : (player.position.inMilliseconds / player.duration!.inMilliseconds)
+              .clamp(0.0, 1.0);
 
     return Material(
       color: colors.surface,
       child: InkWell(
-        onTap: () => context.push('/player'),
+        onTap: () => showPlayerSheet(context),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
               height: 2,
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: colors.background,
-                valueColor: AlwaysStoppedAnimation(colors.primary),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: progress),
+                duration: AppMotion.effective(context, AppMotion.fast),
+                curve: AppMotion.standard,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  backgroundColor: colors.background,
+                  valueColor: AlwaysStoppedAnimation(colors.primary),
+                ),
               ),
             ),
             Padding(
@@ -72,10 +78,15 @@ class _Bar extends ConsumerWidget {
                               width: 40,
                               height: 40,
                               color: colors.primary.withValues(alpha: 0.5),
-                              child: Icon(Icons.graphic_eq, color: colors.textPrimary, size: 20),
+                              child: Icon(
+                                Icons.graphic_eq,
+                                color: colors.textPrimary,
+                                size: 20,
+                              ),
                             )
                           : CachedNetworkImage(
-                              imageUrl: (episode.imageUrl ?? podcast!.artworkUrl)!,
+                              imageUrl:
+                                  (episode.imageUrl ?? podcast!.artworkUrl)!,
                               width: 40,
                               height: 40,
                               fit: BoxFit.cover,
@@ -84,11 +95,18 @@ class _Bar extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      episode.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    // Hero da capa fica fora do switcher — dentro dele briga
+                    // por tag duplicada durante a transição.
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.effective(context, AppMotion.base),
+                      switchInCurve: AppMotion.enter,
+                      child: Text(
+                        episode.title,
+                        key: ValueKey(episode.guid),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -97,15 +115,19 @@ class _Bar extends ConsumerWidget {
                       player.isBuffering
                           ? Icons.hourglass_empty
                           : player.isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_fill,
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_fill,
                       color: colors.primary,
                       size: 36,
                     ),
-                    tooltip: player.isBuffering ? 'Carregando' : (player.isPlaying ? 'Pausar' : 'Tocar'),
+                    tooltip: player.isBuffering
+                        ? 'Carregando'
+                        : (player.isPlaying ? 'Pausar' : 'Tocar'),
                     onPressed: player.isBuffering
                         ? null
-                        : () => ref.read(playerViewModelProvider.notifier).togglePlayPause(),
+                        : () => ref
+                              .read(playerViewModelProvider.notifier)
+                              .togglePlayPause(),
                   ),
                 ],
               ),

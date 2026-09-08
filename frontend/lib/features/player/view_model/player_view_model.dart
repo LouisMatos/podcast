@@ -168,6 +168,7 @@ class PlayerViewModel extends _$PlayerViewModel {
     // essa Future), e a tela precisa ver podcast/episode desde o 1º frame.
     _entries = [(podcast: podcast, episode: episode)];
     _lastChapterIndex = null;
+    _completedHapticGuid = null;
     state = state.copyWith(
       podcast: podcast,
       episode: episode,
@@ -277,14 +278,23 @@ class PlayerViewModel extends _$PlayerViewModel {
     state = state.copyWith(speed: target);
   }
 
+  /// Guid do último episódio pra qual já demos o retorno tátil de "concluído"
+  /// (Fase 15) — pra vibrar uma vez só, não a cada save perto do fim.
+  String? _completedHapticGuid;
+
   /// "Adicionar à fila" — vai pro fim.
-  Future<void> enqueue(Podcast podcast, Episode episode) =>
-      ref.read(queueRepositoryProvider).addToEnd(podcast, episode);
+  Future<void> enqueue(Podcast podcast, Episode episode) {
+    unawaited(HapticFeedback.mediumImpact());
+    return ref.read(queueRepositoryProvider).addToEnd(podcast, episode);
+  }
 
   /// "Tocar a seguir" — logo após o episódio atual.
-  Future<void> playNext(Podcast podcast, Episode episode) => ref
-      .read(queueRepositoryProvider)
-      .playNextAfter(podcast, episode, state.episode?.guid);
+  Future<void> playNext(Podcast podcast, Episode episode) {
+    unawaited(HapticFeedback.mediumImpact());
+    return ref
+        .read(queueRepositoryProvider)
+        .playNextAfter(podcast, episode, state.episode?.guid);
+  }
 
   /// Enfileira vários de uma vez, na ordem dada (usado pelo "enfileirar os
   /// próximos" da tela de episódio).
@@ -382,6 +392,7 @@ class PlayerViewModel extends _$PlayerViewModel {
   }
 
   void togglePlayPause() {
+    unawaited(HapticFeedback.selectionClick());
     if (state.isPlaying) {
       _handler.pause();
     } else {
@@ -391,9 +402,15 @@ class PlayerViewModel extends _$PlayerViewModel {
 
   void seek(Duration position) => _handler.seek(position);
 
-  void skipForward([Duration amount = const Duration(seconds: 30)]) => _handler.skipForward(amount);
+  void skipForward([Duration amount = const Duration(seconds: 30)]) {
+    unawaited(HapticFeedback.selectionClick());
+    _handler.skipForward(amount);
+  }
 
-  void skipBackward([Duration amount = const Duration(seconds: 15)]) => _handler.skipBackward(amount);
+  void skipBackward([Duration amount = const Duration(seconds: 15)]) {
+    unawaited(HapticFeedback.selectionClick());
+    _handler.skipBackward(amount);
+  }
 
   void setSpeed(double speed) {
     _handler.setSpeed(speed);
@@ -655,6 +672,12 @@ class PlayerViewModel extends _$PlayerViewModel {
 
     final duration = state.duration;
     final nearEnd = duration != null && duration > Duration.zero && state.position >= duration - const Duration(seconds: 3);
+
+    // Retorno tátil ao concluir um episódio (Fase 15), uma vez só.
+    if (nearEnd && _completedHapticGuid != episode.guid) {
+      _completedHapticGuid = episode.guid;
+      unawaited(HapticFeedback.mediumImpact());
+    }
 
     await ref.read(libraryRepositoryProvider).savePlaybackPosition(
           podcastId: podcast.id,

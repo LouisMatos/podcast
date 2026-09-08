@@ -8,6 +8,14 @@ abstract final class AppMotion {
   static const Duration slow = Duration(milliseconds: 700);
   static const Duration page = Duration(milliseconds: 550);
 
+  /// Duração efetiva — `Duration.zero` quando o usuário pediu menos animação
+  /// (`MediaQuery.disableAnimations`). Todo widget animado adicionado na
+  /// Fase 15 passa por aqui (`docs/DESIGN_SYSTEM.md`).
+  static Duration effective(BuildContext context, Duration duration) =>
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false)
+      ? Duration.zero
+      : duration;
+
   /// Entrada de elemento novo na tela.
   static const Curve enter = Curves.easeOutCubic;
 

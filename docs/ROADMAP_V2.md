@@ -12,10 +12,11 @@
 
 ## Onde parei
 
-**Fase 14 concluída** (player avançado). 123 testes, `dart analyze` limpo,
-verificado no emulador (schema v6 migra, capítulos, sleep timer com shake,
-normalização de volume, pular silêncio). Próximo: **Fase 15** (transições e gestos).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 → 16 → 17 → 18**.
+**Fase 15 concluída** (transições e gestos). 129 testes, `dart analyze` limpo,
+verificado no emulador (player abre como sheet arrastável, swipe → fila / ←
+ouvido com desfazer, pull-to-refresh na Biblioteca, seek/capítulo animados).
+Próximo: **Fase 16** (integrações Android).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -289,20 +290,38 @@ Global defaults em Ajustes ficaram de fora (per-podcast cobre; nice-to-have).
 na construção do `AudioPlayer` — não dá adicionar depois. `sensors_plus` acelerômetro
 só assina em Android/iOS (`Platform.isAndroid || Platform.isIOS`).
 
-## Fase 15 — Transições e gestos (fluidez) · MÉDIO-ALTO · M
+## Fase 15 — Transições e gestos (fluidez) · MÉDIO-ALTO · M ✅
 
-- [ ] Mini → full player: sheet arrastável de verdade (custom ou
-      `DraggableScrollableSheet`) no lugar de `context.push('/player')` —
-      expande de baixo, arrasta pra fechar. `/player` continua como rota (deep
-      link, Android Auto).
-- [ ] Swipe nos tiles de episódio: → adicionar à fila, ← marcar ouvido
-      (`Dismissible` + fundo colorido + snackbar de undo).
-- [ ] Haptics (`HapticFeedback`) nos controles principais, ao enfileirar, ao
-      completar episódio.
-- [ ] Pull-to-refresh onde falta (detalhe do podcast, Biblioteca).
-- [ ] Micro-animações: tempo com `AnimatedSwitcher`, progresso suave, troca de
-      capítulo. Respeitar `MediaQuery.disableAnimations`.
-- [ ] Testes: swipe → ação; reduce-motion.
+- [x] Mini → full player: **modal bottom sheet** (`showPlayerSheet`,
+      `isScrollControlled` + `useSafeArea`, ~94% da tela), expande de baixo,
+      arrasta pra fechar. Corpo do player extraído pra `PlayerView` (sem
+      `Scaffold`/`AppBar` — barra de topo própria com chevron-down + ações).
+      `PlayerScreen` = `Scaffold(SafeArea(PlayerView()))`, ainda na rota
+      `/player` pra deep link / Android Auto. Perde o `Hero` da capa nessa
+      transição (esperado — trocado pela animação de subir).
+- [x] Swipe nos tiles de episódio (`EpisodeSwipeActions`, wrapper
+      `ConsumerWidget` em `player/widgets/`): → adiciona à fila, ← marca
+      ouvido. Fundo pastel + ícone; `confirmDismiss` roda a ação, mostra
+      `SnackBar` com "Desfazer" e retorna `false` (o tile volta). Nos tiles do
+      detalhe do podcast (só assinado) e da aba Início ("Novos episódios").
+- [x] Haptics (`HapticFeedback`) no `PlayerViewModel`: `selectionClick` em
+      play/pause e skip ±; `mediumImpact` ao enfileirar / tocar-a-seguir / ao
+      concluir episódio (uma vez por episódio). `selectionClick` também no
+      swipe.
+- [x] Pull-to-refresh na Biblioteca (`refreshAllSubscriptions(force: true)`,
+      `AlwaysScrollableScrollPhysics`). Detalhe do podcast já tinha (Fase 9).
+- [x] Micro-animações (todas via `AppMotion.effective(context, d)` — zera com
+      `MediaQuery.disableAnimations`): `AnimatedSwitcher` no tempo do seek e no
+      título do capítulo atual; barra de progresso do mini-player suave
+      (`TweenAnimationBuilder`); fade na troca de episódio no mini-player
+      (Hero da capa fica fora do switcher pra não colidir tag).
+- [x] Testes: `episode_swipe_actions_test` (4 — direções, desfazer,
+      `enabled: false`), `player_screen_test` (+ sheet abre, `AppMotion.effective`
+      com reduce-motion). 129 no total (era 123).
+
+**Não quebrou:** `/player` segue como rota. `_QueueSheet`/`_ChaptersSheet`/
+equalizer intactos. Selecionar episódio ainda não toca (Fase 8.3). Swipe só em
+podcast assinado (fila/ouvido não fazem sentido sem assinatura).
 
 ## Fase 16 — Integrações Android · MÉDIO (ALTO no carro) · esforço G
 

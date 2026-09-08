@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:podcast_app/core/prefs/preferences_store.dart';
 import 'package:podcast_app/core/theme/app_theme.dart';
+import 'package:podcast_app/core/theme/motion.dart';
 import 'package:podcast_app/data/models/chapter.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
@@ -143,4 +144,86 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     container.dispose();
   });
+
+  // Fase 15
+  testWidgets('AppMotion.effective zera a duração com disableAnimations', (tester) async {
+    late Duration off;
+    late Duration on;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: Builder(builder: (context) {
+          off = AppMotion.effective(context, AppMotion.base);
+          return const SizedBox();
+        }),
+      ),
+    );
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(),
+        child: Builder(builder: (context) {
+          on = AppMotion.effective(context, AppMotion.base);
+          return const SizedBox();
+        }),
+      ),
+    );
+    expect(off, Duration.zero);
+    expect(on, AppMotion.base);
+  });
+
+  testWidgets('mini-player abre o player como sheet arrastável', (tester) async {
+    const podcast = Podcast(id: 1, title: 'P', author: 'A', feedUrl: 'https://x/f.xml');
+    const ep = Episode(guid: 'g1', title: 'E1', audioUrl: 'https://x/e.mp3');
+
+    final handler = _FakeHandler();
+    final lib = _MockLibrary();
+    final dl = _MockDownloads();
+    final q = _MockQueue();
+    final cs = _MockChapters();
+    when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
+    when(() => lib.watchSubscriptionSettings(any()))
+        .thenAnswer((_) => Stream.value(defaultSubscriptionSettings));
+    when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
+    when(() => q.playNow(any(), any())).thenAnswer((_) async {});
+    when(() => cs.ensureChapters(
+          podcastId: any(named: 'podcastId'),
+          episodeGuid: any(named: 'episodeGuid'),
+          chaptersUrl: any(named: 'chaptersUrl'),
+        )).thenAnswer((_) async {});
+    when(() => cs.watchChapters(any(), any()))
+        .thenAnswer((_) => Stream.value(const <Chapter>[]));
+
+    final container = ProviderContainer(overrides: [
+      audioHandlerProvider.overrideWithValue(handler),
+      preferencesStoreProvider.overrideWithValue(prefs),
+      libraryRepositoryProvider.overrideWithValue(lib),
+      downloadRepositoryProvider.overrideWithValue(dl),
+      queueRepositoryProvider.overrideWithValue(q),
+      chapterServiceProvider.overrideWithValue(cs),
+      queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
+    ]);
+
+    await container.read(playerViewModelProvider.notifier).playEpisode(podcast, ep);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(bottomNavigationBar: const MiniPlayer()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('E1'));
+    await tester.pumpAndSettle();
+
+    // O sheet renderiza o PlayerView, com o chevron de fechar.
+    expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    container.dispose();
+  });
 }
+
