@@ -55,6 +55,10 @@ dependencies:
   # "Agitar pra estender o temporizador para dormir" (Fase 14)
   sensors_plus: ^6.1.1
 
+  # Integrações Android (Fase 16)
+  share_plus: ^12.0.1        # compartilhar episódio
+  quick_actions: ^1.1.0      # app shortcuts (long-press no ícone)
+
   # UI
   google_fonts: ^8.2.1
   cached_network_image: ^4.0.0

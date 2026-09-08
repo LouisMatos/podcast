@@ -38,7 +38,37 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- Fase 16: deep links `podcastapp://podcast/<id>` e
+                 `podcastapp://episode/<podcastId>/<guid>`. Sem App Links
+                 https:// (não há domínio verificado). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="podcastapp"/>
+            </intent-filter>
+
+            <!-- Fase 16: "abrir com" um feed RSS/Atom de fora do app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="http"/>
+                <data android:scheme="https"/>
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="application/rss+xml"/>
+                <data android:mimeType="application/atom+xml"/>
+                <data android:mimeType="text/xml"/>
+                <data android:mimeType="application/xml"/>
+            </intent-filter>
         </activity>
+
+        <!-- Fase 16: Android Auto — declara o app como media browser pro carro. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc"/>
 
         <!-- Player em background (Fase 4): serviço + receiver do audio_service. -->
         <service

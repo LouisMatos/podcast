@@ -12,11 +12,16 @@
 
 ## Onde parei
 
-**Fase 15 concluída** (transições e gestos). 129 testes, `dart analyze` limpo,
-verificado no emulador (player abre como sheet arrastável, swipe → fila / ←
-ouvido com desfazer, pull-to-refresh na Biblioteca, seek/capítulo animados).
-Próximo: **Fase 16** (integrações Android).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 → 17 → 18**.
+**Fase 16 concluída** (integrações Android). 156 testes, `dart analyze` limpo,
+verificado no emulador: deep link `podcastapp://podcast/<id>` abre o detalhe
+(assinado e não-assinado via iTunes), `podcastapp://episode/<id>/<guid>` abre a
+descrição, "abrir com" um feed RSS externo cai na tela "Assinar feed" (casa com
+a iTunes pelo `feedUrl`), atalho "Fila" abre o player e "Continuar" retoma o
+último episódio, compartilhar episódio abre a folha do sistema com título +
+link. **Android Auto** (árvore do `MediaBrowserService`) está implementado mas
+não testado — precisa do Desktop Head Unit / carro.
+Próximo: **Fase 17** (biblioteca e descoberta).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 ✅ → 17 → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -323,25 +328,44 @@ só assina em Android/iOS (`Platform.isAndroid || Platform.isIOS`).
 equalizer intactos. Selecionar episódio ainda não toca (Fase 8.3). Swipe só em
 podcast assinado (fila/ouvido não fazem sentido sem assinatura).
 
-## Fase 16 — Integrações Android · MÉDIO (ALTO no carro) · esforço G
+## Fase 16 — Integrações Android · MÉDIO (ALTO no carro) · esforço G ✅
 
-- [ ] **Android Auto**: árvore do `MediaBrowserService` via `audio_service`
-      (`getChildren`/`getMediaItem`/`playFromMediaId`) — raízes "Continuar
-      ouvindo", "Fila", "Assinaturas", "Baixados". `<meta-data>` no manifest.
-      Testar com Desktop Head Unit.
-- [ ] **App shortcuts** (long-press no ícone): "Continuar", "Fila" — dep
-      `quick_actions` ou `shortcuts.xml` nativo.
-- [ ] **Compartilhar episódio**: dep `share_plus` — link do site/feed +
-      timestamp opcional.
-- [ ] **Deep links / App Links**: `podcastapp://podcast/<id>`,
-      `podcastapp://episode/<guid>` + `https://` App Links (se houver domínio).
-      Intent filter `VIEW`/`BROWSABLE` no manifest; `go_router` resolve as rotas.
-- [ ] **Abrir feed RSS externo**: intent filter `application/rss+xml` /
-      `text/xml` → tela "assinar este feed".
-- [ ] Testes: deep link → rota certa; media browser tree (unit).
+- [x] **Android Auto**: árvore do `MediaBrowserService` via `audio_service`
+      (`getChildren`/`getMediaItem`/`playFromMediaId` no `PodcastAudioHandler`,
+      delegam pro `MediaBrowserSource`/`RepoMediaBrowserSource`) — raízes
+      "Continuar ouvindo", "Fila", "Assinaturas", "Baixados". `<meta-data
+      com.google.android.gms.car.application>` + `res/xml/automotive_app_desc.xml`.
+      **Não testado** (sem Desktop Head Unit / carro). Fiado no `main.dart` via
+      `ProviderContainer` explícito + `UncontrolledProviderScope` pra cobrir o
+      Auto conectando com o app em processo frio.
+- [x] **App shortcuts** (long-press no ícone): "Continuar" (retoma o último
+      episódio) e "Fila" (abre o player). Dep `quick_actions`. `AppShortcuts`
+      dá `register()` no `main.dart` **antes do runApp** (o `quick_actions`
+      entrega o atalho de cold start no attach da Activity) + `_pending`
+      bufferiza até o AppShell escutar `shortcutActionStreamProvider`.
+- [x] **Compartilhar episódio**: dep `share_plus`. `buildShareText` puro
+      (`lib/services/share/episode_share.dart`) — título + podcast + link
+      (`episode.link ?? podcast.feedUrl`) + `(em M:SS)` opcional (player passa a
+      posição atual). Botão em EpisodeDetail (AppBar), `QueueMenuButton`,
+      `PlayerView`.
+- [x] **Deep links** (só custom scheme — sem domínio pra App Links https://):
+      `podcastapp://podcast/<id>`, `podcastapp://episode/<podcastId>/<guid>`. O
+      `go_router` recebe o intent VIEW direto como localização crua; um
+      `redirect` no `appRouter` chama `parseDeepLink` + `locationForDeepLink` →
+      rota `/resolve/*` → `DeepLinkResolverScreen` resolve o objeto (guid vai na
+      query, costuma ter `/`) e faz `pushReplacement`.
+- [x] **Abrir feed RSS externo**: intent filter `application/rss+xml` /
+      `atom+xml` / `xml` (schemes http/https/content/file) → `DeepLinkFeed` →
+      `SubscribeFeedScreen`. Casa o feed com a iTunes pelo `feedUrl` normalizado
+      pra ter o `collectionId` real; sem match, id sintético
+      (`feedUrl.hashCode & 0x7fffffff`) — assina mas sem vínculo iTunes.
+- [x] Testes: `deep_link_service_test` (parse + round-trip da localização),
+      `media_browser_test` (helpers de mediaId), `episode_share_test`
+      (`buildShareText`). 156 no total (era 129).
 
-**Não quebra:** manifest só ganha filtros. Media session atual
-(`MediaButtonReceiver`, controles) continua. Precisa de 11+12 pra árvore de Auto.
+**Não quebrou:** manifest só ganhou filtros + meta-data. Media session atual
+(`MediaButtonReceiver`, controles) intacta. `ProviderScope` virou
+`UncontrolledProviderScope` sobre um único container — não é "double scope".
 
 ## Fase 17 — Biblioteca e descoberta · MÉDIO · M
 
@@ -392,9 +416,12 @@ Checar conflito (`flutter pub get` + `dart analyze`) logo após adicionar cada u
 | 13 | `connectivity_plus` | política "só no wifi" |
 | 14 | `sensors_plus` | "agitar pra estender" no sleep timer |
 | 14 | `xml` | parse namespace `podcast:chapters` no RSS (já entra na 14) |
-| 16 | `share_plus` | compartilhar episódio |
-| 16 | `quick_actions` | app shortcuts (ou `shortcuts.xml` nativo) |
+| 16 | `share_plus` | compartilhar episódio ✅ |
+| 16 | `quick_actions` | app shortcuts ✅ (sem ícone drawable) |
 | 17 | — | — |
+
+`app_links` foi cogitada mas **não entrou** — o `go_router` já recebe o intent
+VIEW da plataforma direto (resolvido no `redirect`).
 
 ---
 

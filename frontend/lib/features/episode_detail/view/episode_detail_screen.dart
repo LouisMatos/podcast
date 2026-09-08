@@ -12,6 +12,7 @@ import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
+import '../../../services/share/episode_share.dart';
 import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
 
@@ -41,7 +42,16 @@ class EpisodeDetailScreen extends ConsumerWidget {
     final artUrl = episode.imageUrl ?? podcast.artworkUrl;
 
     return Scaffold(
-      appBar: AppBar(title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      appBar: AppBar(
+        title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Compartilhar',
+            onPressed: () => shareEpisode(episode: episode, podcast: podcast),
+          ),
+        ],
+      ),
       bottomNavigationBar: const MiniPlayer(),
       body: SafeArea(
         top: false,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
+import '../../../services/share/episode_share.dart';
 import '../view_model/player_view_model.dart';
 
 /// Ações extras de "marcar ouvido" / "arquivar" (Fase 13), só pra episódio
@@ -15,7 +16,7 @@ typedef EpisodeManageActions = ({
   Future<void> Function() onToggleArchived,
 });
 
-enum _Action { playNext, addToEnd, toggleCompleted, toggleArchived }
+enum _Action { playNext, addToEnd, share, toggleCompleted, toggleArchived }
 
 /// Menu "⋮" nos tiles de episódio: enfileirar sem sair da tela (Fase 12) +
 /// marcar ouvido / arquivar (Fase 13).
@@ -48,6 +49,8 @@ class QueueMenuButton extends ConsumerWidget {
           case _Action.addToEnd:
             notifier.enqueue(podcast, episode);
             messenger.showSnackBar(const SnackBar(content: Text('Adicionado à fila')));
+          case _Action.share:
+            shareEpisode(episode: episode, podcast: podcast);
           case _Action.toggleCompleted:
             manage!.onToggleCompleted();
             messenger.showSnackBar(SnackBar(
@@ -77,6 +80,15 @@ class QueueMenuButton extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.playlist_add),
             title: Text('Adicionar à fila'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: _Action.share,
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.ios_share),
+            title: Text('Compartilhar'),
           ),
         ),
         if (manage case final m?) ...[

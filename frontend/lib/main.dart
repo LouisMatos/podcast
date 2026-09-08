@@ -9,9 +9,11 @@ import 'package:workmanager/workmanager.dart';
 import 'app.dart';
 import 'core/prefs/preferences_store.dart';
 import 'core/router/app_router.dart';
+import 'services/audio/media_browser_controller.dart';
 import 'services/audio/podcast_audio_handler.dart';
 import 'services/download/download_service.dart';
 import 'services/notifications/notification_service.dart';
+import 'services/shortcuts/app_shortcuts.dart';
 import 'services/sync/background_sync.dart';
 import 'services/sync/feed_sync_scheduler.dart';
 
@@ -19,12 +21,20 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Precisa existir antes do primeiro `runApp` — é o que registra o serviço
-  // de áudio em background com o sistema (notificação/lockscreen).
+  // de áudio em background com o sistema (notificação/lockscreen) e a árvore
+  // de mídia do Android Auto.
   final handler = await AudioService.init(
     builder: PodcastAudioHandler.new,
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.luismatos.podcast_app.playback',
       androidNotificationChannelName: 'Reprodução',
+      // Fase 16: Android Auto mostra "Assinaturas"/"Baixados" como grade e os
+      // episódios como lista.
+      androidBrowsableRootExtras: {
+        'android.media.browse.CONTENT_STYLE_SUPPORTED': true,
+        'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 2,
+        'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 1,
+      },
     ),
   );
 
@@ -53,13 +63,27 @@ Future<void> main() async {
     wifiOnly: store.refreshWifiOnly,
   );
 
+  // App shortcuts (Fase 16): `register()` antes do runApp pra não perder o
+  // atalho de cold start. O `_pending` guarda até o AppShell escutar.
+  final shortcuts = AppShortcuts()..register();
+
+  // Um único container/scope pro app inteiro (não é "double scope"): permite
+  // ligar a árvore de mídia do Android Auto ao handler ANTES do runApp — o
+  // Auto pode pedir `getChildren` com o app em processo frio, antes de
+  // qualquer widget montar.
+  final container = ProviderContainer(
+    overrides: [
+      audioHandlerProvider.overrideWithValue(handler),
+      preferencesStoreProvider.overrideWithValue(store),
+      notificationServiceProvider.overrideWithValue(notifications),
+      appShortcutsProvider.overrideWithValue(shortcuts),
+    ],
+  );
+  container.read(mediaBrowserWiringProvider);
+
   runApp(
-    ProviderScope(
-      overrides: [
-        audioHandlerProvider.overrideWithValue(handler),
-        preferencesStoreProvider.overrideWithValue(store),
-        notificationServiceProvider.overrideWithValue(notifications),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const PodcastApp(),
     ),
   );

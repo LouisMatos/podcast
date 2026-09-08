@@ -36,6 +36,17 @@ class PodcastRepository {
 
   Future<List<Episode>> episodesFor(Podcast podcast) => _feedParser.fetchEpisodes(podcast.feedUrl);
 
+  /// Resolve um único `collectionId` iTunes em [Podcast] completo, pro
+  /// resolvedor de deep link `podcastapp://podcast/<id>`. `null` se a iTunes
+  /// não devolver esse id ou se vier sem `feedUrl`.
+  Future<Podcast?> podcastById(int id) async {
+    final results = await _searchApi.lookup([id]);
+    for (final podcast in results) {
+      if (podcast.id == id && podcast.feedUrl.isNotEmpty) return podcast;
+    }
+    return null;
+  }
+
   /// Os [limit] podcasts mais ouvidos no Brasil, em ordem de ranking.
   Future<List<RankedPodcast>> topPodcasts({int limit = 20}) async {
     final ids = await _chartsApi.topPodcastIds(limit: limit);

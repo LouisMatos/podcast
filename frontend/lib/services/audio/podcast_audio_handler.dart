@@ -2,6 +2,8 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'media_browser.dart';
+
 part 'podcast_audio_handler.g.dart';
 
 /// Uma banda do equalizador, sem vazar tipo do `just_audio` pro ViewModel.
@@ -84,6 +86,26 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   /// persistida. Recebe o `MediaItem` consumido (o `guid`/`podcastId` vêm
   /// em `extras`).
   void Function(MediaItem consumed)? onItemConsumed;
+
+  /// Árvore de mídia navegável (Android Auto). Setada de fora — igual
+  /// `onItemConsumed`. `null` até o AppShell fiar (ver `mediaBrowserWiring`).
+  /// O handler só delega; a lógica mora em `RepoMediaBrowserSource`.
+  MediaBrowserSource? mediaBrowser;
+
+  @override
+  Future<List<MediaItem>> getChildren(String parentMediaId,
+          [Map<String, dynamic>? options]) =>
+      mediaBrowser?.getChildren(parentMediaId) ?? Future.value(const []);
+
+  @override
+  Future<MediaItem?> getMediaItem(String mediaId) =>
+      mediaBrowser?.getMediaItem(mediaId) ?? Future.value();
+
+  @override
+  Future<void> playFromMediaId(String mediaId,
+      [Map<String, dynamic>? extras]) async {
+    await mediaBrowser?.playFromMediaId(mediaId);
+  }
 
   /// Substitui a fila do handler (Fase 12 — espelho da fila persistida).
   ///

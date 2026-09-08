@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/episode.dart';
 import '../../data/models/podcast.dart';
 import '../../features/category/view/category_screen.dart';
+import '../../features/deeplink/view/deep_link_resolver_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
 import '../../features/downloads/view/downloads_screen.dart';
 import '../../features/episode_detail/view/episode_detail_screen.dart';
@@ -12,6 +13,8 @@ import '../../features/library/view/library_screen.dart';
 import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
+import '../../features/subscribe_feed/view/subscribe_feed_screen.dart';
+import '../../services/deeplinks/deep_link_service.dart';
 import '../theme/motion.dart';
 import 'app_shell.dart';
 
@@ -20,6 +23,13 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/home',
+  // Deep links (Fase 16): a plataforma entrega o intent VIEW direto ao
+  // go_router como localização crua (`podcastapp://…`, `https://…feed.xml`).
+  // Traduz aqui pra rota `/resolve/*`. Localização interna não tem esquema.
+  redirect: (context, state) {
+    if (state.uri.scheme.isEmpty) return null;
+    return locationForDeepLink(parseDeepLink(state.uri));
+  },
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
@@ -101,6 +111,37 @@ final GoRouter appRouter = GoRouter(
           state,
           EpisodeDetailScreen(podcast: args.podcast, episode: args.episode, queue: args.queue),
         );
+      },
+    ),
+    // Deep links (Fase 16). Cada rota resolve o alvo e faz `pushReplacement`
+    // pra tela real. O guid do episódio e a URL do feed vêm na query — guid
+    // costuma conter `/` e não casaria como parâmetro de path no go_router.
+    GoRoute(
+      path: '/resolve/podcast/:id',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? -1;
+        return _fadeSlidePage(state, DeepLinkResolverScreen(target: DeepLinkPodcast(id)));
+      },
+    ),
+    GoRoute(
+      path: '/resolve/episode/:podcastId',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final podcastId = int.tryParse(state.pathParameters['podcastId'] ?? '') ?? -1;
+        final guid = state.uri.queryParameters['guid'] ?? '';
+        return _fadeSlidePage(
+          state,
+          DeepLinkResolverScreen(target: DeepLinkEpisode(podcastId, guid)),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/resolve/feed',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) {
+        final url = state.uri.queryParameters['url'] ?? '';
+        return _fadeSlidePage(state, SubscribeFeedScreen(feedUrl: url));
       },
     ),
   ],

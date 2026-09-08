@@ -8,6 +8,7 @@ import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../data/models/episode.dart';
+import '../../../services/share/episode_share.dart';
 import '../view_model/player_state.dart';
 import '../view_model/player_view_model.dart';
 
@@ -278,6 +279,16 @@ class _PlayerTopBar extends StatelessWidget {
             tooltip: 'Fila',
             onPressed: () => _showQueueSheet(context),
           ),
+          if (state.episode case final episode? when state.podcast != null)
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: 'Compartilhar',
+              onPressed: () => shareEpisode(
+                episode: episode,
+                podcast: state.podcast!,
+                position: state.position,
+              ),
+            ),
           if (state.chapters.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.list_alt),
