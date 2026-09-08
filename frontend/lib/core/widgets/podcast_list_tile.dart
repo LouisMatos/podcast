@@ -26,39 +26,46 @@ class PodcastListTile extends StatelessWidget {
         children: [
           Hero(
             tag: 'podcast-artwork-${podcast.id}',
-            child: ClipRRect(
-              borderRadius: AppRadii.smAll,
-              child: podcast.artworkUrl == null
-                  ? _artworkFallback(colors)
-                  : CachedNetworkImage(
-                      imageUrl: podcast.artworkUrl!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const ShimmerBox(width: 56, height: 56),
-                      errorWidget: (context, url, error) => _artworkFallback(colors),
-                    ),
+            // Capa decorativa: título e autor ao lado já dão o contexto.
+            child: ExcludeSemantics(
+              child: ClipRRect(
+                borderRadius: AppRadii.smAll,
+                child: podcast.artworkUrl == null
+                    ? _artworkFallback(colors)
+                    : CachedNetworkImage(
+                        imageUrl: podcast.artworkUrl!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            const ShimmerBox(width: 56, height: 56),
+                        errorWidget: (context, url, error) =>
+                            _artworkFallback(colors),
+                      ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  podcast.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  podcast.author,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    podcast.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    podcast.author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ),
           if (podcast.genre case final genre?) ...[

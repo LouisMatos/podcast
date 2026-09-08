@@ -71,26 +71,29 @@ class _Bar extends ConsumerWidget {
                 children: [
                   Hero(
                     tag: 'podcast-artwork-${podcast?.id}',
-                    child: ClipRRect(
-                      borderRadius: AppRadii.smAll,
-                      child: (episode.imageUrl ?? podcast?.artworkUrl) == null
-                          ? Container(
-                              width: 40,
-                              height: 40,
-                              color: colors.primary.withValues(alpha: 0.5),
-                              child: Icon(
-                                Icons.graphic_eq,
-                                color: colors.textPrimary,
-                                size: 20,
+                    // Capa decorativa: o título ao lado já é lido.
+                    child: ExcludeSemantics(
+                      child: ClipRRect(
+                        borderRadius: AppRadii.smAll,
+                        child: (episode.imageUrl ?? podcast?.artworkUrl) == null
+                            ? Container(
+                                width: 40,
+                                height: 40,
+                                color: colors.primary.withValues(alpha: 0.5),
+                                child: Icon(
+                                  Icons.graphic_eq,
+                                  color: colors.textPrimary,
+                                  size: 20,
+                                ),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl:
+                                    (episode.imageUrl ?? podcast!.artworkUrl)!,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
                               ),
-                            )
-                          : CachedNetworkImage(
-                              imageUrl:
-                                  (episode.imageUrl ?? podcast!.artworkUrl)!,
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                            ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),

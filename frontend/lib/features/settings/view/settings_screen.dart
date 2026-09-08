@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../../services/battery/battery_optimization.dart';
 import '../../../services/opml/opml_import_service.dart';
 import '../../../services/opml/opml_service.dart';
 import '../../stats/widget/stats_card.dart';
@@ -93,6 +94,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
+          const _BatteryOptimizationCard(),
           const SectionHeader(title: 'Armazenamento'),
           SoftCard(
             onTap: () => context.push('/settings/downloads'),
@@ -252,6 +254,59 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Prompt de isenção de otimização de bateria (Fase 18). Some quando o app
+/// já está isento ou quando não é Android — só aparece quando o sistema
+/// ainda pode matar o refresh/download em background.
+class _BatteryOptimizationCard extends ConsumerWidget {
+  const _BatteryOptimizationCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ignored = ref.watch(batteryOptimizationIgnoredProvider);
+    // Enquanto carrega (null) ou já isento (true), não mostra nada.
+    if (ignored.value != false) return const SizedBox.shrink();
+
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Reprodução em segundo plano'),
+        SoftCard(
+          onTap: () async {
+            await ref.read(batteryOptimizationProvider).request();
+            ref.invalidate(batteryOptimizationIgnoredProvider);
+          },
+          child: Row(
+            children: [
+              Icon(Icons.battery_alert_outlined, color: colors.primary),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Otimização de bateria ativa',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'O Android pode pausar o download e o refresh em segundo '
+                      'plano. Toque pra desativar.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }

@@ -12,22 +12,21 @@
 
 ## Onde parei
 
-**Fase 17 concluída** (biblioteca e descoberta). 194 testes, `dart analyze`
-limpo, verificado no emulador: busca de episódios na Descobrir (toggle
-`Podcasts | Episódios`, abre `/episode` resolvendo o podcast dono), busca de
-episódios dentro da biblioteca (`/library/search`), Biblioteca com
-filtro/ordenação (recência, alfabético, não-ouvidos), toggle grade/lista e
-badge de não-ouvidos por podcast, exportar OPML (folha do sistema) e importar
-OPML (`file_picker` + progresso em lote), tela "Histórico de escuta" em Ajustes,
-card de estatísticas (tempo total / semana / streak + gráfico de 7 dias)
-alimentado pelo `_saveProgress` do player (schema drift **v7**, tabela
-`listen_history`). Rough edge: durante a migração v6→v7 + refresh de startup
-concorrente, a Biblioteca pode mostrar "Não foi possível carregar" uma vez —
-"Tentar de novo" recupera.
+**Fase 18 concluída** (publicação e robustez) — v2 FECHADA. 212 testes,
+`dart analyze` limpo, `flutter build appbundle --release` gera `.aab` assinado
+com a keystore de upload; APK release verificado no emulador (R8/proguard sem
+crash — áudio, RSS, iTunes, notificação e `permission_handler` todos ok).
+Entregou: assinatura de release + minify/shrink + proguard, `RetryInterceptor`
+de rede com backoff, estados offline (Home/Descobrir + `EmptyState.offline`),
+prompt de otimização de bateria nos Ajustes, pass de acessibilidade
+(`Semantics`/labels/gráfico lido pelo TalkBack, 1 fix de contraste),
+`docs/privacy/index.html` + `docs/PLAY_STORE.md`, e testes (equalizer — dívida
+v1 —, fila ponta-a-ponta, cadeia de migração v2→v7, refresh).
+**Pendente**: ícone/splash finais + screenshots (dependem de arte). Trocar a
+senha placeholder da keystore antes de publicar (ver `docs/PLAY_STORE.md`).
 **Android Auto** (Fase 16) segue implementado mas não testado — precisa do
 Desktop Head Unit / carro.
-Próximo: **Fase 18** (publicação e robustez).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 ✅ → 17 ✅ → 18**.
+Sequência: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 ✅ → 17 ✅ → 18 ✅**.
 
 ## Regra de ouro (por fase)
 
@@ -415,25 +414,49 @@ podcast assinado (fila/ouvido não fazem sentido sem assinatura).
 `EpisodeRow` (`core/widgets/`) é widget novo, não mexeu nas telas existentes.
 `app_router` ganhou `/library/search` e `/settings/history`.
 
-## Fase 18 — Publicação e robustez · ALTO (pra publicar) · M
+## Fase 18 — Publicação e robustez · ALTO (pra publicar) · M ✅
 
-- [ ] **Assinatura de release**: keystore + `key.properties` (no `.gitignore`),
-      `signingConfigs.release` em `app/build.gradle.kts`, `isMinifyEnabled = true`
-      + proguard (`audio_service`, `just_audio`, `drift`, `flutter_downloader`,
-      `workmanager`). Fecha dívida da v1.
-- [ ] **Play Store**: política de privacidade (página estática — "nenhum dado
-      sai do device"), declaração de dados na Console, permissões + porquê.
-      `versionCode`/`versionName` de release.
-- [ ] **Acessibilidade**: pass de TalkBack (`Semantics`, labels, ordem de
-      foco), respeitar tamanho de fonte do sistema, contraste nas telas novas.
-- [ ] **Robustez**: interceptor Dio com retry/backoff; estados offline
-      consistentes nas telas novas; prompt "desativar otimização de bateria"
-      (`Ignore Battery Optimizations` intent).
-- [ ] **Testes**: integração da fila, do refresh de feed, das migrations
-      (drift schema tests). Fecha o widget test do equalizador (dívida v1).
-- [ ] Ícone/splash finais, screenshots.
+- [x] **Assinatura de release**: keystore de upload em `~/podcast-upload-keystore.jks`
+      (FORA do repo, senha placeholder `podcast-changeme` — trocar antes de
+      publicar), `android/key.properties` (gitignored) + `.example`.
+      `signingConfigs.release` (lê `key.properties`, cai pro debug se ausente)
+      + `isMinifyEnabled` + `isShrinkResources` + `app/proguard-rules.pro`
+      (keeps pra media3/exoplayer, gson do fln, workmanager, flutter_downloader,
+      sqlite3). `flutter build appbundle --release` → `.aab` assinado com o
+      cert `CN=Luis Matos`, verificado. Fecha dívida da v1.
+- [x] **Play Store**: `docs/privacy/index.html` (página estática, "nenhum dado
+      sai do device"), `docs/PLAY_STORE.md` (data safety = "não coleta nada",
+      permissões + porquê, checklist, pendências). `versionCode`/`versionName`
+      seguem `pubspec.yaml` `version:` — bump por envio.
+- [x] **Acessibilidade**: pass de `Semantics`/labels em 9 arquivos — 4 botões
+      só-de-ícone ganharam rótulo utilizável, seek/volume `Slider` com
+      `semanticFormatterCallback` legível, 6 capas decorativas em
+      `ExcludeSemantics`, `MergeSemantics` nos tiles, gráfico de 7 barras do
+      `StatsCard` agora lido pelo TalkBack. Sem overflow de `textScaler` (os
+      layouts das Fases 14/17 já usam `Expanded`/`SingleChildScrollView`).
+      Contraste: 1 correção real (`_EpisodeProgressLine` "Ouvido"/ícone estava
+      em `secondary` menta ≈1.6:1 → `textMuted`); as barras de progresso
+      pastel-sobre-pastel ficam (linguagem do design).
+- [x] **Robustez**: `RetryInterceptor` (`core/network/`) — reenvia GET em
+      `connectionError`/timeout/502-3-4, máx 3, backoff `200ms·2^n + jitter`
+      (teto 5s). `EmptyState.offline` + `connectivityProvider`; Home não tenta
+      refresh offline (`SnackBar`), Descobrir mostra `EmptyState.offline` quando
+      `DiscoverState.offline`. Prompt de bateria: dep `permission_handler`,
+      `BatteryOptimization` service + card em Ajustes ("Reprodução em segundo
+      plano") que some quando já isento; manifest ganhou
+      `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+- [x] **Testes**: `equalizer_sheet_test` (dívida v1 fechada — chega no
+      `_EqualizerSheet` privado pela árvore), `queue_integration_test`
+      (playEpisode→enqueue→consumo→reorder→clear ponta-a-ponta com handler
+      espelhado), `migration_chain_test` (v2→v7 de uma vez), grupo "Fase 18 —
+      integração refresh" no `library_repository_test`, `retry_interceptor_test`,
+      `episode_row_test` (semântica). 194 → 212.
+- [ ] Ícone/splash finais, screenshots — **pendente** (depende de arte; hoje é
+      o ícone default do Flutter). Ver `docs/PLAY_STORE.md`.
 
-**Não quebra:** hardening + config de build; código de feature intacto.
+**Não quebrou:** hardening + config de build; código de feature intacto.
+`permission_handler` fixado em `^12.0.1` (a `^13` exige `compileSdk 37`, que
+não tem plataforma estável nesta máquina).
 
 ---
 
@@ -452,10 +475,12 @@ Checar conflito (`flutter pub get` + `dart analyze`) logo após adicionar cada u
 | 16 | `share_plus` | compartilhar episódio ✅ |
 | 16 | `quick_actions` | app shortcuts ✅ (sem ícone drawable) |
 | 17 | `file_picker` | escolher o `.opml` no import ✅ (10.3.10) |
+| 18 | `permission_handler` | prompt de otimização de bateria ✅ (fixado em `^12.0.1`) |
 
 `app_links` foi cogitada (Fase 16) mas **não entrou** — o `go_router` já recebe
 o intent VIEW da plataforma direto (resolvido no `redirect`). O `xml` previsto
-pra OPML já era dep direta desde a Fase 14.
+pra OPML já era dep direta desde a Fase 14. `permission_handler ^13` exige
+`compileSdk 37` (sem plataforma estável) — fixado em `^12`.
 
 ---
 

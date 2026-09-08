@@ -441,9 +441,10 @@ continua, só não é mais "dívida aberta"). O que foi resolvido de verdade:
 
 | Item | Próximo passo |
 |---|---|
-| Assinatura de release | `frontend/android/app/build.gradle.kts` assina o `release` com a chave de **debug** (TODO no arquivo) e sem `isMinifyEnabled`/proguard. Antes de publicar: gerar keystore, `key.properties` (fora do git), configurar `signingConfigs` + minify + regras proguard. |
-| Warning KGP (`flutter_downloader`) | Upstream aplica o Kotlin Gradle Plugin; mitigado com `android.builtInKotlin=false`. Trocar por `background_downloader` só se virar erro de build no futuro. |
-| Cobertura de teste do equalizador | Só `equalizerPresetGains` (pura) e defaults têm teste. Falta widget test da bottom sheet e integração de `setVolume`/`setEqualizerBandGain` (dependem de platform channel). |
+| ~~Assinatura de release~~ | ✅ Fase 18 v2 — `signingConfigs.release` lê `key.properties` (gitignored), keystore fora do repo, minify + shrink + `proguard-rules.pro`. `flutter build appbundle --release` gera `.aab` assinado. Falta trocar a senha placeholder e o ícone/splash (ver `docs/PLAY_STORE.md`). |
+| Warning KGP (`file_picker`/`flutter_downloader`/`sensors_plus`/`share_plus`/`workmanager`) | Upstream aplica o Kotlin Gradle Plugin; mitigado com `android.builtInKotlin=false`. Só vira problema se o Flutter futuro remover o fallback. |
+| ~~Cobertura de teste do equalizador~~ | ✅ Fase 18 v2 — `test/features/player/equalizer_sheet_test.dart` (chega no `_EqualizerSheet` privado pela árvore: estado sem áudio, com bandas, toggle, preset desabilitado). `setVolume`/`setEqualizerBandGain` seguem sem teste (platform channel). |
+| `permission_handler` fixado em `^12` | A `^13` exige `compileSdk 37`, sem plataforma estável nesta máquina. Reavaliar quando o Android SDK 37 sair. |
 
 ## Preferências persistidas
 

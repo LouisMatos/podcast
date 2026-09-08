@@ -13,6 +13,9 @@ part of 'dio_client.dart';
 ///
 /// `keepAlive`: singleton de app — repositórios `keepAlive` dependem dele
 /// (`riverpod_lint: only_use_keep_alive_inside_keep_alive`).
+///
+/// [RetryInterceptor] reenvia GETs que caíram por rede instável ou erro
+/// transitório do servidor (502/503/504).
 
 @ProviderFor(dioClient)
 final dioClientProvider = DioClientProvider._();
@@ -22,6 +25,9 @@ final dioClientProvider = DioClientProvider._();
 ///
 /// `keepAlive`: singleton de app — repositórios `keepAlive` dependem dele
 /// (`riverpod_lint: only_use_keep_alive_inside_keep_alive`).
+///
+/// [RetryInterceptor] reenvia GETs que caíram por rede instável ou erro
+/// transitório do servidor (502/503/504).
 
 final class DioClientProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
@@ -30,6 +36,9 @@ final class DioClientProvider extends $FunctionalProvider<Dio, Dio, Dio>
   ///
   /// `keepAlive`: singleton de app — repositórios `keepAlive` dependem dele
   /// (`riverpod_lint: only_use_keep_alive_inside_keep_alive`).
+  ///
+  /// [RetryInterceptor] reenvia GETs que caíram por rede instável ou erro
+  /// transitório do servidor (502/503/504).
   DioClientProvider._()
     : super(
         from: null,
@@ -63,4 +72,4 @@ final class DioClientProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$dioClientHash() => r'fbb26de40cba13d802d10e84e2d3c934ea8715e0';
+String _$dioClientHash() => r'039e66c601eb1ca2e1c06d6d55fbd73dcea5744a';

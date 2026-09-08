@@ -38,7 +38,7 @@ class QueueMenuButton extends ConsumerWidget {
 
     return PopupMenuButton<_Action>(
       icon: Icon(Icons.more_vert, color: colors.textMuted),
-      tooltip: 'Mais',
+      tooltip: 'Mais ações do episódio',
       onSelected: (action) {
         final notifier = ref.read(playerViewModelProvider.notifier);
         final messenger = ScaffoldMessenger.of(context);

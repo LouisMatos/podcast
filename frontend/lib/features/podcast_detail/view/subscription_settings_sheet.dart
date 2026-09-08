@@ -66,14 +66,21 @@ class _SubscriptionSettingsSheet extends ConsumerWidget {
                   Expanded(child: Text('Manter baixados', style: text.bodyLarge)),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
+                    tooltip: 'Manter menos episódios baixados',
                     onPressed: settings.autoDownloadLimit > 1
                         ? () => repo.updateAutoManagement(podcastId,
                             autoDownloadLimit: settings.autoDownloadLimit - 1)
                         : null,
                   ),
-                  Text('${settings.autoDownloadLimit}', style: text.titleMedium),
+                  Semantics(
+                    label: '${settings.autoDownloadLimit} episódios mantidos',
+                    excludeSemantics: true,
+                    child: Text('${settings.autoDownloadLimit}',
+                        style: text.titleMedium),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
+                    tooltip: 'Manter mais episódios baixados',
                     onPressed: settings.autoDownloadLimit < 10
                         ? () => repo.updateAutoManagement(podcastId,
                             autoDownloadLimit: settings.autoDownloadLimit + 1)

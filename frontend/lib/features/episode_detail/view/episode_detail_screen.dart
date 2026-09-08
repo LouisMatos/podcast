@@ -38,12 +38,17 @@ class EpisodeDetailScreen extends ConsumerWidget {
     final player = ref.watch(playerViewModelProvider);
     final isCurrent = player.episode?.guid == episode.guid;
     final isPlaying = isCurrent && player.isPlaying;
-    final isSubscribed = ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+    final isSubscribed =
+        ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
     final artUrl = episode.imageUrl ?? podcast.artworkUrl;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(podcast.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          podcast.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.ios_share),
@@ -61,21 +66,28 @@ class EpisodeDetailScreen extends ConsumerWidget {
             Center(
               child: Hero(
                 tag: 'episode-artwork-${episode.guid}',
-                child: ClipRRect(
-                  borderRadius: AppRadii.surfaceAll,
-                  child: artUrl == null
-                      ? Container(
-                          width: 200,
-                          height: 200,
-                          color: colors.primary.withValues(alpha: 0.5),
-                          child: Icon(Icons.graphic_eq, size: 56, color: colors.textPrimary),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: artUrl,
-                          width: 200,
-                          height: 200,
-                          fit: BoxFit.cover,
-                        ),
+                // Capa decorativa: título e metadados são lidos logo abaixo.
+                child: ExcludeSemantics(
+                  child: ClipRRect(
+                    borderRadius: AppRadii.surfaceAll,
+                    child: artUrl == null
+                        ? Container(
+                            width: 200,
+                            height: 200,
+                            color: colors.primary.withValues(alpha: 0.5),
+                            child: Icon(
+                              Icons.graphic_eq,
+                              size: 56,
+                              color: colors.textPrimary,
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: artUrl,
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -84,14 +96,17 @@ class EpisodeDetailScreen extends ConsumerWidget {
             const SizedBox(height: 6),
             Text(
               _meta(),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: colors.textMuted),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: PillButton(
-                    label: isPlaying ? 'Pausar' : (isCurrent ? 'Retomar' : 'Tocar'),
+                    label: isPlaying
+                        ? 'Pausar'
+                        : (isCurrent ? 'Retomar' : 'Tocar'),
                     icon: isPlaying ? Icons.pause : Icons.play_arrow,
                     onPressed: () {
                       final n = ref.read(playerViewModelProvider.notifier);
@@ -117,11 +132,13 @@ class EpisodeDetailScreen extends ConsumerWidget {
               onPressed: () => context.push('/player'),
             ),
             const SizedBox(height: 8),
-            _QueueActions(podcast: podcast, episode: episode, followingUp: _following()),
-            const SizedBox(height: 20),
-            SoftCard(
-              child: _Description(html: episode.description),
+            _QueueActions(
+              podcast: podcast,
+              episode: episode,
+              followingUp: _following(),
             ),
+            const SizedBox(height: 20),
+            SoftCard(child: _Description(html: episode.description)),
           ],
         ),
       ),
@@ -157,7 +174,11 @@ class EpisodeDetailScreen extends ConsumerWidget {
 /// aparece quando a tela foi aberta a partir de uma lista com episódios
 /// depois deste.
 class _QueueActions extends ConsumerWidget {
-  const _QueueActions({required this.podcast, required this.episode, required this.followingUp});
+  const _QueueActions({
+    required this.podcast,
+    required this.episode,
+    required this.followingUp,
+  });
 
   final Podcast podcast;
   final Episode episode;
@@ -168,7 +189,8 @@ class _QueueActions extends ConsumerWidget {
     final n = ref.read(playerViewModelProvider.notifier);
 
     void toast(String msg) =>
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
 
     return Wrap(
       spacing: 8,
@@ -219,7 +241,8 @@ class _Description extends StatelessWidget {
     if (html == null || html!.trim().isEmpty) {
       return Text(
         'Esse episódio não trouxe uma descrição.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+        style: Theme.of(context).textTheme.bodyMedium
+            ?.copyWith(color: colors.textMuted),
       );
     }
 

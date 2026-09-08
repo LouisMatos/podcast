@@ -38,7 +38,10 @@ class LibraryScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           children: [
-            Text('Biblioteca', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Biblioteca',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 4),
             Text(
               'Seus podcasts assinados',
@@ -189,18 +192,23 @@ class _UnplayedBadge extends StatelessWidget {
     if (count <= 0) return const SizedBox.shrink();
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-      ),
-      child: Text(
-        '$count',
-        style: Theme.of(context)
-            .textTheme
-            .labelMedium
-            ?.copyWith(color: colors.textPrimary, fontWeight: FontWeight.w700),
+    return Semantics(
+      label:
+          '$count ${count == 1 ? 'episódio não ouvido' : 'episódios não ouvidos'}',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        child: Text(
+          '$count',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -217,26 +225,29 @@ class _Artwork extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     Widget fallback() => Container(
-          width: size,
-          height: size,
-          color: colors.secondary.withValues(alpha: 0.5),
-          child: Icon(Icons.podcasts, color: colors.textPrimary),
-        );
+      width: size,
+      height: size,
+      color: colors.secondary.withValues(alpha: 0.5),
+      child: Icon(Icons.podcasts, color: colors.textPrimary),
+    );
 
     return Hero(
       tag: 'podcast-artwork-${podcast.id}',
-      child: ClipRRect(
-        borderRadius: AppRadii.smAll,
-        child: podcast.artworkUrl == null
-            ? fallback()
-            : CachedNetworkImage(
-                imageUrl: podcast.artworkUrl!,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => ShimmerBox(width: size, height: size),
-                errorWidget: (_, _, _) => fallback(),
-              ),
+      // Capa decorativa: o título do podcast é lido junto ao tile.
+      child: ExcludeSemantics(
+        child: ClipRRect(
+          borderRadius: AppRadii.smAll,
+          child: podcast.artworkUrl == null
+              ? fallback()
+              : CachedNetworkImage(
+                  imageUrl: podcast.artworkUrl!,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => ShimmerBox(width: size, height: size),
+                  errorWidget: (_, _, _) => fallback(),
+                ),
+        ),
       ),
     );
   }
@@ -259,22 +270,24 @@ class _SubscriptionTile extends ConsumerWidget {
           _Artwork(podcast: podcast, size: 48),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  podcast.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  podcast.author,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    podcast.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    podcast.author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ),
           if (sub.unplayedCount > 0) ...[
@@ -283,7 +296,7 @@ class _SubscriptionTile extends ConsumerWidget {
           ],
           IconButton(
             icon: Icon(Icons.favorite, color: colors.primary),
-            tooltip: 'Desassinar',
+            tooltip: 'Desassinar ${podcast.title}',
             onPressed: () => ref
                 .read(libraryViewModelProvider.notifier)
                 .unsubscribe(podcast.id),

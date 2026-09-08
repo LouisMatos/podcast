@@ -16,6 +16,16 @@ class EmptyState extends StatelessWidget {
     this.retryLabel = 'Tentar de novo',
   });
 
+  /// Variante padrão de "sem internet" — mesma ilustração em toda tela que
+  /// depende de rede. Passe [onRetry] pra oferecer "tentar de novo".
+  const EmptyState.offline({
+    super.key,
+    this.onRetry,
+    this.retryLabel = 'Tentar de novo',
+  })  : icon = Icons.wifi_off,
+        title = 'Sem conexão',
+        message = 'Verifique a internet e tente de novo.';
+
   final IconData icon;
   final String title;
   final String? message;

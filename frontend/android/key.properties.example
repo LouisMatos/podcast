@@ -1,0 +1,8 @@
+# Copie pra `key.properties` (gitignored) e preencha. A keystore fica FORA do repo.
+# Gerar a keystore de upload:
+#   keytool -genkeypair -v -keystore ~/podcast-upload-keystore.jks \
+#     -alias upload -keyalg RSA -keysize 2048 -validity 10000
+storePassword=
+keyPassword=
+keyAlias=upload
+storeFile=/caminho/absoluto/para/podcast-upload-keystore.jks

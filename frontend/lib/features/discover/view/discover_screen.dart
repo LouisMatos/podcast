@@ -356,8 +356,11 @@ class _SearchResults extends StatelessWidget {
     }
 
     if (state.error case final error?) {
+      if (state.offline) {
+        return EmptyState.offline(onRetry: onRetry);
+      }
       return EmptyState(
-        icon: Icons.wifi_off,
+        icon: Icons.error_outline,
         title: 'Não foi possível buscar',
         message: error,
         onRetry: onRetry,

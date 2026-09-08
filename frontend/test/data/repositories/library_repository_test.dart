@@ -452,4 +452,84 @@ void main() {
       expect(cached.chaptersUrl, 'https://x/eps/1/chapters.json');
     });
   });
+
+  // Reforço: o refresh do feed é a porta de entrada dos episódios novos —
+  // aqui o foco é a integração entre `refreshFeed`/`refreshAllSubscriptions`
+  // e as 3 queries da tela Início (`watchEpisodes`, `watchRecentEpisodes`,
+  // `watchContinueListening`), não o refresh isolado (Fases 9/10).
+  group('Fase 18 — integração refresh', () {
+    Episode ep(String guid, {DateTime? pub}) =>
+        Episode(guid: guid, title: guid, audioUrl: 'u-$guid', publishedAt: pub);
+
+    const p2 = Podcast(id: 2, title: 'P2', author: 'B', feedUrl: 'https://x/f2.xml');
+
+    test('episódio novo do feed propaga pras 3 queries de Início', () async {
+      await repo.subscribe(podcast, [ep('g1', pub: DateTime(2026, 1, 1))]);
+      when(() => feedParser.fetchEpisodes('https://x/f.xml')).thenAnswer((_) async => [
+            ep('g1', pub: DateTime(2026, 1, 1)),
+            ep('g2', pub: DateTime(2026, 6, 1)),
+          ]);
+
+      final novos = await repo.refreshFeed(1, force: true);
+      expect(novos.map((e) => e.guid), ['g2']);
+
+      // watchEpisodes: cache antigo + inédito, por publishedAt desc.
+      expect((await repo.watchEpisodes(1).first).map((e) => e.guid), ['g2', 'g1']);
+
+      // watchRecentEpisodes: o inédito lidera (data mais nova).
+      expect(
+        (await repo.watchRecentEpisodes().first).map((i) => i.episode.guid),
+        ['g2', 'g1'],
+      );
+
+      // Começar o inédito → aparece em "continuar ouvindo".
+      await repo.savePlaybackPosition(
+        podcastId: 1,
+        episodeGuid: 'g2',
+        position: const Duration(seconds: 30),
+        completed: false,
+      );
+      expect(
+        (await repo.watchContinueListening().first).map((i) => i.episode.guid),
+        ['g2'],
+      );
+    });
+
+    test('refreshAllSubscriptions parcial: só o feed vivo entra nas queries', () async {
+      await repo.subscribe(podcast, [ep('g1', pub: DateTime(2026, 1, 1))]);
+      await repo.subscribe(p2, [ep('h1', pub: DateTime(2026, 1, 2))]);
+      when(() => feedParser.fetchEpisodes('https://x/f.xml')).thenThrow(Exception('sem rede'));
+      when(() => feedParser.fetchEpisodes('https://x/f2.xml')).thenAnswer((_) async => [
+            ep('h1', pub: DateTime(2026, 1, 2)),
+            ep('h2', pub: DateTime(2026, 7, 1)),
+          ]);
+
+      final results = await repo.refreshAllSubscriptions(force: true);
+      expect(results.map((r) => r.podcast.id), [2]);
+
+      // h2 (inédito, feed vivo) na frente; g1 do feed que falhou segue no cache.
+      expect(
+        (await repo.watchRecentEpisodes().first).map((i) => i.episode.guid),
+        ['h2', 'h1', 'g1'],
+      );
+      expect((await repo.cachedEpisodes(1)).map((e) => e.guid), ['g1']);
+    });
+
+    test('throttle de 1h: 2º refresh sem force não rebusca nem muda watchEpisodes', () async {
+      await repo.subscribe(podcast, [ep('g1', pub: DateTime(2026, 1, 1))]);
+      when(() => feedParser.fetchEpisodes(any())).thenAnswer((_) async => [
+            ep('g1', pub: DateTime(2026, 1, 1)),
+            ep('g2', pub: DateTime(2026, 2, 1)),
+          ]);
+      await repo.refreshFeed(1, force: true); // marca lastRefreshedAt = agora
+
+      // O feed passou a ter g3, mas o throttle barra a segunda busca.
+      when(() => feedParser.fetchEpisodes(any()))
+          .thenAnswer((_) async => [ep('g3', pub: DateTime(2026, 3, 1))]);
+      final novos = await repo.refreshFeed(1);
+
+      expect(novos, isEmpty);
+      expect((await repo.watchEpisodes(1).first).map((e) => e.guid), ['g2', 'g1']);
+    });
+  });
 }

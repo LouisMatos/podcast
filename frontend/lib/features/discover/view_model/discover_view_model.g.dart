@@ -47,7 +47,7 @@ final class DiscoverViewModelProvider
   }
 }
 
-String _$discoverViewModelHash() => r'8283a8472ce15076071f3f7c0815c8cd09a434a3';
+String _$discoverViewModelHash() => r'9088f4046e71db41d1c87808c75da091f1ace23d';
 
 /// ViewModel da tela de descoberta. Sem import de Flutter — testável sem
 /// widget. A View só chama [onQueryChanged] / [setMode] e lê o [DiscoverState].

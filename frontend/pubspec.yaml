@@ -68,6 +68,7 @@ dependencies:
   # Render da descrição (show notes) do episódio, que vem em HTML no RSS.
   # Dart puro (html + csslib) — não puxa analyzer/intl conflitante.
   flutter_widget_from_html_core: ^0.17.0
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:

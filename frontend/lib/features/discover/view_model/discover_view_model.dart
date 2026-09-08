@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../data/repositories/podcast_repository.dart';
@@ -31,6 +32,7 @@ class DiscoverViewModel extends _$DiscoverViewModel {
         episodeResults: const [],
         isLoading: false,
         error: null,
+        offline: false,
       );
       return;
     }
@@ -59,7 +61,7 @@ class DiscoverViewModel extends _$DiscoverViewModel {
 
   Future<void> _search(String query) async {
     final mode = state.mode;
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, error: null, offline: false);
 
     try {
       final repository = ref.read(podcastRepositoryProvider);
@@ -80,10 +82,23 @@ class DiscoverViewModel extends _$DiscoverViewModel {
           isLoading: false,
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (_stale(query, mode)) return;
-      state = state.copyWith(isLoading: false, error: 'Não foi possível buscar agora.');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Não foi possível buscar agora.',
+        offline: _isConnectionError(e),
+      );
     }
+  }
+
+  /// Falha de rede (sem internet / timeout) vs. qualquer outro erro — a View
+  /// mostra `EmptyState.offline` só no primeiro caso.
+  bool _isConnectionError(Object error) {
+    if (error is! DioException) return false;
+    return error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout;
   }
 
   /// Resultado obsoleto: usuário já digitou outra coisa ou trocou de modo.

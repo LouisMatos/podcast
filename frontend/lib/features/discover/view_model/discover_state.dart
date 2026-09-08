@@ -17,5 +17,6 @@ abstract class DiscoverState with _$DiscoverState {
     @Default(<Podcast>[]) List<Podcast> results,
     @Default(<EpisodeSearchResult>[]) List<EpisodeSearchResult> episodeResults,
     String? error,
+    @Default(false) bool offline,
   }) = _DiscoverState;
 }

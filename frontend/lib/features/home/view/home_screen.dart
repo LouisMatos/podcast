@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/connectivity_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -33,9 +34,7 @@ class HomeScreen extends ConsumerWidget {
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => ref
-            .read(libraryRepositoryProvider)
-            .refreshAllSubscriptions(force: true),
+        onRefresh: () => _refresh(context, ref),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           children: [
@@ -102,6 +101,21 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Pull-to-refresh: sem rede, avisa e não tenta (os streams do drift seguem
+/// mostrando o cache). Com rede, rebusca os feeds assinados.
+Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+  final results = await ref.read(connectivityProvider).checkConnectivity();
+  if (isOfflineResult(results)) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sem conexão')),
+      );
+    }
+    return;
+  }
+  await ref.read(libraryRepositoryProvider).refreshAllSubscriptions(force: true);
 }
 
 void _openEpisode(BuildContext context, Podcast podcast, Episode episode) {

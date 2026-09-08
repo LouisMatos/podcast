@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade — Podcast App</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #faf6f0;
+    --card: #ffffff;
+    --text: #2b2b33;
+    --muted: #6b6b78;
+    --accent: #6d5bc4;
+    --border: #ece7df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151a;
+      --card: #201f26;
+      --text: #ece9f1;
+      --muted: #9b98a6;
+      --accent: #a99be6;
+      --border: #2e2c37;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 40px 20px 80px;
+  }
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  .updated { color: var(--muted); font-size: .9rem; margin-bottom: 32px; }
+  h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-top: 16px;
+  }
+  .lead {
+    font-size: 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+  }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  code {
+    background: var(--border);
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-size: .9em;
+  }
+  a { color: var(--accent); }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 48px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Política de Privacidade — Podcast App</h1>
+  <p class="updated">Última atualização: 8 de setembro de 2026</p>
+
+  <p class="lead">
+    O Podcast App é <strong>local-only</strong>. Nenhum dado seu sai do
+    aparelho. Não há conta, login, servidor nosso, nem sincronização entre
+    dispositivos.
+  </p>
+
+  <h2>O que o app guarda (só no seu aparelho)</h2>
+  <div class="card">
+    <ul>
+      <li>Podcasts assinados e o cache de episódios dos feeds RSS.</li>
+      <li>Progresso de reprodução, fila, episódios marcados como ouvidos/arquivados.</li>
+      <li>Histórico e estatísticas de escuta (tempo por dia).</li>
+      <li>Arquivos de áudio que você baixou para ouvir offline.</li>
+      <li>Preferências (tema, velocidade, equalizador, opções de atualização).</li>
+    </ul>
+    <p>
+      Tudo isso fica em um banco SQLite e em arquivos dentro do
+      armazenamento privado do app. Desinstalar o app apaga tudo.
+    </p>
+  </div>
+
+  <h2>Conexões de rede</h2>
+  <div class="card">
+    <p>O app se conecta à internet apenas para:</p>
+    <ul>
+      <li>Buscar podcasts na API pública da Apple (iTunes Search / Charts).</li>
+      <li>Baixar os feeds RSS e os arquivos de áudio dos podcasts que você assina.</li>
+      <li>Carregar as imagens de capa.</li>
+    </ul>
+    <p>
+      Essas requisições vão direto para os servidores da Apple e dos
+      próprios podcasts. Não passamos por nenhum servidor intermediário e
+      não enviamos identificadores seus.
+    </p>
+  </div>
+
+  <h2>Dados coletados por nós</h2>
+  <div class="card">
+    <p><strong>Nenhum.</strong> Não há analytics, rastreamento, anúncios,
+    crash reporting nem coleta de qualquer tipo.</p>
+  </div>
+
+  <h2>Permissões do Android</h2>
+  <div class="card">
+    <ul>
+      <li><code>INTERNET</code> — buscar e baixar podcasts.</li>
+      <li><code>POST_NOTIFICATIONS</code> — controles de reprodução na barra
+        de notificação e aviso de episódio novo.</li>
+      <li><code>RECEIVE_BOOT_COMPLETED</code> — reagendar a atualização em
+        segundo plano depois de reiniciar o aparelho.</li>
+      <li><code>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</code> — pedir (opcional)
+        para o sistema não pausar downloads e atualizações em segundo plano.</li>
+    </ul>
+  </div>
+
+  <h2>Crianças</h2>
+  <div class="card">
+    <p>O app não coleta dados de ninguém, incluindo menores de idade.</p>
+  </div>
+
+  <h2>Mudanças nesta política</h2>
+  <div class="card">
+    <p>Se algo mudar, esta página é atualizada e a data no topo muda junto.</p>
+  </div>
+
+  <footer>
+    Dúvidas: <a href="mailto:luismatos000@gmail.com">luismatos000@gmail.com</a>
+  </footer>
+</main>
+</body>
+</html>

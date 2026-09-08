@@ -651,13 +651,16 @@ class _EpisodeProgressLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    // Texto/ícone de status = `textMuted` (contraste AA sobre o card). O
+    // `secondary` (menta) só na barra de progresso — token de preenchimento,
+    // não de texto.
     final style = Theme.of(context).textTheme.bodySmall
-        ?.copyWith(color: colors.secondary);
+        ?.copyWith(color: colors.textMuted);
 
     if (progress.completed) {
       return Row(
         children: [
-          Icon(Icons.check_circle, size: 14, color: colors.secondary),
+          Icon(Icons.check_circle, size: 14, color: colors.textMuted),
           const SizedBox(width: 4),
           Text('Ouvido', style: style),
         ],

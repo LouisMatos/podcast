@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -90,6 +91,35 @@ void main() {
     expect(state.isLoading, isFalse);
     expect(state.error, isNotNull);
     expect(state.results, isEmpty);
+  });
+
+  test('erro de conexão (DioException) marca state.offline', () async {
+    when(() => repository.search('sem rede')).thenThrow(
+      DioException(
+        requestOptions: RequestOptions(path: '/search'),
+        type: DioExceptionType.connectionError,
+      ),
+    );
+    final notifier = container.read(discoverViewModelProvider.notifier);
+
+    notifier.onQueryChanged('sem rede');
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+
+    final state = container.read(discoverViewModelProvider);
+    expect(state.offline, isTrue);
+    expect(state.error, isNotNull);
+  });
+
+  test('erro genérico NÃO marca state.offline', () async {
+    when(() => repository.search('erro')).thenThrow(Exception('boom'));
+    final notifier = container.read(discoverViewModelProvider.notifier);
+
+    notifier.onQueryChanged('erro');
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+
+    final state = container.read(discoverViewModelProvider);
+    expect(state.offline, isFalse);
+    expect(state.error, isNotNull);
   });
 
   test('retry refaz a busca da query atual', () async {

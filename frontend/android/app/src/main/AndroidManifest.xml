@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- WorkManager reagenda o refresh periódico depois de um reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Fase 18: prompt opcional pra o sistema não pausar download/refresh
+         em segundo plano (permission_handler / Ajustes). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
         android:label="podcast_app"

@@ -31,6 +31,20 @@ String _formatClock(Duration d) {
   return h > 0 ? '$h:$m:$s' : '$m:$s';
 }
 
+/// Duração falada por extenso, pra leitor de tela ("12 minutos e 30 segundos").
+/// O `mm:ss` visual é ambíguo pro TalkBack.
+String _spokenDuration(Duration d) {
+  final h = d.inHours;
+  final m = d.inMinutes.remainder(60);
+  final s = d.inSeconds.remainder(60);
+  final parts = <String>[
+    if (h > 0) '$h ${h == 1 ? 'hora' : 'horas'}',
+    if (m > 0) '$m ${m == 1 ? 'minuto' : 'minutos'}',
+    if (h == 0 && s > 0) '$s ${s == 1 ? 'segundo' : 'segundos'}',
+  ];
+  return parts.isEmpty ? 'zero' : parts.join(' e ');
+}
+
 /// Player em tela cheia. Aberto a partir do mini-player, em qualquer aba —
 /// por isso mora numa rota de topo (`/player`), usada em deep link / Android
 /// Auto. No uso normal o player abre como sheet arrastável (`showPlayerSheet`).
@@ -83,27 +97,31 @@ class PlayerView extends ConsumerWidget {
                         const Spacer(),
                         Hero(
                           tag: 'podcast-artwork-${podcast?.id}',
-                          child: ClipRRect(
-                            borderRadius: AppRadii.surfaceAll,
-                            child: artUrl == null
-                                ? Container(
-                                    width: 260,
-                                    height: 260,
-                                    color: colors.primary.withValues(
-                                      alpha: 0.5,
+                          // Capa decorativa: o título do episódio é lido logo
+                          // abaixo — não repetir no leitor de tela.
+                          child: ExcludeSemantics(
+                            child: ClipRRect(
+                              borderRadius: AppRadii.surfaceAll,
+                              child: artUrl == null
+                                  ? Container(
+                                      width: 260,
+                                      height: 260,
+                                      color: colors.primary.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      child: Icon(
+                                        Icons.graphic_eq,
+                                        size: 64,
+                                        color: colors.textPrimary,
+                                      ),
+                                    )
+                                  : CachedNetworkImage(
+                                      imageUrl: artUrl,
+                                      width: 260,
+                                      height: 260,
+                                      fit: BoxFit.cover,
                                     ),
-                                    child: Icon(
-                                      Icons.graphic_eq,
-                                      size: 64,
-                                      color: colors.textPrimary,
-                                    ),
-                                  )
-                                : CachedNetworkImage(
-                                    imageUrl: artUrl,
-                                    width: 260,
-                                    height: 260,
-                                    fit: BoxFit.cover,
-                                  ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -173,6 +191,9 @@ class PlayerView extends ConsumerWidget {
                                     .copyWith(trackHeight: 3),
                                 child: Slider(
                                   value: player.volume.clamp(0.0, 1.0),
+                                  label: 'Volume',
+                                  semanticFormatterCallback: (v) =>
+                                      'Volume: ${(v * 100).round()}%',
                                   onChanged: notifier.setVolume,
                                 ),
                               ),
@@ -331,6 +352,10 @@ class _SeekBar extends StatelessWidget {
             min: 0,
             max: maxMs <= 0 ? 1.0 : maxMs,
             value: valueMs,
+            label: 'Posição',
+            semanticFormatterCallback: (v) =>
+                'Posição: ${_spokenDuration(Duration(milliseconds: v.round()))} '
+                'de ${_spokenDuration(duration)}',
             onChanged: maxMs <= 0
                 ? null
                 : (v) => onSeek(Duration(milliseconds: v.round())),

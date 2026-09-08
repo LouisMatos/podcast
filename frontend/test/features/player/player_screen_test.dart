@@ -172,6 +172,7 @@ void main() {
   });
 
   testWidgets('mini-player abre o player como sheet arrastável', (tester) async {
+    final semantics = tester.ensureSemantics();
     const podcast = Podcast(id: 1, title: 'P', author: 'A', feedUrl: 'https://x/f.xml');
     const ep = Episode(guid: 'g1', title: 'E1', audioUrl: 'https://x/e.mp3');
 
@@ -221,6 +222,19 @@ void main() {
 
     // O sheet renderiza o PlayerView, com o chevron de fechar.
     expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
+
+    // Fase 18 — acessibilidade: o botão só-ícone de fechar é anunciado pelo
+    // leitor de tela (tooltip vira `tooltip` na semântica do IconButton).
+    expect(
+      tester
+          .getSemantics(
+            find.widgetWithIcon(IconButton, Icons.keyboard_arrow_down),
+          )
+          .getSemanticsData()
+          .tooltip,
+      'Fechar',
+    );
+    semantics.dispose();
 
     await tester.pumpWidget(const SizedBox());
     container.dispose();

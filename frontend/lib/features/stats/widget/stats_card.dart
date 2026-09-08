@@ -100,7 +100,10 @@ class _Metric extends StatelessWidget {
       children: [
         Text(value, style: textTheme.titleLarge),
         const SizedBox(height: 2),
-        Text(label, style: textTheme.bodyMedium?.copyWith(color: colors.textMuted)),
+        Text(
+          label,
+          style: textTheme.bodyMedium?.copyWith(color: colors.textMuted),
+        ),
       ],
     );
   }
@@ -129,39 +132,48 @@ class _Last7DaysChart extends StatelessWidget {
         children: [
           for (final d in days)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FractionallySizedBox(
-                          widthFactor: 1,
-                          heightFactor: maxSeconds == 0
-                              ? 0.0
-                              : (d.listened.inSeconds / maxSeconds).clamp(0.03, 1.0),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: _sameDay(d.day, today)
-                                  ? colors.primary
-                                  : colors.secondary,
-                              borderRadius: AppRadii.smAll,
+              child: Semantics(
+                label:
+                    '${_weekdayLabels[d.day.weekday - 1]}: '
+                    '${d.listened == Duration.zero ? 'nada ouvido' : formatListenDuration(d.listened)}',
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            widthFactor: 1,
+                            heightFactor: maxSeconds == 0
+                                ? 0.0
+                                : (d.listened.inSeconds / maxSeconds).clamp(
+                                    0.03,
+                                    1.0,
+                                  ),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: _sameDay(d.day, today)
+                                    ? colors.primary
+                                    : colors.secondary,
+                                borderRadius: AppRadii.smAll,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _weekdayLabels[d.day.weekday - 1],
-                      style: textTheme.bodySmall?.copyWith(
-                        color: _sameDay(d.day, today)
-                            ? colors.textPrimary
-                            : colors.textMuted,
+                      const SizedBox(height: 6),
+                      Text(
+                        _weekdayLabels[d.day.weekday - 1],
+                        style: textTheme.bodySmall?.copyWith(
+                          color: _sameDay(d.day, today)
+                              ? colors.textPrimary
+                              : colors.textMuted,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

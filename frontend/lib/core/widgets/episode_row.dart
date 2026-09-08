@@ -36,38 +36,44 @@ class EpisodeRow extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: AppRadii.smAll,
-            child: artUrl == null
-                ? _fallback(colors)
-                : CachedNetworkImage(
-                    imageUrl: artUrl,
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => const ShimmerBox(width: 56, height: 56),
-                    errorWidget: (_, _, _) => _fallback(colors),
-                  ),
+          // Capa decorativa: título/subtítulo ao lado já dão o contexto.
+          ExcludeSemantics(
+            child: ClipRRect(
+              borderRadius: AppRadii.smAll,
+              child: artUrl == null
+                  ? _fallback(colors)
+                  : CachedNetworkImage(
+                      imageUrl: artUrl,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) =>
+                          const ShimmerBox(width: 56, height: 56),
+                      errorWidget: (_, _, _) => _fallback(colors),
+                    ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  episode.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            child: MergeSemantics(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    episode.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ),
           ?trailing,
@@ -77,11 +83,11 @@ class EpisodeRow extends StatelessWidget {
   }
 
   Widget _fallback(AppColors colors) => Container(
-        width: 56,
-        height: 56,
-        color: colors.primary.withValues(alpha: 0.5),
-        child: Icon(Icons.graphic_eq, color: colors.textPrimary),
-      );
+    width: 56,
+    height: 56,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }
 
 /// Skeleton de [EpisodeRow].
