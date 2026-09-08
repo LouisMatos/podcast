@@ -1,10 +1,13 @@
 import 'package:drift/drift.dart'
     show
+        ArithmeticExpr,
         BooleanExpressionOperators,
         ComparableExpr,
         Constant,
+        DoUpdate,
         InsertMode,
         OrderingTerm,
+        StringExpressionOperators,
         Value,
         innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,10 +16,12 @@ import '../../core/database/app_database.dart';
 import '../../core/network/dio_client.dart';
 import '../models/download_status.dart';
 import '../models/episode.dart';
+import '../models/listening_stats.dart';
 import '../models/podcast.dart';
 import '../models/subscription_settings.dart';
 import '../sources/rss_feed_parser.dart';
 
+export '../models/listening_stats.dart';
 export '../models/subscription_settings.dart';
 
 part 'library_repository.g.dart';
@@ -31,6 +36,24 @@ typedef ContinueListeningItem = ({Podcast podcast, Episode episode, int position
 
 /// Um episódio recente de qualquer assinatura, pra seção "Novos episódios".
 typedef RecentEpisodeItem = ({Podcast podcast, Episode episode});
+
+/// Uma linha do histórico de escuta (Fase 17): episódio + podcast + o dia
+/// mais recente em que foi ouvido + o total ouvido (somado por episódio).
+typedef ListenHistoryItem = ({
+  Podcast podcast,
+  Episode episode,
+  DateTime lastPlayedDay,
+  Duration listened,
+});
+
+/// Uma assinatura da biblioteca com os metadados que a lista precisa
+/// (Fase 17): quantos episódios não-ouvidos e a data do episódio mais
+/// recente.
+typedef LibrarySubscription = ({
+  Podcast podcast,
+  int unplayedCount,
+  DateTime? lastPublishedAt,
+});
 
 /// Resultado do refresh de um feed: o podcast e os episódios inéditos que
 /// entraram no cache agora (pra notificação da Fase 10).
@@ -398,6 +421,191 @@ class LibraryRepository {
     final rows = await query.get();
     return [for (final row in rows) row.readTable(_db.downloads).episodeGuid];
   }
+
+  // ---- Estatísticas de escuta (Fase 17) ----
+
+  /// Soma [delta] segundos ao histórico de hoje pra este episódio (upsert em
+  /// `listen_history`, chave `{podcastId, episodeGuid, dia}`). No-op se
+  /// `delta <= 0`. Chamado pelo player conforme o áudio avança.
+  Future<void> recordListening({
+    required int podcastId,
+    required String episodeGuid,
+    required Duration delta,
+  }) async {
+    if (delta <= Duration.zero) return;
+    final now = DateTime.now();
+    final day = DateTime(now.year, now.month, now.day);
+    await _db.into(_db.listenHistory).insert(
+          ListenHistoryCompanion.insert(
+            podcastId: podcastId,
+            episodeGuid: episodeGuid,
+            day: day,
+            secondsListened: Value(delta.inSeconds),
+            updatedAt: Value(now),
+          ),
+          onConflict: DoUpdate(
+            (old) => ListenHistoryCompanion.custom(
+              secondsListened: old.secondsListened + Constant(delta.inSeconds),
+              updatedAt: Constant(now),
+            ),
+            target: [
+              _db.listenHistory.podcastId,
+              _db.listenHistory.episodeGuid,
+              _db.listenHistory.day,
+            ],
+          ),
+        );
+  }
+
+  /// Histórico de escuta agregado por episódio: o dia mais recente ouvido +
+  /// o total ouvido. INNER com o cache — só aparece o que ainda está em
+  /// `episode_cache`. Ordena por dia desc; corta em [limit].
+  Stream<List<ListenHistoryItem>> watchListenHistory({int limit = 50}) {
+    return _db.select(_db.listenHistory).watch().asyncMap((rows) async {
+      final agg = <(int, String), ({DateTime lastDay, int seconds})>{};
+      for (final row in rows) {
+        final key = (row.podcastId, row.episodeGuid);
+        final prev = agg[key];
+        agg[key] = (
+          lastDay: prev == null || row.day.isAfter(prev.lastDay) ? row.day : prev.lastDay,
+          seconds: (prev?.seconds ?? 0) + row.secondsListened,
+        );
+      }
+      final ordered = agg.entries.toList()
+        ..sort((a, b) => b.value.lastDay.compareTo(a.value.lastDay));
+
+      final items = <ListenHistoryItem>[];
+      for (final entry in ordered) {
+        if (items.length >= limit) break;
+        final (podcastId, guid) = entry.key;
+        final epRow = await (_db.select(_db.episodeCache)
+              ..where((t) => t.podcastId.equals(podcastId) & t.guid.equals(guid)))
+            .getSingleOrNull();
+        if (epRow == null) continue;
+        final subRow = await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
+            .getSingleOrNull();
+        if (subRow == null) continue;
+        items.add((
+          podcast: _podcastFromRow(subRow),
+          episode: _episodeFromRow(epRow),
+          lastPlayedDay: entry.value.lastDay,
+          listened: Duration(seconds: entry.value.seconds),
+        ));
+      }
+      return items;
+    });
+  }
+
+  /// Estatísticas derivadas de toda a `listen_history`, ao vivo: total,
+  /// tempo desta semana (a partir de segunda 00:00 local), streak de dias
+  /// consecutivos terminando hoje ou ontem, e os últimos 7 dias (hoje +
+  /// 6 anteriores, cronológico, 0 nos dias vazios).
+  Stream<ListeningStats> watchListeningStats() {
+    return _db.select(_db.listenHistory).watch().map((rows) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final monday = _addDays(today, -(today.weekday - 1));
+
+      final perDay = <DateTime, int>{};
+      var totalSeconds = 0;
+      for (final row in rows) {
+        final day = DateTime(row.day.year, row.day.month, row.day.day);
+        perDay.update(day, (v) => v + row.secondsListened,
+            ifAbsent: () => row.secondsListened);
+        totalSeconds += row.secondsListened;
+      }
+
+      var weekSeconds = 0;
+      perDay.forEach((day, secs) {
+        if (!day.isBefore(monday)) weekSeconds += secs;
+      });
+
+      var streak = 0;
+      var cursor = perDay.containsKey(today) ? today : _addDays(today, -1);
+      while (perDay.containsKey(cursor)) {
+        streak++;
+        cursor = _addDays(cursor, -1);
+      }
+
+      final last7 = List<DailyListening>.generate(7, (idx) {
+        final day = _addDays(today, idx - 6);
+        return DailyListening(day: day, listened: Duration(seconds: perDay[day] ?? 0));
+      });
+
+      return ListeningStats(
+        total: Duration(seconds: totalSeconds),
+        thisWeek: Duration(seconds: weekSeconds),
+        streakDays: streak,
+        last7Days: last7,
+      );
+    });
+  }
+
+  /// Todas as assinaturas + `unplayedCount` (episódios no cache, não
+  /// arquivados, sem `playback_progress.completed = 1`) + `lastPublishedAt`
+  /// (maior `published_at` do podcast). Ao vivo.
+  Stream<List<LibrarySubscription>> watchSubscriptionsWithMeta() {
+    final query = _db.customSelect(
+      'SELECT s.id, s.title, s.author, s.feed_url, s.artwork_url, s.genre, s.episode_count, '
+      '(SELECT COUNT(*) FROM episode_cache e '
+      ' WHERE e.podcast_id = s.id AND e.archived = 0 '
+      '   AND NOT EXISTS (SELECT 1 FROM playback_progress p '
+      '     WHERE p.podcast_id = e.podcast_id AND p.episode_guid = e.guid '
+      '       AND p.completed = 1)) AS unplayed_count, '
+      '(SELECT MAX(e2.published_at) FROM episode_cache e2 '
+      ' WHERE e2.podcast_id = s.id) AS last_published_at '
+      'FROM subscriptions s '
+      'ORDER BY s.title COLLATE NOCASE',
+      readsFrom: {_db.subscriptions, _db.episodeCache, _db.playbackProgress},
+    );
+    return query.watch().map((rows) => [
+          for (final row in rows)
+            (
+              podcast: Podcast(
+                id: row.read<int>('id'),
+                title: row.read<String>('title'),
+                author: row.read<String>('author'),
+                feedUrl: row.read<String>('feed_url'),
+                artworkUrl: row.readNullable<String>('artwork_url'),
+                genre: row.readNullable<String>('genre'),
+                episodeCount: row.read<int>('episode_count'),
+              ),
+              unplayedCount: row.read<int>('unplayed_count'),
+              lastPublishedAt: row.readNullable<DateTime>('last_published_at'),
+            ),
+        ]);
+  }
+
+  /// Busca episódios de TODAS as assinaturas por `title` (contém [query],
+  /// case-insensitive), não arquivados, do mais recente pro mais antigo.
+  /// [query] só de espaço → `[]`.
+  Future<List<RecentEpisodeItem>> searchLibraryEpisodes(String query, {int limit = 50}) async {
+    final term = query.trim();
+    if (term.isEmpty) return const [];
+    final pattern = '%${term.toLowerCase()}%';
+    final rows = await (_db.select(_db.episodeCache).join([
+      innerJoin(
+        _db.subscriptions,
+        _db.subscriptions.id.equalsExp(_db.episodeCache.podcastId),
+      ),
+    ])
+          ..where(_db.episodeCache.archived.equals(false) &
+              _db.episodeCache.title.lower().like(pattern))
+          ..orderBy([OrderingTerm.desc(_db.episodeCache.publishedAt)])
+          ..limit(limit))
+        .get();
+    return [
+      for (final row in rows)
+        (
+          podcast: _podcastFromRow(row.readTable(_db.subscriptions)),
+          episode: _episodeFromRow(row.readTable(_db.episodeCache)),
+        ),
+    ];
+  }
+
+  /// Soma [n] dias de calendário a [d] (o construtor normaliza o overflow —
+  /// evita o buraco de DST do `Duration`).
+  static DateTime _addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
 
   SubscriptionSettings _settingsFromRow(SubscriptionRow row) => (
         autoDownload: AutoDownloadMode.fromName(row.autoDownload),

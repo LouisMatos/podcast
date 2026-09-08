@@ -7,13 +7,21 @@ import 'tables.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Subscriptions, EpisodeCache, PlaybackProgress, Downloads, QueueItems, Chapters],
+  tables: [
+    Subscriptions,
+    EpisodeCache,
+    PlaybackProgress,
+    Downloads,
+    QueueItems,
+    Chapters,
+    ListenHistory,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -62,6 +70,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(episodeCache, episodeCache.link);
             await m.addColumn(episodeCache, episodeCache.chaptersUrl);
             await m.createTable(chapters);
+          }
+          // v6 -> v7 (Fase 17 — estatísticas de escuta): tabela nova
+          // `listen_history` (sem FK — sobrevive a desassinar o podcast).
+          if (from < 7) {
+            await m.createTable(listenHistory);
           }
         },
       );

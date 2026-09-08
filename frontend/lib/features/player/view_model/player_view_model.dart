@@ -37,6 +37,18 @@ const _shakeThreshold = 24.0;
 /// Silêncio entre chacoalhadas aceitas (senão um tranco vira várias).
 const _shakeCooldown = Duration(seconds: 2);
 
+/// Fase 17 — quanto do avanço de posição conta como "escuta real": o delta
+/// entre dois pontos, limitado a `(0, 2min]`. Fora dessa faixa (retrocesso,
+/// pausa parado, seek grande pra frente) → `Duration.zero`. Função pura pra
+/// testar sem o handler.
+Duration listeningDelta(Duration previous, Duration current) {
+  final delta = current - previous;
+  if (delta <= Duration.zero || delta > const Duration(minutes: 2)) {
+    return Duration.zero;
+  }
+  return delta;
+}
+
 enum EqualizerPreset { flat, voz, grave, agudo }
 
 /// Ganhos (dB) por banda pra um preset, interpolando uma curva de 5 pontos
@@ -281,6 +293,12 @@ class PlayerViewModel extends _$PlayerViewModel {
   /// Guid do último episódio pra qual já demos o retorno tátil de "concluído"
   /// (Fase 15) — pra vibrar uma vez só, não a cada save perto do fim.
   String? _completedHapticGuid;
+
+  /// Última posição já contabilizada no histórico de escuta (Fase 17) e o
+  /// guid a que ela pertence. `_saveProgress` compara com a posição atual pra
+  /// gravar só o avanço real ouvido.
+  Duration _lastRecordedPosition = Duration.zero;
+  String? _recordingGuid;
 
   /// "Adicionar à fila" — vai pro fim.
   Future<void> enqueue(Podcast podcast, Episode episode) {
@@ -626,6 +644,13 @@ class PlayerViewModel extends _$PlayerViewModel {
   void _onMediaItemChanged(audio_service.MediaItem? item) {
     if (item == null) return;
     final guid = item.extras?['guid'] as String?;
+
+    // Trocou de episódio — zera a base do histórico de escuta (Fase 17).
+    if (guid != null && _recordingGuid != null && guid != _recordingGuid) {
+      _lastRecordedPosition = Duration.zero;
+      _recordingGuid = null;
+    }
+
     final entry = _entryFor(guid);
     state = state.copyWith(
       duration: item.duration,
@@ -678,6 +703,21 @@ class PlayerViewModel extends _$PlayerViewModel {
       _completedHapticGuid = episode.guid;
       unawaited(HapticFeedback.mediumImpact());
     }
+
+    // Histórico de escuta (Fase 17): grava só o avanço real ouvido desde o
+    // último save deste mesmo episódio.
+    if (_recordingGuid == episode.guid) {
+      final delta = listeningDelta(_lastRecordedPosition, state.position);
+      if (delta > Duration.zero) {
+        unawaited(ref.read(libraryRepositoryProvider).recordListening(
+              podcastId: podcast.id,
+              episodeGuid: episode.guid,
+              delta: delta,
+            ));
+      }
+    }
+    _lastRecordedPosition = state.position;
+    _recordingGuid = episode.guid;
 
     await ref.read(libraryRepositoryProvider).savePlaybackPosition(
           podcastId: podcast.id,

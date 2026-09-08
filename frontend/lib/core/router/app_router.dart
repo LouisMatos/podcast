@@ -8,8 +8,10 @@ import '../../features/deeplink/view/deep_link_resolver_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
 import '../../features/downloads/view/downloads_screen.dart';
 import '../../features/episode_detail/view/episode_detail_screen.dart';
+import '../../features/history/view/history_screen.dart';
 import '../../features/home/view/home_screen.dart';
 import '../../features/library/view/library_screen.dart';
+import '../../features/library/view/library_search_screen.dart';
 import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
@@ -67,6 +69,13 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/library',
               pageBuilder: (context, state) => _fadeSlidePage(state, const LibraryScreen()),
+              routes: [
+                GoRoute(
+                  path: 'search',
+                  pageBuilder: (context, state) =>
+                      _fadeSlidePage(state, const LibrarySearchScreen()),
+                ),
+              ],
             ),
           ],
         ),
@@ -79,6 +88,10 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'downloads',
                   pageBuilder: (context, state) => _fadeSlidePage(state, const DownloadsScreen()),
+                ),
+                GoRoute(
+                  path: 'history',
+                  pageBuilder: (context, state) => _fadeSlidePage(state, const HistoryScreen()),
                 ),
               ],
             ),

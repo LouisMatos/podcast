@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,10 +14,14 @@ import '../../../core/widgets/search_field.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
+import '../../../data/models/episode.dart';
+import '../../../data/models/episode_search_result.dart';
+import '../../../data/models/podcast.dart';
 import '../../../data/repositories/podcast_repository.dart';
 import '../podcast_genres.dart';
 import '../view_model/discover_state.dart';
 import '../view_model/discover_view_model.dart';
+import '../view_model/episode_search_podcast_provider.dart';
 import '../view_model/featured_view_model.dart';
 
 /// Tela de descoberta: campo de busca, carrossel "Mais ouvidos no Brasil"
@@ -43,6 +49,25 @@ class DiscoverScreen extends ConsumerWidget {
             hintText: 'Buscar podcast ou categoria',
           ),
           const SizedBox(height: 24),
+          if (searching) ...[
+            SegmentedButton<SearchMode>(
+              segments: const [
+                ButtonSegment(
+                  value: SearchMode.podcasts,
+                  icon: Icon(Icons.podcasts),
+                  label: Text('Podcasts'),
+                ),
+                ButtonSegment(
+                  value: SearchMode.episodios,
+                  icon: Icon(Icons.headphones),
+                  label: Text('Episódios'),
+                ),
+              ],
+              selected: {state.mode},
+              onSelectionChanged: (selection) => notifier.setMode(selection.first),
+            ),
+            const SizedBox(height: 16),
+          ],
           AnimatedSwitcher(
             duration: AppMotion.base,
             switchInCurve: AppMotion.enter,
@@ -61,9 +86,12 @@ class DiscoverScreen extends ConsumerWidget {
   }
 
   String _bodyKey(DiscoverState state) {
-    if (state.isLoading) return 'loading';
-    if (state.error != null) return 'error';
-    return 'results-${state.query}-${state.results.length}';
+    if (state.isLoading) return 'loading-${state.mode.name}';
+    if (state.error != null) return 'error-${state.mode.name}';
+    final count = state.mode == SearchMode.podcasts
+        ? state.results.length
+        : state.episodeResults.length;
+    return 'results-${state.mode.name}-${state.query}-$count';
   }
 }
 
@@ -336,7 +364,10 @@ class _SearchResults extends StatelessWidget {
       );
     }
 
-    if (state.results.isEmpty) {
+    final isEmpty = state.mode == SearchMode.podcasts
+        ? state.results.isEmpty
+        : state.episodeResults.isEmpty;
+    if (isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Text(
@@ -344,6 +375,17 @@ class _SearchResults extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
+      );
+    }
+
+    if (state.mode == SearchMode.episodios) {
+      return Column(
+        children: [
+          for (final result in state.episodeResults) ...[
+            _EpisodeResultTile(result: result),
+            const SizedBox(height: 12),
+          ],
+        ],
       );
     }
 
@@ -356,4 +398,132 @@ class _SearchResults extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Tile de um episódio vindo da busca. Ao tocar, resolve o [Podcast] dono
+/// (iTunes lookup) e abre `/episode`; enquanto resolve, fica desabilitado.
+class _EpisodeResultTile extends ConsumerStatefulWidget {
+  const _EpisodeResultTile({required this.result});
+
+  final EpisodeSearchResult result;
+
+  @override
+  ConsumerState<_EpisodeResultTile> createState() => _EpisodeResultTileState();
+}
+
+class _EpisodeResultTileState extends ConsumerState<_EpisodeResultTile> {
+  bool _opening = false;
+
+  Future<void> _open() async {
+    if (_opening) return;
+    setState(() => _opening = true);
+
+    final result = widget.result;
+    Podcast? podcast;
+    try {
+      podcast = await ref.read(episodeSearchPodcastProvider(result.collectionId).future);
+    } catch (_) {
+      podcast = null;
+    }
+
+    if (!mounted) return;
+    setState(() => _opening = false);
+
+    if (podcast == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir')),
+      );
+      return;
+    }
+
+    unawaited(
+      context.push(
+        '/episode',
+        extra: (
+          podcast: podcast,
+          episode: result.episode,
+          queue: <Episode>[result.episode],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final result = widget.result;
+    final episode = result.episode;
+    final artUrl = episode.imageUrl ?? result.podcastArtworkUrl;
+
+    return Opacity(
+      opacity: _opening ? 0.5 : 1,
+      child: SoftCard(
+        onTap: _opening ? null : _open,
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: AppRadii.smAll,
+              child: artUrl == null
+                  ? _fallback(colors)
+                  : CachedNetworkImage(
+                      imageUrl: artUrl,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => const ShimmerBox(width: 56, height: 56),
+                      errorWidget: (_, _, _) => _fallback(colors),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    episode.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _subtitle(result),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            if (_opening)
+              const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _subtitle(EpisodeSearchResult result) {
+    final date = result.episode.publishedAt;
+    final parts = [
+      result.collectionName,
+      if (date != null)
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
+    ];
+    return parts.join(' • ');
+  }
+
+  Widget _fallback(AppColors colors) => Container(
+    width: 56,
+    height: 56,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }

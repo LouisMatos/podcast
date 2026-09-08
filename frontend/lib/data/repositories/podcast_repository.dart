@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/network/dio_client.dart';
 import '../models/episode.dart';
+import '../models/episode_search_result.dart';
 import '../models/podcast.dart';
 import '../sources/apple_charts_api.dart';
 import '../sources/itunes_search_api.dart';
@@ -35,6 +36,9 @@ class PodcastRepository {
   Future<List<Podcast>> search(String term) => _searchApi.search(term);
 
   Future<List<Episode>> episodesFor(Podcast podcast) => _feedParser.fetchEpisodes(podcast.feedUrl);
+
+  /// Busca episódios avulsos via iTunes (`entity=podcastEpisode`).
+  Future<List<EpisodeSearchResult>> searchEpisodes(String term) => _searchApi.searchEpisodes(term);
 
   /// Resolve um único `collectionId` iTunes em [Podcast] completo, pro
   /// resolvedor de deep link `podcastapp://podcast/<id>`. `null` se a iTunes

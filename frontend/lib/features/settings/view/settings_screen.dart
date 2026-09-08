@@ -1,10 +1,20 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/soft_card.dart';
+import '../../../data/repositories/library_repository.dart';
+import '../../../services/opml/opml_import_service.dart';
+import '../../../services/opml/opml_service.dart';
+import '../../stats/widget/stats_card.dart';
 import '../view_model/feed_refresh_settings_provider.dart';
 import '../view_model/theme_mode_provider.dart';
 
@@ -57,6 +67,32 @@ class SettingsScreen extends ConsumerWidget {
           const SectionHeader(title: 'Atualização'),
           const _FeedRefreshCard(),
           const SizedBox(height: 24),
+          const SectionHeader(title: 'Sua escuta'),
+          const StatsCard(),
+          const SizedBox(height: 12),
+          SoftCard(
+            onTap: () => context.push('/settings/history'),
+            child: Row(
+              children: [
+                Icon(Icons.history, color: Theme.of(context).extension<AppColors>()!.primary),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Histórico de escuta', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Tudo que você já ouviu',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           const SectionHeader(title: 'Armazenamento'),
           SoftCard(
             onTap: () => context.push('/settings/downloads'),
@@ -79,6 +115,140 @@ class SettingsScreen extends ConsumerWidget {
                 const Icon(Icons.chevron_right),
               ],
             ),
+          ),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Backup'),
+          const _BackupCard(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Exportar / importar assinaturas em OPML (Fase 17). `ConsumerStatefulWidget`
+/// pra ter `context`/estado durante o import com diálogo de progresso.
+/// Nada de plugin é tocado no `build` — só nos callbacks.
+class _BackupCard extends ConsumerStatefulWidget {
+  const _BackupCard();
+
+  @override
+  ConsumerState<_BackupCard> createState() => _BackupCardState();
+}
+
+class _BackupCardState extends ConsumerState<_BackupCard> {
+  bool _busy = false;
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _export() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final subs =
+          await ref.read(libraryRepositoryProvider).watchSubscriptions().first;
+      if (!mounted) return;
+      if (subs.isEmpty) {
+        _snack('Nada pra exportar');
+        return;
+      }
+      final dir = await getTemporaryDirectory();
+      if (!mounted) return;
+      final file = File('${dir.path}/podcasts.opml');
+      await file.writeAsString(buildOpml(subs));
+      if (!mounted) return;
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        text: 'Minhas assinaturas de podcast',
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _import() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['opml', 'xml'],
+      );
+      final path = picked?.files.single.path;
+      if (path == null) return;
+      final xml = await File(path).readAsString();
+      if (!mounted) return;
+      final entries = parseOpml(xml);
+      if (entries.isEmpty) {
+        _snack('Nenhum feed no arquivo');
+        return;
+      }
+
+      final progress = ValueNotifier<(int, int)>((0, entries.length));
+      _showProgressDialog(progress);
+
+      final result = await ref.read(opmlImportServiceProvider).import(
+            entries,
+            onProgress: (done, total) => progress.value = (done, total),
+          );
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      progress.dispose();
+      if (!mounted) return;
+      _snack(
+        '${result.added} assinados, ${result.skipped} já tinha, ${result.failed} falharam',
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showProgressDialog(ValueNotifier<(int, int)> progress) {
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Importando OPML'),
+        content: ValueListenableBuilder<(int, int)>(
+          valueListenable: progress,
+          builder: (context, value, _) {
+            final (done, total) = value;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(value: total == 0 ? null : done / total),
+                const SizedBox(height: 12),
+                Text('$done de $total'),
+              ],
+            );
+          },
+        ),
+      ),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return SoftCard(
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.ios_share, color: colors.primary),
+            title: const Text('Exportar assinaturas (OPML)'),
+            subtitle: const Text('Compartilha um arquivo com seus feeds'),
+            enabled: !_busy,
+            onTap: _export,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.file_open_outlined, color: colors.primary),
+            title: const Text('Importar OPML'),
+            subtitle: const Text('Assina os feeds de um arquivo .opml'),
+            enabled: !_busy,
+            onTap: _import,
           ),
         ],
       ),

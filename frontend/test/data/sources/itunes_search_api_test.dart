@@ -93,4 +93,95 @@ void main() {
     final podcasts = await api.search('nada');
     expect(podcasts, isEmpty);
   });
+
+  group('searchEpisodes', () {
+    // Resposta real de entity=podcastEpisode: um resultado completo e um sem
+    // episodeUrl (deve ser descartado). Content-Type text/javascript é
+    // tolerado porque pedimos ResponseType.plain e decodificamos na mão.
+    const fixture = '''
+{
+  "resultCount": 2,
+  "results": [
+    {
+      "wrapperType": "podcastEpisode",
+      "collectionId": 999,
+      "collectionName": "Podcast Dono",
+      "feedUrl": "https://example.com/feed.xml",
+      "trackId": 555,
+      "trackName": "Episódio Válido",
+      "episodeGuid": "guid-abc",
+      "episodeUrl": "https://example.com/ep1.mp3",
+      "description": "Descrição longa",
+      "shortDescription": "curta",
+      "trackTimeMillis": 1830000,
+      "releaseDate": "2026-01-15T12:00:00Z",
+      "artworkUrl600": "https://example.com/a600.png",
+      "artworkUrl160": "https://example.com/a160.png"
+    },
+    {
+      "wrapperType": "podcastEpisode",
+      "collectionId": 999,
+      "collectionName": "Podcast Dono",
+      "trackId": 556,
+      "trackName": "Sem Áudio",
+      "episodeGuid": "guid-def"
+    }
+  ]
+}
+''';
+
+    test('parseia campos e descarta episódio sem episodeUrl', () async {
+      stubBody(fixture);
+
+      final results = await api.searchEpisodes('teste');
+
+      expect(results, hasLength(1));
+      final r = results.single;
+      expect(r.collectionId, 999);
+      expect(r.collectionName, 'Podcast Dono');
+      expect(r.feedUrl, 'https://example.com/feed.xml');
+      expect(r.podcastArtworkUrl, 'https://example.com/a600.png');
+
+      final ep = r.episode;
+      expect(ep.guid, 'guid-abc');
+      expect(ep.title, 'Episódio Válido');
+      expect(ep.audioUrl, 'https://example.com/ep1.mp3');
+      expect(ep.description, 'Descrição longa');
+      expect(ep.imageUrl, 'https://example.com/a600.png');
+      expect(ep.duration, const Duration(milliseconds: 1830000));
+      expect(ep.publishedAt, DateTime.utc(2026, 1, 15, 12));
+    });
+
+    test('guid sintético a partir do trackId quando não há episodeGuid', () async {
+      stubBody('''
+{"results": [
+  {"collectionId": 1, "collectionName": "P", "trackId": 42, "trackName": "T", "episodeUrl": "https://x.com/e.mp3"}
+]}
+''');
+
+      final results = await api.searchEpisodes('teste');
+
+      expect(results.single.episode.guid, 'itunes:42');
+    });
+
+    test('cai pra shortDescription e artworkUrl160/60', () async {
+      stubBody('''
+{"results": [
+  {"collectionId": 1, "collectionName": "P", "trackId": 7, "trackName": "T",
+   "episodeUrl": "https://x.com/e.mp3", "shortDescription": "só a curta",
+   "artworkUrl60": "https://x.com/a60.png"}
+]}
+''');
+
+      final r = (await api.searchEpisodes('teste')).single;
+      expect(r.episode.description, 'só a curta');
+      expect(r.episode.imageUrl, 'https://x.com/a60.png');
+      expect(r.podcastArtworkUrl, 'https://x.com/a60.png');
+    });
+
+    test('resposta sem results devolve lista vazia', () async {
+      stubBody('{"resultCount": 0}');
+      expect(await api.searchEpisodes('nada'), isEmpty);
+    });
+  });
 }

@@ -110,6 +110,26 @@ class Chapters extends Table {
   Set<Column> get primaryKey => {podcastId, episodeGuid, startMs};
 }
 
+/// Histórico de escuta agregado por dia (Fase 17). Uma linha por
+/// `(podcast, episódio, dia)`: quantos segundos foram ouvidos daquele
+/// episódio naquele dia.
+///
+/// **Sem FK de propósito**: o histórico (e as estatísticas de escuta /
+/// streak) sobrevive a desassinar o podcast.
+@DataClassName('ListenHistoryRow')
+class ListenHistory extends Table {
+  IntColumn get podcastId => integer()();
+  TextColumn get episodeGuid => text()();
+
+  /// Meia-noite local do dia em que ouviu — agrupa por dia pra streak/semana.
+  DateTimeColumn get day => dateTime()();
+  IntColumn get secondsListened => integer().withDefault(const Constant(0))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {podcastId, episodeGuid, day};
+}
+
 /// Posição de escuta de cada episódio. O schema já existe agora; quem
 /// escreve nela é o player, na Fase 4 — a biblioteca vai poder mostrar
 /// "continuar ouvindo" assim que isso existir.

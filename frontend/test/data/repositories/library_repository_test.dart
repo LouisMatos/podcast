@@ -291,6 +291,121 @@ void main() {
     });
   });
 
+  group('Fase 17 — estatísticas de escuta', () {
+    Episode ep(String guid, {String? title, DateTime? published}) => Episode(
+          guid: guid,
+          title: title ?? guid,
+          audioUrl: 'u-$guid',
+          publishedAt: published,
+        );
+
+    DateTime midnight(DateTime d) => DateTime(d.year, d.month, d.day);
+
+    test('recordListening soma no mesmo dia e ignora delta <= 0', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+
+      await repo.recordListening(
+          podcastId: 1, episodeGuid: 'g1', delta: const Duration(seconds: 30));
+      await repo.recordListening(
+          podcastId: 1, episodeGuid: 'g1', delta: const Duration(seconds: 45));
+      await repo.recordListening(
+          podcastId: 1, episodeGuid: 'g1', delta: Duration.zero);
+      await repo.recordListening(
+          podcastId: 1, episodeGuid: 'g1', delta: const Duration(seconds: -10));
+
+      final rows = await db.select(db.listenHistory).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.secondsListened, 75);
+      expect(rows.single.day, midnight(DateTime.now()));
+    });
+
+    test('watchListeningStats: total, streak de 2 dias e last7Days com zeros', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      final today = midnight(DateTime.now());
+      final yesterday = DateTime(today.year, today.month, today.day - 1);
+
+      // Escreve `day` explícito — dois dias consecutivos terminando hoje.
+      await db.into(db.listenHistory).insert(ListenHistoryCompanion.insert(
+            podcastId: 1,
+            episodeGuid: 'g1',
+            day: yesterday,
+            secondsListened: const Value(50),
+          ));
+      await db.into(db.listenHistory).insert(ListenHistoryCompanion.insert(
+            podcastId: 1,
+            episodeGuid: 'g1',
+            day: today,
+            secondsListened: const Value(100),
+          ));
+
+      final stats = await repo.watchListeningStats().first;
+      expect(stats.total, const Duration(seconds: 150));
+      expect(stats.streakDays, 2);
+      expect(stats.last7Days, hasLength(7));
+      expect(stats.last7Days.last.day, today);
+      expect(stats.last7Days.last.listened, const Duration(seconds: 100));
+      expect(stats.last7Days[5].listened, const Duration(seconds: 50));
+      // Os 5 dias mais antigos da janela não têm registro.
+      expect(
+        stats.last7Days.take(5).every((d) => d.listened == Duration.zero),
+        isTrue,
+      );
+    });
+
+    test('watchListenHistory agrega por episódio, dia mais recente desc', () async {
+      await repo.subscribe(podcast, [ep('g1', title: 'Ep 1'), ep('g2', title: 'Ep 2')]);
+      final today = midnight(DateTime.now());
+      final twoDaysAgo = DateTime(today.year, today.month, today.day - 2);
+
+      await db.into(db.listenHistory).insert(ListenHistoryCompanion.insert(
+            podcastId: 1, episodeGuid: 'g1', day: twoDaysAgo,
+            secondsListened: const Value(10)));
+      await db.into(db.listenHistory).insert(ListenHistoryCompanion.insert(
+            podcastId: 1, episodeGuid: 'g1', day: today,
+            secondsListened: const Value(20)));
+      await db.into(db.listenHistory).insert(ListenHistoryCompanion.insert(
+            podcastId: 1, episodeGuid: 'g2', day: twoDaysAgo,
+            secondsListened: const Value(5)));
+
+      final hist = await repo.watchListenHistory().first;
+      expect(hist.map((i) => i.episode.guid), ['g1', 'g2']);
+      expect(hist.first.listened, const Duration(seconds: 30));
+      expect(hist.first.lastPlayedDay, today);
+    });
+
+    test('searchLibraryEpisodes casa por título, case-insensitive, sem arquivado', () async {
+      await repo.subscribe(podcast, [
+        ep('g1', title: 'Flutter na prática', published: DateTime(2026, 3, 1)),
+        ep('g2', title: 'Dart avançado', published: DateTime(2026, 2, 1)),
+        ep('g3', title: 'Outro sobre FLUTTER', published: DateTime(2026, 1, 1)),
+      ]);
+      await repo.setEpisodeArchived(1, 'g3', true);
+
+      final hits = await repo.searchLibraryEpisodes('flutter');
+      expect(hits.map((h) => h.episode.guid), ['g1']);
+
+      expect(await repo.searchLibraryEpisodes('   '), isEmpty);
+      expect((await repo.searchLibraryEpisodes('dart')).single.episode.guid, 'g2');
+    });
+
+    test('watchSubscriptionsWithMeta conta não-ouvidos e pega lastPublishedAt', () async {
+      await repo.subscribe(podcast, [
+        ep('g1', published: DateTime(2026, 1, 1)),
+        ep('g2', published: DateTime(2026, 5, 1)),
+        ep('g3', published: DateTime(2026, 3, 1)),
+      ]);
+      // g1 ouvido até o fim → não conta; g3 arquivado → não conta; sobra g2.
+      await repo.setEpisodeCompleted(1, 'g1', true);
+      await repo.setEpisodeArchived(1, 'g3', true);
+
+      final metas = await repo.watchSubscriptionsWithMeta().first;
+      expect(metas, hasLength(1));
+      expect(metas.single.podcast.id, 1);
+      expect(metas.single.unplayedCount, 1);
+      expect(metas.single.lastPublishedAt, DateTime(2026, 5, 1));
+    });
+  });
+
   group('Fase 14 — metadados avançados', () {
     test('round-trip dos campos novos pelo cache', () async {
       await repo.subscribe(podcast, [

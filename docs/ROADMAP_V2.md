@@ -12,16 +12,22 @@
 
 ## Onde parei
 
-**Fase 16 concluída** (integrações Android). 156 testes, `dart analyze` limpo,
-verificado no emulador: deep link `podcastapp://podcast/<id>` abre o detalhe
-(assinado e não-assinado via iTunes), `podcastapp://episode/<id>/<guid>` abre a
-descrição, "abrir com" um feed RSS externo cai na tela "Assinar feed" (casa com
-a iTunes pelo `feedUrl`), atalho "Fila" abre o player e "Continuar" retoma o
-último episódio, compartilhar episódio abre a folha do sistema com título +
-link. **Android Auto** (árvore do `MediaBrowserService`) está implementado mas
-não testado — precisa do Desktop Head Unit / carro.
-Próximo: **Fase 17** (biblioteca e descoberta).
-Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 ✅ → 17 → 18**.
+**Fase 17 concluída** (biblioteca e descoberta). 194 testes, `dart analyze`
+limpo, verificado no emulador: busca de episódios na Descobrir (toggle
+`Podcasts | Episódios`, abre `/episode` resolvendo o podcast dono), busca de
+episódios dentro da biblioteca (`/library/search`), Biblioteca com
+filtro/ordenação (recência, alfabético, não-ouvidos), toggle grade/lista e
+badge de não-ouvidos por podcast, exportar OPML (folha do sistema) e importar
+OPML (`file_picker` + progresso em lote), tela "Histórico de escuta" em Ajustes,
+card de estatísticas (tempo total / semana / streak + gráfico de 7 dias)
+alimentado pelo `_saveProgress` do player (schema drift **v7**, tabela
+`listen_history`). Rough edge: durante a migração v6→v7 + refresh de startup
+concorrente, a Biblioteca pode mostrar "Não foi possível carregar" uma vez —
+"Tentar de novo" recupera.
+**Android Auto** (Fase 16) segue implementado mas não testado — precisa do
+Desktop Head Unit / carro.
+Próximo: **Fase 18** (publicação e robustez).
+Sequência recomendada: **9 ✅ → 11 ✅ → 12 ✅ → 10 ✅ → 13 ✅ → 14 ✅ → 15 ✅ → 16 ✅ → 17 ✅ → 18**.
 
 ## Regra de ouro (por fase)
 
@@ -367,20 +373,47 @@ podcast assinado (fila/ouvido não fazem sentido sem assinatura).
 (`MediaButtonReceiver`, controles) intacta. `ProviderScope` virou
 `UncontrolledProviderScope` sobre um único container — não é "double scope".
 
-## Fase 17 — Biblioteca e descoberta · MÉDIO · M
+## Fase 17 — Biblioteca e descoberta · MÉDIO · M ✅
 
-- [ ] Busca de episódios (não só podcasts) — iTunes Search `entity=podcastEpisode`.
-- [ ] Busca dentro da biblioteca — episódios de todas as assinaturas (query no
-      `episodeCache`).
-- [ ] Biblioteca: ordenar/filtrar/agrupar assinaturas (não-ouvidos primeiro,
-      recência, alfabético), toggle grade/lista, contador de não-ouvidos por
-      podcast.
-- [ ] OPML import/export — dep `xml` (provavelmente já transitivo via
-      `rss_dart`). Exporta assinaturas; importa e assina em lote.
-- [ ] Histórico de escuta — tabela `ListenHistory` ou derivar de
-      `PlaybackProgress`. Tela em Ajustes.
-- [ ] Estatísticas — tempo total, por semana, streak. Card na Início ou Ajustes.
-- [ ] Testes: OPML round-trip; contador de não-ouvidos (drift in-memory).
+- [x] Busca de episódios (não só podcasts) — iTunes Search `entity=podcastEpisode`.
+      `ItunesSearchApi.searchEpisodes` + `EpisodeSearchResult` (episódio +
+      `collectionId` do podcast dono). Toggle `SegmentedButton` "Podcasts |
+      Episódios" na Descobrir; tocar num episódio resolve o `Podcast` via
+      `podcastById(collectionId)` (`episodeSearchPodcastProvider`) e abre
+      `/episode`. `guid` sintético `itunes:<trackId>` quando o feed não expõe.
+- [x] Busca dentro da biblioteca — `LibraryRepository.searchLibraryEpisodes`
+      (query `title LIKE` em `episode_cache` × `subscriptions`, não arquivados).
+      Rota `/library/search` (`LibrarySearchViewModel` com debounce).
+- [x] Biblioteca: ordenação (recência / alfabético / não-ouvidos primeiro),
+      filtro por nome, toggle grade/lista (persistido em `PreferencesStore`),
+      badge de não-ouvidos por podcast. `LibraryRepository.watchSubscriptionsWithMeta`
+      (`LibrarySubscription = {podcast, unplayedCount, lastPublishedAt}` via um
+      `customSelect` com subselects). Ordenação = função pura `applyLibraryControls`.
+- [x] OPML import/export — dep `file_picker`. `opml_service.dart` (`buildOpml`/
+      `parseOpml`, `package:xml`). Exportar → `share_plus` compartilha um
+      `podcasts.opml`. Importar → `file_picker` + `OpmlImportService.import`
+      (casa cada feed com a iTunes pelo `feedUrl` normalizado; id sintético
+      quando não casa; assina em lote com barra de progresso). Seção "Backup"
+      em Ajustes.
+- [x] Histórico de escuta — schema drift **v7**, tabela `listen_history`
+      (`{podcastId, episodeGuid, day}` PK, sem FK, `secondsListened` incremental).
+      `PlayerViewModel._saveProgress` grava o delta (`listeningDelta`, clamp
+      `(0, 2min]` pra pular seeks). Tela `/settings/history`
+      (`HistoryViewModel` → `watchListenHistory`).
+- [x] Estatísticas — `watchListeningStats` (`ListeningStats` — total, semana
+      desde segunda, streak, `last7Days`). `StatsCard` em Ajustes ("Sua escuta")
+      com gráfico de 7 barras (tokens do tema, hoje destacado).
+- [x] Testes: `opml_service_test` (round-trip, aninhado, lixo, `normalizeFeedUrl`),
+      `migration_v6_to_v7_test`, `library_repository_test` grupo Fase 17
+      (contagem de não-ouvidos, stats, busca), `library_controls_test`
+      (`applyLibraryControls`), `discover_view_model_test` (toggle de modo),
+      `itunes_search_api_test` (`searchEpisodes`), `listeningDelta` / formatação.
+      156 → 194.
+
+**Não quebrou:** `LibraryViewModel` passou de `Stream<List<Podcast>>` pra
+`Stream<List<LibrarySubscription>>` — `widget_test` ganhou override do provider.
+`EpisodeRow` (`core/widgets/`) é widget novo, não mexeu nas telas existentes.
+`app_router` ganhou `/library/search` e `/settings/history`.
 
 ## Fase 18 — Publicação e robustez · ALTO (pra publicar) · M
 
@@ -418,10 +451,11 @@ Checar conflito (`flutter pub get` + `dart analyze`) logo após adicionar cada u
 | 14 | `xml` | parse namespace `podcast:chapters` no RSS (já entra na 14) |
 | 16 | `share_plus` | compartilhar episódio ✅ |
 | 16 | `quick_actions` | app shortcuts ✅ (sem ícone drawable) |
-| 17 | — | — |
+| 17 | `file_picker` | escolher o `.opml` no import ✅ (10.3.10) |
 
-`app_links` foi cogitada mas **não entrou** — o `go_router` já recebe o intent
-VIEW da plataforma direto (resolvido no `redirect`).
+`app_links` foi cogitada (Fase 16) mas **não entrou** — o `go_router` já recebe
+o intent VIEW da plataforma direto (resolvido no `redirect`). O `xml` previsto
+pra OPML já era dep direta desde a Fase 14.
 
 ---
 

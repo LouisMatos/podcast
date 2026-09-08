@@ -69,6 +69,7 @@ void main() {
     registerFallbackValue(<QueueEntry>[]);
     registerFallbackValue(const Podcast(id: 0, title: '', author: '', feedUrl: ''));
     registerFallbackValue(const Episode(guid: '', title: '', audioUrl: ''));
+    registerFallbackValue(Duration.zero);
   });
 
   late _FakeHandler handler;
@@ -86,6 +87,17 @@ void main() {
     when(() => lib.playbackPositionFor(any(), any())).thenAnswer((_) async => null);
     when(() => lib.watchSubscriptionSettings(any()))
         .thenAnswer((_) => Stream.value(defaultSubscriptionSettings));
+    when(() => lib.savePlaybackPosition(
+          podcastId: any(named: 'podcastId'),
+          episodeGuid: any(named: 'episodeGuid'),
+          position: any(named: 'position'),
+          completed: any(named: 'completed'),
+        )).thenAnswer((_) async {});
+    when(() => lib.recordListening(
+          podcastId: any(named: 'podcastId'),
+          episodeGuid: any(named: 'episodeGuid'),
+          delta: any(named: 'delta'),
+        )).thenAnswer((_) async {});
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
     when(() => q.replaceWith(any())).thenAnswer((_) async {});
     when(() => q.playNow(any(), any())).thenAnswer((_) async {});
@@ -267,6 +279,68 @@ void main() {
 
       final after = container.read(playerViewModelProvider).sleepTimerRemaining!;
       expect(after, greaterThan(before + const Duration(minutes: 4)));
+    });
+  });
+
+  group('histórico de escuta (Fase 17)', () {
+    test('listeningDelta: dentro da faixa devolve o avanço', () {
+      expect(
+        listeningDelta(const Duration(seconds: 10), const Duration(seconds: 40)),
+        const Duration(seconds: 30),
+      );
+      expect(
+        listeningDelta(Duration.zero, const Duration(minutes: 2)),
+        const Duration(minutes: 2),
+      );
+    });
+
+    test('listeningDelta: retrocesso / sem avanço vira zero', () {
+      expect(
+        listeningDelta(const Duration(minutes: 5), const Duration(minutes: 4)),
+        Duration.zero,
+      );
+      expect(
+        listeningDelta(const Duration(seconds: 5), const Duration(seconds: 5)),
+        Duration.zero,
+      );
+    });
+
+    test('listeningDelta: salto maior que 2 min vira zero', () {
+      expect(
+        listeningDelta(Duration.zero, const Duration(minutes: 3)),
+        Duration.zero,
+      );
+    });
+
+    test('grava no repositório só o avanço real ouvido', () async {
+      final lib = container.read(libraryRepositoryProvider) as _MockLibrary;
+      final notifier = container.read(playerViewModelProvider.notifier);
+      await notifier.playEpisode(podcast, episode);
+      await Future<void>.delayed(Duration.zero);
+
+      PlaybackState stateAt(Duration pos, {required bool playing}) => PlaybackState(
+            playing: playing,
+            processingState: AudioProcessingState.ready,
+            updatePosition: pos,
+          );
+
+      // Estabelece a base do histórico em 10s (1º save deste episódio).
+      handler.playbackState.add(stateAt(const Duration(seconds: 10), playing: true));
+      await Future<void>.delayed(Duration.zero);
+      handler.playbackState.add(stateAt(const Duration(seconds: 10), playing: false));
+      await Future<void>.delayed(Duration.zero);
+
+      // Avança 30s tocando e pausa → grava delta de 30s.
+      handler.playbackState.add(stateAt(const Duration(seconds: 40), playing: true));
+      await Future<void>.delayed(Duration.zero);
+      handler.playbackState.add(stateAt(const Duration(seconds: 40), playing: false));
+      await Future<void>.delayed(Duration.zero);
+
+      verify(() => lib.recordListening(
+            podcastId: 1,
+            episodeGuid: 'g1',
+            delta: const Duration(seconds: 30),
+          )).called(1);
     });
   });
 }

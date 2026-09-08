@@ -59,6 +59,9 @@ dependencies:
   share_plus: ^12.0.1        # compartilhar episódio
   quick_actions: ^1.1.0      # app shortcuts (long-press no ícone)
 
+  # OPML import (Fase 17) — escolher arquivo .opml/.xml pro restore
+  file_picker: ^10.3.3
+
   # UI
   google_fonts: ^8.2.1
   cached_network_image: ^4.0.0

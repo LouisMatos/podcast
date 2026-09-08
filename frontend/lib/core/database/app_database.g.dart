@@ -3770,6 +3770,381 @@ class ChaptersCompanion extends UpdateCompanion<ChapterRow> {
   }
 }
 
+class $ListenHistoryTable extends ListenHistory
+    with TableInfo<$ListenHistoryTable, ListenHistoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ListenHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _podcastIdMeta = const VerificationMeta(
+    'podcastId',
+  );
+  @override
+  late final GeneratedColumn<int> podcastId = GeneratedColumn<int>(
+    'podcast_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _episodeGuidMeta = const VerificationMeta(
+    'episodeGuid',
+  );
+  @override
+  late final GeneratedColumn<String> episodeGuid = GeneratedColumn<String>(
+    'episode_guid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<DateTime> day = GeneratedColumn<DateTime>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsListenedMeta = const VerificationMeta(
+    'secondsListened',
+  );
+  @override
+  late final GeneratedColumn<int> secondsListened = GeneratedColumn<int>(
+    'seconds_listened',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    podcastId,
+    episodeGuid,
+    day,
+    secondsListened,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'listen_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ListenHistoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('podcast_id')) {
+      context.handle(
+        _podcastIdMeta,
+        podcastId.isAcceptableOrUnknown(data['podcast_id']!, _podcastIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_podcastIdMeta);
+    }
+    if (data.containsKey('episode_guid')) {
+      context.handle(
+        _episodeGuidMeta,
+        episodeGuid.isAcceptableOrUnknown(
+          data['episode_guid']!,
+          _episodeGuidMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_episodeGuidMeta);
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('seconds_listened')) {
+      context.handle(
+        _secondsListenedMeta,
+        secondsListened.isAcceptableOrUnknown(
+          data['seconds_listened']!,
+          _secondsListenedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {podcastId, episodeGuid, day};
+  @override
+  ListenHistoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ListenHistoryRow(
+      podcastId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}podcast_id'],
+      )!,
+      episodeGuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}episode_guid'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}day'],
+      )!,
+      secondsListened: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds_listened'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ListenHistoryTable createAlias(String alias) {
+    return $ListenHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class ListenHistoryRow extends DataClass
+    implements Insertable<ListenHistoryRow> {
+  final int podcastId;
+  final String episodeGuid;
+
+  /// Meia-noite local do dia em que ouviu — agrupa por dia pra streak/semana.
+  final DateTime day;
+  final int secondsListened;
+  final DateTime updatedAt;
+  const ListenHistoryRow({
+    required this.podcastId,
+    required this.episodeGuid,
+    required this.day,
+    required this.secondsListened,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['podcast_id'] = Variable<int>(podcastId);
+    map['episode_guid'] = Variable<String>(episodeGuid);
+    map['day'] = Variable<DateTime>(day);
+    map['seconds_listened'] = Variable<int>(secondsListened);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ListenHistoryCompanion toCompanion(bool nullToAbsent) {
+    return ListenHistoryCompanion(
+      podcastId: Value(podcastId),
+      episodeGuid: Value(episodeGuid),
+      day: Value(day),
+      secondsListened: Value(secondsListened),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ListenHistoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ListenHistoryRow(
+      podcastId: serializer.fromJson<int>(json['podcastId']),
+      episodeGuid: serializer.fromJson<String>(json['episodeGuid']),
+      day: serializer.fromJson<DateTime>(json['day']),
+      secondsListened: serializer.fromJson<int>(json['secondsListened']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'podcastId': serializer.toJson<int>(podcastId),
+      'episodeGuid': serializer.toJson<String>(episodeGuid),
+      'day': serializer.toJson<DateTime>(day),
+      'secondsListened': serializer.toJson<int>(secondsListened),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ListenHistoryRow copyWith({
+    int? podcastId,
+    String? episodeGuid,
+    DateTime? day,
+    int? secondsListened,
+    DateTime? updatedAt,
+  }) => ListenHistoryRow(
+    podcastId: podcastId ?? this.podcastId,
+    episodeGuid: episodeGuid ?? this.episodeGuid,
+    day: day ?? this.day,
+    secondsListened: secondsListened ?? this.secondsListened,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ListenHistoryRow copyWithCompanion(ListenHistoryCompanion data) {
+    return ListenHistoryRow(
+      podcastId: data.podcastId.present ? data.podcastId.value : this.podcastId,
+      episodeGuid: data.episodeGuid.present
+          ? data.episodeGuid.value
+          : this.episodeGuid,
+      day: data.day.present ? data.day.value : this.day,
+      secondsListened: data.secondsListened.present
+          ? data.secondsListened.value
+          : this.secondsListened,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListenHistoryRow(')
+          ..write('podcastId: $podcastId, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('day: $day, ')
+          ..write('secondsListened: $secondsListened, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(podcastId, episodeGuid, day, secondsListened, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ListenHistoryRow &&
+          other.podcastId == this.podcastId &&
+          other.episodeGuid == this.episodeGuid &&
+          other.day == this.day &&
+          other.secondsListened == this.secondsListened &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ListenHistoryCompanion extends UpdateCompanion<ListenHistoryRow> {
+  final Value<int> podcastId;
+  final Value<String> episodeGuid;
+  final Value<DateTime> day;
+  final Value<int> secondsListened;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ListenHistoryCompanion({
+    this.podcastId = const Value.absent(),
+    this.episodeGuid = const Value.absent(),
+    this.day = const Value.absent(),
+    this.secondsListened = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ListenHistoryCompanion.insert({
+    required int podcastId,
+    required String episodeGuid,
+    required DateTime day,
+    this.secondsListened = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : podcastId = Value(podcastId),
+       episodeGuid = Value(episodeGuid),
+       day = Value(day);
+  static Insertable<ListenHistoryRow> custom({
+    Expression<int>? podcastId,
+    Expression<String>? episodeGuid,
+    Expression<DateTime>? day,
+    Expression<int>? secondsListened,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (podcastId != null) 'podcast_id': podcastId,
+      if (episodeGuid != null) 'episode_guid': episodeGuid,
+      if (day != null) 'day': day,
+      if (secondsListened != null) 'seconds_listened': secondsListened,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ListenHistoryCompanion copyWith({
+    Value<int>? podcastId,
+    Value<String>? episodeGuid,
+    Value<DateTime>? day,
+    Value<int>? secondsListened,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ListenHistoryCompanion(
+      podcastId: podcastId ?? this.podcastId,
+      episodeGuid: episodeGuid ?? this.episodeGuid,
+      day: day ?? this.day,
+      secondsListened: secondsListened ?? this.secondsListened,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (podcastId.present) {
+      map['podcast_id'] = Variable<int>(podcastId.value);
+    }
+    if (episodeGuid.present) {
+      map['episode_guid'] = Variable<String>(episodeGuid.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<DateTime>(day.value);
+    }
+    if (secondsListened.present) {
+      map['seconds_listened'] = Variable<int>(secondsListened.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListenHistoryCompanion(')
+          ..write('podcastId: $podcastId, ')
+          ..write('episodeGuid: $episodeGuid, ')
+          ..write('day: $day, ')
+          ..write('secondsListened: $secondsListened, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3781,6 +4156,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DownloadsTable downloads = $DownloadsTable(this);
   late final $QueueItemsTable queueItems = $QueueItemsTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
+  late final $ListenHistoryTable listenHistory = $ListenHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3792,6 +4168,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     downloads,
     queueItems,
     chapters,
+    listenHistory,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6275,6 +6652,223 @@ typedef $$ChaptersTableProcessedTableManager =
       ChapterRow,
       PrefetchHooks Function()
     >;
+typedef $$ListenHistoryTableCreateCompanionBuilder =
+    ListenHistoryCompanion Function({
+      required int podcastId,
+      required String episodeGuid,
+      required DateTime day,
+      Value<int> secondsListened,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ListenHistoryTableUpdateCompanionBuilder =
+    ListenHistoryCompanion Function({
+      Value<int> podcastId,
+      Value<String> episodeGuid,
+      Value<DateTime> day,
+      Value<int> secondsListened,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ListenHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $ListenHistoryTable> {
+  $$ListenHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get secondsListened => $composableBuilder(
+    column: $table.secondsListened,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ListenHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $ListenHistoryTable> {
+  $$ListenHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get podcastId => $composableBuilder(
+    column: $table.podcastId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get secondsListened => $composableBuilder(
+    column: $table.secondsListened,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ListenHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ListenHistoryTable> {
+  $$ListenHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get podcastId =>
+      $composableBuilder(column: $table.podcastId, builder: (column) => column);
+
+  GeneratedColumn<String> get episodeGuid => $composableBuilder(
+    column: $table.episodeGuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<int> get secondsListened => $composableBuilder(
+    column: $table.secondsListened,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ListenHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ListenHistoryTable,
+          ListenHistoryRow,
+          $$ListenHistoryTableFilterComposer,
+          $$ListenHistoryTableOrderingComposer,
+          $$ListenHistoryTableAnnotationComposer,
+          $$ListenHistoryTableCreateCompanionBuilder,
+          $$ListenHistoryTableUpdateCompanionBuilder,
+          (
+            ListenHistoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ListenHistoryTable,
+              ListenHistoryRow
+            >,
+          ),
+          ListenHistoryRow,
+          PrefetchHooks Function()
+        > {
+  $$ListenHistoryTableTableManager(_$AppDatabase db, $ListenHistoryTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ListenHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ListenHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ListenHistoryTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> podcastId = const Value.absent(),
+                Value<String> episodeGuid = const Value.absent(),
+                Value<DateTime> day = const Value.absent(),
+                Value<int> secondsListened = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ListenHistoryCompanion(
+                podcastId: podcastId,
+                episodeGuid: episodeGuid,
+                day: day,
+                secondsListened: secondsListened,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int podcastId,
+                required String episodeGuid,
+                required DateTime day,
+                Value<int> secondsListened = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ListenHistoryCompanion.insert(
+                podcastId: podcastId,
+                episodeGuid: episodeGuid,
+                day: day,
+                secondsListened: secondsListened,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ListenHistoryTable, ListenHistoryRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ListenHistoryTable,
+                    ListenHistoryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ListenHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ListenHistoryTable,
+      ListenHistoryRow,
+      $$ListenHistoryTableFilterComposer,
+      $$ListenHistoryTableOrderingComposer,
+      $$ListenHistoryTableAnnotationComposer,
+      $$ListenHistoryTableCreateCompanionBuilder,
+      $$ListenHistoryTableUpdateCompanionBuilder,
+      (
+        ListenHistoryRow,
+        BaseReferences<_$AppDatabase, $ListenHistoryTable, ListenHistoryRow>,
+      ),
+      ListenHistoryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6291,6 +6885,8 @@ class $AppDatabaseManager {
       $$QueueItemsTableTableManager(_db, _db.queueItems);
   $$ChaptersTableTableManager get chapters =>
       $$ChaptersTableTableManager(_db, _db.chapters);
+  $$ListenHistoryTableTableManager get listenHistory =>
+      $$ListenHistoryTableTableManager(_db, _db.listenHistory);
 }
 
 // **************************************************************************

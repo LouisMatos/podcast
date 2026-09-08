@@ -9,17 +9,17 @@ part of 'discover_view_model.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// ViewModel da tela de descoberta. Sem import de Flutter — testável sem
-/// widget. A View só chama [onQueryChanged] e lê o [DiscoverState].
+/// widget. A View só chama [onQueryChanged] / [setMode] e lê o [DiscoverState].
 
 @ProviderFor(DiscoverViewModel)
 final discoverViewModelProvider = DiscoverViewModelProvider._();
 
 /// ViewModel da tela de descoberta. Sem import de Flutter — testável sem
-/// widget. A View só chama [onQueryChanged] e lê o [DiscoverState].
+/// widget. A View só chama [onQueryChanged] / [setMode] e lê o [DiscoverState].
 final class DiscoverViewModelProvider
     extends $NotifierProvider<DiscoverViewModel, DiscoverState> {
   /// ViewModel da tela de descoberta. Sem import de Flutter — testável sem
-  /// widget. A View só chama [onQueryChanged] e lê o [DiscoverState].
+  /// widget. A View só chama [onQueryChanged] / [setMode] e lê o [DiscoverState].
   DiscoverViewModelProvider._()
     : super(
         from: null,
@@ -47,10 +47,10 @@ final class DiscoverViewModelProvider
   }
 }
 
-String _$discoverViewModelHash() => r'bcf83ca0883235ec50cc3e9949b964f472d65bce';
+String _$discoverViewModelHash() => r'8283a8472ce15076071f3f7c0815c8cd09a434a3';
 
 /// ViewModel da tela de descoberta. Sem import de Flutter — testável sem
-/// widget. A View só chama [onQueryChanged] e lê o [DiscoverState].
+/// widget. A View só chama [onQueryChanged] / [setMode] e lê o [DiscoverState].
 
 abstract class _$DiscoverViewModel extends $Notifier<DiscoverState> {
   DiscoverState build();

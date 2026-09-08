@@ -27,6 +27,8 @@ class PreferencesStore {
   static const _kSkipSilence = 'pref.skip_silence_enabled';
   static const _kVolumeBoostEnabled = 'pref.volume_boost_enabled';
   static const _kVolumeBoostGainDb = 'pref.volume_boost_gain_db';
+  static const _kLibraryGrid = 'pref.library_grid';
+  static const _kLibrarySort = 'pref.library_sort';
 
   /// Nome do `AppThemeMode` (a tradução pro enum fica no ViewModel, pra
   /// não acoplar `core/` a `features/settings/`).
@@ -90,6 +92,17 @@ class PreferencesStore {
   double get volumeBoostGainDb => _prefs.getDouble(_kVolumeBoostGainDb) ?? 0.0;
   Future<void> setVolumeBoostGainDb(double value) =>
       _prefs.setDouble(_kVolumeBoostGainDb, value);
+
+  /// Biblioteca em grade (2 colunas) em vez de lista (Fase 17). Lista por
+  /// padrão.
+  bool get libraryGrid => _prefs.getBool(_kLibraryGrid) ?? false;
+  Future<void> setLibraryGrid(bool value) => _prefs.setBool(_kLibraryGrid, value);
+
+  /// Nome do `LibrarySort` da Biblioteca (Fase 17). A tradução pro enum fica
+  /// no `LibraryControls`, pra não acoplar `core/` a `features/`.
+  String? get librarySortName => _prefs.getString(_kLibrarySort);
+  Future<void> setLibrarySortName(String name) =>
+      _prefs.setString(_kLibrarySort, name);
 }
 
 /// Sobrescrito em `main.dart` com a instância real (mesmo padrão de
