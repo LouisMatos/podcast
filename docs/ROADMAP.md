@@ -439,6 +439,9 @@ continua, só não é mais "dívida aberta"). O que foi resolvido de verdade:
 
 ## Dívidas técnicas conhecidas
 
+> Lista viva de rework grande migrada pra **`docs/roadmap_debito_tecnico.md`**
+> (2026-09-08). As linhas abaixo são o registro histórico do v1.
+
 | Item | Próximo passo |
 |---|---|
 | ~~Assinatura de release~~ | ✅ Fase 18 v2 — `signingConfigs.release` lê `key.properties` (gitignored), keystore fora do repo, minify + shrink + `proguard-rules.pro`. `flutter build appbundle --release` gera `.aab` assinado. Falta trocar a senha placeholder e o ícone/splash (ver `docs/PLAY_STORE.md`). |
