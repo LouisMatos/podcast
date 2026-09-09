@@ -157,6 +157,16 @@ final GoRouter appRouter = GoRouter(
         return _fadeSlidePage(state, SubscribeFeedScreen(feedUrl: url));
       },
     ),
+    // Link mal formado / esquema desconhecido: avisa e volta em vez de cair
+    // mudo na Home.
+    GoRoute(
+      path: '/resolve/invalid',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => _fadeSlidePage(
+        state,
+        const DeepLinkResolverScreen(target: DeepLinkUnknown()),
+      ),
+    ),
   ],
 );
 

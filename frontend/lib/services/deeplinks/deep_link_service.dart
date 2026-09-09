@@ -76,7 +76,12 @@ DeepLinkTarget parseDeepLink(Uri uri) {
       // O guid pode conter `/` (guids costumam ser URLs) — junta o resto do
       // path e decodifica (veio URL-encoded).
       final rawGuid = segments.skip(1).join('/');
-      final guid = Uri.decodeComponent(rawGuid);
+      final String guid;
+      try {
+        guid = Uri.decodeComponent(rawGuid);
+      } on ArgumentError {
+        return const DeepLinkUnknown();
+      }
       return guid.isEmpty ? const DeepLinkUnknown() : DeepLinkEpisode(podcastId, guid);
     }
 
@@ -101,6 +106,6 @@ String locationForDeepLink(DeepLinkTarget target) {
       Uri(path: '/resolve/episode/$podcastId', queryParameters: {'guid': guid}).toString(),
     DeepLinkFeed(:final url) =>
       Uri(path: '/resolve/feed', queryParameters: {'url': url}).toString(),
-    DeepLinkUnknown() => '/home',
+    DeepLinkUnknown() => '/resolve/invalid',
   };
 }

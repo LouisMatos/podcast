@@ -86,6 +86,15 @@ void main() {
         const DeepLinkUnknown(),
       );
     });
+
+    test('guid que decodifica pra um % solto não lança — vira DeepLinkUnknown (Fase 22 v3)', () {
+      // pathSegments já vem decodificado ("50% off"); o decodeComponent extra
+      // veria um % sem par hex e lançava ArgumentError.
+      expect(
+        parseDeepLink(Uri.parse('podcastapp://episode/42/50%25%20off')),
+        const DeepLinkUnknown(),
+      );
+    });
   });
 
   group('locationForDeepLink (round-trip via parseDeepLink)', () {
@@ -122,8 +131,8 @@ void main() {
       );
     });
 
-    test('unknown → /home', () {
-      expect(loc('mailto:alguem@exemplo.com'), '/home');
+    test('unknown → /resolve/invalid (Fase 22 v3 — antes ia mudo pra /home)', () {
+      expect(loc('mailto:alguem@exemplo.com'), '/resolve/invalid');
     });
   });
 }

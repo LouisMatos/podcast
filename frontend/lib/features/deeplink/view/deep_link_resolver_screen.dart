@@ -57,7 +57,10 @@ class _DeepLinkResolverScreenState extends ConsumerState<DeepLinkResolverScreen>
         );
 
       case DeepLinkUnknown():
-        _after(() => _leave());
+        if (!_handled) {
+          _handled = true;
+          _after(() => _fail('Link inválido'));
+        }
     }
 
     return Scaffold(
