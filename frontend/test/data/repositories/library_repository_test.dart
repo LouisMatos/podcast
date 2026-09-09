@@ -389,10 +389,17 @@ void main() {
     });
 
     test('watchSubscriptionsWithMeta conta não-ouvidos e pega lastPublishedAt', () async {
+      // segundos inteiros — o drift guarda published_at como unix em segundos.
+      final nowSec = DateTime.fromMillisecondsSinceEpoch(
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000) * 1000,
+      );
+      final recent1 = nowSec.subtract(const Duration(days: 1));
+      final recent2 = nowSec.subtract(const Duration(days: 3));
+      final recent3 = nowSec.subtract(const Duration(days: 5));
       await repo.subscribe(podcast, [
-        ep('g1', published: DateTime(2026, 1, 1)),
-        ep('g2', published: DateTime(2026, 5, 1)),
-        ep('g3', published: DateTime(2026, 3, 1)),
+        ep('g1', published: recent1),
+        ep('g2', published: recent2),
+        ep('g3', published: recent3),
       ]);
       // g1 ouvido até o fim → não conta; g3 arquivado → não conta; sobra g2.
       await repo.setEpisodeCompleted(1, 'g1', true);
@@ -402,7 +409,34 @@ void main() {
       expect(metas, hasLength(1));
       expect(metas.single.podcast.id, 1);
       expect(metas.single.unplayedCount, 1);
-      expect(metas.single.lastPublishedAt, DateTime(2026, 5, 1));
+      expect(metas.single.lastPublishedAt, recent1);
+    });
+
+    test('badge de não-ouvidos ignora episódio fora da janela (Fase 23 v3)', () async {
+      final now = DateTime.now();
+      await repo.subscribe(podcast, [
+        ep('novo', published: now.subtract(const Duration(days: 2))),
+        ep('velho', published: now.subtract(LibraryRepository.unplayedWindow * 2)),
+      ]);
+
+      final metas = await repo.watchSubscriptionsWithMeta().first;
+      expect(metas.single.unplayedCount, 1); // só 'novo'
+    });
+
+    test('updateEpisodeDuration sobrescreve a duração cacheada (Fase 21 v3)', () async {
+      await repo.subscribe(podcast, [
+        Episode(guid: 'g1', title: 'E1', audioUrl: 'u1', duration: const Duration(minutes: 6)),
+      ]);
+
+      await repo.updateEpisodeDuration(1, 'g1', const Duration(seconds: 431));
+      expect((await repo.cachedEpisodes(1)).single.duration, const Duration(seconds: 431));
+
+      // valor não-positivo é no-op
+      await repo.updateEpisodeDuration(1, 'g1', Duration.zero);
+      expect((await repo.cachedEpisodes(1)).single.duration, const Duration(seconds: 431));
+
+      // episódio fora do cache é no-op (não lança)
+      await repo.updateEpisodeDuration(1, 'inexistente', const Duration(seconds: 10));
     });
   });
 

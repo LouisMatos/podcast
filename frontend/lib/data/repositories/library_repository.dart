@@ -9,6 +9,7 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         StringExpressionOperators,
         Value,
+        Variable,
         innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -107,6 +108,20 @@ class LibraryRepository {
     return (_db.update(_db.episodeCache)
           ..where((t) => t.podcastId.equals(podcastId) & t.guid.equals(episodeGuid)))
         .write(EpisodeCacheCompanion(archived: Value(archived)));
+  }
+
+  /// Corrige a duração cacheada com a real que o player descobriu (Fase 21 v3
+  /// — `itunes:duration` costuma vir errado/arredondado). No-op se não estiver
+  /// no cache ou se o valor já bate.
+  Future<void> updateEpisodeDuration(int podcastId, String episodeGuid, Duration real) {
+    final seconds = real.inSeconds;
+    if (seconds <= 0) return Future.value();
+    return (_db.update(_db.episodeCache)
+          ..where((t) =>
+              t.podcastId.equals(podcastId) &
+              t.guid.equals(episodeGuid) &
+              (t.durationSeconds.isNull() | t.durationSeconds.equals(seconds).not())))
+        .write(EpisodeCacheCompanion(durationSeconds: Value(seconds)));
   }
 
   /// Marca ouvido / não-ouvido na mão (Fase 13). "Não ouvido" zera a
@@ -541,14 +556,21 @@ class LibraryRepository {
     });
   }
 
-  /// Todas as assinaturas + `unplayedCount` (episódios no cache, não
-  /// arquivados, sem `playback_progress.completed = 1`) + `lastPublishedAt`
-  /// (maior `published_at` do podcast). Ao vivo.
+  /// Janela do badge de não-ouvidos: só conta episódio publicado nos últimos
+  /// [unplayedWindow] (Fase 23 v3 — antes contava o catálogo inteiro em cache,
+  /// milhares, inútil como sinal de "tem novidade").
+  static const unplayedWindow = Duration(days: 30);
+
+  /// Todas as assinaturas + `unplayedCount` (episódios recentes — ver
+  /// [unplayedWindow] —, não arquivados, sem `playback_progress.completed = 1`)
+  /// + `lastPublishedAt` (maior `published_at` do podcast). Ao vivo.
   Stream<List<LibrarySubscription>> watchSubscriptionsWithMeta() {
+    final cutoff = DateTime.now().subtract(unplayedWindow);
     final query = _db.customSelect(
       'SELECT s.id, s.title, s.author, s.feed_url, s.artwork_url, s.genre, s.episode_count, '
       '(SELECT COUNT(*) FROM episode_cache e '
       ' WHERE e.podcast_id = s.id AND e.archived = 0 '
+      '   AND e.published_at >= ? '
       '   AND NOT EXISTS (SELECT 1 FROM playback_progress p '
       '     WHERE p.podcast_id = e.podcast_id AND p.episode_guid = e.guid '
       '       AND p.completed = 1)) AS unplayed_count, '
@@ -556,6 +578,7 @@ class LibraryRepository {
       ' WHERE e2.podcast_id = s.id) AS last_published_at '
       'FROM subscriptions s '
       'ORDER BY s.title COLLATE NOCASE',
+      variables: [Variable.withDateTime(cutoff)],
       readsFrom: {_db.subscriptions, _db.episodeCache, _db.playbackProgress},
     );
     return query.watch().map((rows) => [

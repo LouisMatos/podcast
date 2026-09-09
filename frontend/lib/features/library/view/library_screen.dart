@@ -191,6 +191,7 @@ class _UnplayedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final colors = Theme.of(context).extension<AppColors>()!;
+    final label = count > 99 ? '99+' : '$count';
 
     return Semantics(
       label:
@@ -203,7 +204,7 @@ class _UnplayedBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadii.pill),
         ),
         child: Text(
-          '$count',
+          label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: colors.textPrimary,
             fontWeight: FontWeight.w700,

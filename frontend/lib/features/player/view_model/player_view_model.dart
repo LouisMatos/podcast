@@ -657,7 +657,22 @@ class PlayerViewModel extends _$PlayerViewModel {
       episode: entry?.episode ?? state.episode,
       podcast: entry?.podcast ?? state.podcast,
     );
+
+    // Fase 21 v3: a duração real do player corrige a do `itunes:duration` no
+    // cache. Uma vez por episódio, só quando diverge > 2s.
+    final real = item.duration;
+    if (real != null && guid != null && entry != null && _durationFixedGuid != guid) {
+      final cached = entry.episode.duration;
+      if (cached == null || (cached - real).abs() > const Duration(seconds: 2)) {
+        _durationFixedGuid = guid;
+        unawaited(ref
+            .read(libraryRepositoryProvider)
+            .updateEpisodeDuration(entry.podcast.id, guid, real));
+      }
+    }
   }
+
+  String? _durationFixedGuid;
 
   QueueEntry? _entryFor(String? guid) {
     if (guid == null) return null;
