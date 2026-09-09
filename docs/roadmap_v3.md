@@ -41,10 +41,14 @@ robustez e prontidão de publicação.
 
 ## Onde parei
 
-**v3 aberta, nada iniciado.** Fases 19–26. Nenhuma depende de outra a não ser
-onde dito; ordem sugerida: **19 → 21 → 22 → 23 → 20 → 24 → 25 → 26**
-(19/21/22/23 são rápidas e independentes; 20 precisa de device físico; 24 mexe
-no build; 26 depende de arte / hardware / ação manual).
+**Fases 19, 21, 22, 23 concluídas** (2026-09-08) — `dart analyze` limpo, 215
+testes verdes (era 212), verificado no emulador: log de erro + tela amigável,
+deep link inválido mostra "Link inválido", badge de não-ouvidos caiu de
+1836/1730 pra 61/20/4. **Falta:** 20 (precisa device físico + Bluetooth), 24
+(precisa AVD API 34+), 25 (schema test formal `drift_dev` — os testes das
+fases 21/22/23 já entraram junto), 26 (arte / hardware / ação manual).
+
+Ordem sugerida do resto: **20 → 24 → 25 → 26**.
 
 ## Regra de ouro (por fase) — igual v1/v2
 
@@ -67,7 +71,16 @@ test. Dep nova: `flutter pub get` + `dart analyze` logo depois.
 
 ---
 
-## Fase 19 — Arranque e captura de erro · esforço S
+## Fase 19 — Arranque e captura de erro · esforço S ✅
+
+**Concluída (commit `fix: fase 19 v3`).** Entregue: `runZonedGuarded` +
+`FlutterError.onError` + `PlatformDispatcher.onError` → `ErrorLog` (arquivo
+local rotativo em `core/diagnostics/error_log.dart`, local-only);
+`ErrorWidget.builder` → `ErrorScreen` autossuficiente no lugar da tela cinza;
+`FeedSyncScheduler.apply` movido pra `addPostFrameCallback` (fora do caminho
+crítico do `runApp`). Cold start no emulador caiu de "Skipped 117 frames" pra
+~66. **Não feito:** profiling fino com devtools timeline (deixado pra quando
+houver device — o ganho fácil já entrou).
 
 **Problema:** cold start pinta "Skipped 117 frames" / "42 frames" no logcat —
 o primeiro frame carrega trabalho que podia esperar. E se o `runApp` explode
@@ -122,7 +135,13 @@ lockscreen sem barra de progresso e o display do carro sem capa.
 **Não muda comportamento:** a reprodução é a mesma; só os metadados nas
 superfícies externas ficam certos.
 
-## Fase 21 — Consistência de duração · esforço S
+## Fase 21 — Consistência de duração · esforço S ✅
+
+**Concluída (commit `fix: fases 21 e 23 v3`).** `LibraryRepository.updateEpisodeDuration`
+grava a duração real que o player descobre em `episode_cache.duration_seconds`
+(sem migração — coluna já existe); `PlayerViewModel._onMediaItemChanged` chama
+uma vez por episódio, só quando diverge > 2s. Depois de tocar um episódio, todas
+as telas leem o valor corrigido do cache. Teste em `library_repository_test.dart`.
 
 **Problema:** o detalhe do episódio mostra "6min" (arredondado do
 `itunes:duration`), o player mostra "07:11" (real do `just_audio`). Números
@@ -143,7 +162,15 @@ diferentes pro mesmo episódio em telas diferentes.
 
 **Não muda comportamento:** mesma tela, mesma info — só sem divergência.
 
-## Fase 22 — Deep link à prova de erro · esforço S
+## Fase 22 — Deep link à prova de erro · esforço S ✅
+
+**Concluída (commit `fix: fase 22 v3`).** `parseDeepLink` não lança mais quando
+o guid decodifica pra um `%` solto; `DeepLinkUnknown` → nova rota
+`/resolve/invalid` → `SnackBar` "Link inválido" (antes: mudo pra Home).
+Verificado no emulador com `podcastapp://coisa/xyz`. Testes novos em
+`deep_link_service_test.dart`. **Não feito:** timeout/retry explícito na
+resolução — o `RetryInterceptor` + timeouts do Dio (Fase 18) já cobrem, o
+`_consume` do resolver trata `error`.
 
 **Problema:** `DeepLinkResolverScreen` já mostra SnackBar quando o id não
 existe ("Podcast não encontrado"), mas uma **URI malformada** cai em
@@ -164,7 +191,14 @@ existe ("Podcast não encontrado"), mas uma **URI malformada** cai em
 **Não muda comportamento:** deep link válido resolve igual; inválido agora
 avisa em vez de sumir.
 
-## Fase 23 — Badge de não-ouvidos com significado · esforço S
+## Fase 23 — Badge de não-ouvidos com significado · esforço S ✅
+
+**Concluída (commit `fix: fases 21 e 23 v3`).** Métrica escolhida: **episódios
+publicados nos últimos 30 dias** (`LibraryRepository.unplayedWindow`), não
+arquivados, não completados — `customSelect` ganhou `e.published_at >= ?` via
+`Variable.withDateTime`. Cap "99+" no `_UnplayedBadge`. A ordenação "Mais
+não-ouvidos" acompanha sozinha (mesma função pura). No emulador o badge caiu de
+1836/1730 pra 61/20/4/4. Testes em `library_repository_test.dart`.
 
 **Problema:** o badge na Biblioteca conta **todo** episódio em cache sem
 `playback_progress.completed = 1` — pra O Assunto isso é 1836, pra NerdCast
