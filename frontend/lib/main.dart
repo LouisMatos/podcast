@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -7,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'app.dart';
+import 'core/diagnostics/error_log.dart';
+import 'core/diagnostics/error_screen.dart';
 import 'core/prefs/preferences_store.dart';
 import 'core/router/app_router.dart';
 import 'services/audio/media_browser_controller.dart';
@@ -17,8 +21,30 @@ import 'services/shortcuts/app_shortcuts.dart';
 import 'services/sync/background_sync.dart';
 import 'services/sync/feed_sync_scheduler.dart';
 
-Future<void> main() async {
+void main() {
+  // Fase 19 v3: tudo roda numa zona guardada; erro não tratado (sync, async,
+  // build) vai pro log local em vez de sumir. `ErrorScreen` troca a tela cinza.
+  runZonedGuarded(() {
+    _bootstrap();
+  }, (error, stack) {
+    unawaited(ErrorLog.instance.record(error, stack, context: 'zone'));
+  });
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final priorOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    priorOnError?.call(details);
+    unawaited(ErrorLog.instance
+        .record(details.exception, details.stack, context: 'FlutterError'));
+  };
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    unawaited(ErrorLog.instance.record(error, stack, context: 'platformDispatcher'));
+    return true;
+  };
+  ErrorWidget.builder = (details) => ErrorScreen(details: details);
 
   // Precisa existir antes do primeiro `runApp` — é o que registra o serviço
   // de áudio em background com o sistema (notificação/lockscreen) e a árvore
@@ -57,12 +83,6 @@ Future<void> main() async {
     onTap: (_) => rootNavigatorKey.currentContext?.go('/home'),
   );
 
-  // (Re)agenda a task periódica conforme a preferência atual.
-  await const FeedSyncScheduler().apply(
-    enabled: store.backgroundRefreshEnabled,
-    wifiOnly: store.refreshWifiOnly,
-  );
-
   // App shortcuts (Fase 16): `register()` antes do runApp pra não perder o
   // atalho de cold start. O `_pending` guarda até o AppShell escutar.
   final shortcuts = AppShortcuts()..register();
@@ -87,4 +107,13 @@ Future<void> main() async {
       child: const PodcastApp(),
     ),
   );
+
+  // Fase 19 v3: (re)agenda a task periódica de refresh só depois do primeiro
+  // frame — tira uma ida ao platform channel do caminho crítico do arranque.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(const FeedSyncScheduler().apply(
+      enabled: store.backgroundRefreshEnabled,
+      wifiOnly: store.refreshWifiOnly,
+    ));
+  });
 }
