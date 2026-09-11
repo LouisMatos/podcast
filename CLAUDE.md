@@ -24,8 +24,8 @@ visível), sem banner/tabela decorativa, confirmação de ação = 1 linha.
 
 ## Mapa
 
-v1+v2 completas (Fases 0–18); v3 Fases 19/21/22/23 concluídas, 20/24/25/26
-pendentes (device físico/AVD 34+/arte manual — `docs/roadmap_v3.md`).
+v1+v2 completas (Fases 0–18); v3 Fases 19/21/22/23/26a/26b concluídas,
+20/24/25/26c pendentes (device físico/AVD 34+ — `docs/roadmap_v3.md`).
 
 ```text
 podcast/

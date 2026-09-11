@@ -17,6 +17,9 @@ Checklist pra submeter o Podcast App. Complementa o `docs/ROADMAP_V2.md` Fase 18
   `isMinifyEnabled` + `isShrinkResources` + `proguard-rules.pro`.
 - Guardar o SHA-256 do certificado de upload (Play App Signing usa outro pra
   produção; este é só o de upload).
+  **SHA-256:** `B0:DC:F9:BB:99:AC:A9:3A:E4:67:01:67:A6:EB:69:98:E5:89:67:30:DF:5D:CA:B9:EE:5C:74:3B:0A:30:DC:09`
+  (verificado em `app-release.aab`, 2026-09-11, senha já trocada — ver Fase 1
+  do plano de publicação).
 - **Backup da keystore**: cópia em `~/podcast-keystore-secrets/` (fora do
   repo). Falta ainda um backup fora desta máquina (nuvem/HD externo) —
   perder = não conseguir atualizar o app.
@@ -63,9 +66,13 @@ download em segundo plano".
 
 ## Política de privacidade
 
-`docs/privacy/index.html` — página estática. Hospedar (GitHub Pages:
-`https://<user>.github.io/<repo>/privacy/`) e colar a URL na Console.
-**Definir a URL final e referenciar aqui.**
+`docs/privacy/index.html` — página estática, hospedada via GitHub Pages
+(branch `feat/fase-9`, pasta `/docs`, habilitado 2026-09-11):
+
+**URL: https://louismatos.github.io/podcast/privacy/**
+
+Colar essa URL no Play Console. Página atualiza sozinha a cada push nessa
+branch (ou trocar a fonte do Pages pro branch principal, quando existir).
 
 ## Ficha da loja
 

@@ -132,9 +132,9 @@ não versionado, só os PNGs resultantes).
 
 **Política de privacidade**
 
-- [ ] Hospedar `docs/privacy/index.html` em algum lugar público (ex.:
-      GitHub Pages)
-- [ ] Colar a URL final no Play Console (e em `docs/PLAY_STORE.md`)
+- [x] Hospedada via GitHub Pages:
+      https://louismatos.github.io/podcast/privacy/
+- [ ] Colar a URL no Play Console no momento do envio
 
 **Branding**
 

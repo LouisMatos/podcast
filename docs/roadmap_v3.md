@@ -44,11 +44,21 @@ robustez e prontidão de publicação.
 **Fases 19, 21, 22, 23 concluídas** (2026-09-08) — `dart analyze` limpo, 215
 testes verdes (era 212), verificado no emulador: log de erro + tela amigável,
 deep link inválido mostra "Link inválido", badge de não-ouvidos caiu de
-1836/1730 pra 61/20/4. **Falta:** 20 (precisa device físico + Bluetooth), 24
-(precisa AVD API 34+), 25 (schema test formal `drift_dev` — os testes das
-fases 21/22/23 já entraram junto), 26 (arte / hardware / ação manual).
+1836/1730 pra 61/20/4.
 
-Ordem sugerida do resto: **20 → 24 → 25 → 26**.
+**Fase 26a e 26b concluídas** (2026-09-11, fora de ordem — puxadas pela
+publicação): nome do app trocado pra "Ecoo", ícone adaptativo + splash
+gerados (`flutter_launcher_icons`/`flutter_native_splash`, arte própria em
+`frontend/assets/branding/`), senha da keystore trocada (placeholder
+`podcast-changeme` não existe mais), `.apk`/`.aab` de release validados.
+Detalhe completo em `~/.claude/plans/deve-ler-o-arquivo-synchronous-quail.md`.
+
+**Falta:** 20 (precisa device físico + Bluetooth), 24 (precisa AVD API 34+),
+25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
+entraram junto), 26c (Android Auto/shortcuts/share/deep link em device
+físico).
+
+Ordem sugerida do resto: **26c/20 (mesma sessão de device físico) → 24 → 25**.
 
 ## Regra de ouro (por fase) — igual v1/v2
 
@@ -255,10 +265,15 @@ fail to build"). `permission_handler` preso no `^12`. Nunca rodou em API 34+.
 
 Sub-fases porque cada parte depende de um input externo diferente:
 
-- [ ] **26a — Arte**: ícone adaptativo + splash (Android 12 splash screen API),
-      screenshots de loja. Depende de arte aprovada.
-- [ ] **26b — Keystore**: trocar a senha placeholder (`podcast-changeme`) —
-      passo manual documentado em `docs/PLAY_STORE.md`.
+- [x] **26a — Arte** ✅ (2026-09-11): ícone adaptativo + splash (Android 12
+      splash screen API) gerados via `flutter_launcher_icons`/
+      `flutter_native_splash`; arte própria (sem designer) em
+      `frontend/assets/branding/source/`; screenshots de loja reais
+      (emulador) em `frontend/assets/branding/screenshots/`.
+- [x] **26b — Keystore** ✅ (2026-09-11): senha placeholder trocada (keystore
+      é PKCS12 — só `storepasswd` existe pra esse formato, store/key
+      compartilham senha). Senha real fora do repo em
+      `~/podcast-keystore-secrets/`, detalhes em `docs/PLAY_STORE.md`.
 - [ ] **26c — Carro**: testar Android Auto com o Desktop Head Unit; testar app
       shortcuts, share e deep link `https://` num device real.
 
