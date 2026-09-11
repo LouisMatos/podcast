@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/router/app_bottom_bar.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
@@ -53,7 +55,18 @@ class PlayerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(body: SafeArea(child: PlayerView()));
+    return Scaffold(
+      body: const SafeArea(child: PlayerView()),
+      // Sem mini-player aqui: a tela em si já mostra o episódio tocando.
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: currentShellTabIndex,
+        builder: (context, index, _) => AppBottomBar(
+          selectedIndex: index,
+          showMiniPlayer: false,
+          onDestinationSelected: (i) => goToShellTab(context, i),
+        ),
+      ),
+    );
   }
 }
 

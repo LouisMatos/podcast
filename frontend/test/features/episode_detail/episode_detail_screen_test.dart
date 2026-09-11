@@ -49,6 +49,10 @@ void main() {
     expect(find.text('Episódio Um'), findsOneWidget);
     expect(find.text('Tocar'), findsOneWidget);
     expect(find.text('Abrir player'), findsOneWidget);
+    // Barra de abas (Fase de fix navegação) deixa a viewport de teste menor
+    // que o conteúdo — precisa rolar até a descrição pra ela sair do
+    // cache extent do ListView e virar "on stage" pro finder.
+    await tester.scrollUntilVisible(find.byType(HtmlWidget), 300);
     expect(find.byType(HtmlWidget), findsOneWidget);
   });
 }

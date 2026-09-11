@@ -8,18 +8,18 @@ Checklist pra submeter o Podcast App. Complementa o `docs/ROADMAP_V2.md` Fase 18
   `upload`, validade 10000 dias.
 - `frontend/android/key.properties` (gitignored) aponta pra ela.
   `key.properties.example` é o template versionado.
-- **Trocar a senha placeholder `podcast-changeme` antes de publicar:**
-  ```
-  keytool -storepasswd -keystore ~/podcast-upload-keystore.jks
-  keytool -keypasswd  -keystore ~/podcast-upload-keystore.jks -alias upload
-  ```
-  e atualizar `key.properties`.
+- **Senha placeholder trocada** (2026-09-11). Keystore é PKCS12 — `keytool
+  -keypasswd` não é suportado nesse formato (store e key compartilham a
+  mesma senha). Senha real fica em
+  `~/podcast-keystore-secrets/keystore-password.txt` (fora do repo, `chmod
+  600`), copiada em `frontend/android/key.properties`.
 - `app/build.gradle.kts`: `signingConfigs.release` (lê `key.properties`),
   `isMinifyEnabled` + `isShrinkResources` + `proguard-rules.pro`.
 - Guardar o SHA-256 do certificado de upload (Play App Signing usa outro pra
   produção; este é só o de upload).
-- **Backup da keystore** num lugar seguro — perder = não conseguir atualizar
-  o app.
+- **Backup da keystore**: cópia em `~/podcast-keystore-secrets/` (fora do
+  repo). Falta ainda um backup fora desta máquina (nuvem/HD externo) —
+  perder = não conseguir atualizar o app.
 
 ## Build de release
 
@@ -67,13 +67,50 @@ download em segundo plano".
 `https://<user>.github.io/<repo>/privacy/`) e colar a URL na Console.
 **Definir a URL final e referenciar aqui.**
 
-## Ficha da loja (manual)
+## Ficha da loja
 
-- [ ] Ícone 512×512, feature graphic 1024×500.
-- [ ] Screenshots (telefone): Início, Descobrir, Player, Biblioteca, Ajustes.
-- [ ] Descrição curta + longa (pt-BR; en-US opcional).
-- [ ] Categoria: Música e áudio. Classificação etária: Livre.
-- [ ] País-alvo, preço (grátis).
+- [x] Ícone 512×512, feature graphic 1024×500 — `frontend/assets/branding/source/`.
+- [x] Screenshots (telefone) — `frontend/assets/branding/screenshots/`.
+- [x] Descrição curta + longa (pt-BR) — abaixo.
+- [x] Categoria: Música e áudio. Classificação etária: Livre.
+- [ ] País-alvo, preço (grátis) — definir no Play Console no momento do envio.
+
+### Descrição curta (máx. 80 caracteres)
+
+```
+Ouça e organize seus podcasts offline, sem conta e sem anúncios.
+```
+
+### Descrição longa
+
+```
+Ecoo é um app de podcasts simples e direto: assine, baixe e ouça — sem
+criar conta, sem anúncios e sem rastreamento.
+
+DESCUBRA E ASSINE
+Busque por nome ou categoria, veja os mais ouvidos no Brasil e assine
+qualquer feed RSS público, incluindo os que não estão nos catálogos
+tradicionais.
+
+OUÇA DO SEU JEITO
+Player completo com velocidade ajustável, equalizador, realce de volume,
+timer para dormir e capítulos do episódio quando disponíveis. Controles
+também na tela de bloqueio, no fone Bluetooth e no Android Auto.
+
+BAIXE PARA OUVIR OFFLINE
+Baixe episódios para ouvir sem internet — útil em viagem, no metrô ou em
+qualquer lugar com sinal ruim.
+
+NUNCA PERCA O LUGAR
+Fila de reprodução, histórico de escuta e estatísticas de tempo ouvido
+por dia. Continue de onde parou em qualquer episódio.
+
+PRIVACIDADE DE VERDADE
+Sem login, sem sincronização com servidor, sem coleta de dados. Tudo fica
+salvo só no seu aparelho — desinstalar o app apaga tudo.
+
+Importe e exporte suas assinaturas via OPML a qualquer momento.
+```
 
 ## Pendências de asset (Fase 18 não fecha)
 

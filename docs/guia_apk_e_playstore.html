@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia — APK de teste e Play Store</title>
+<style>
+  :root {
+    --bg: #faf9fc;
+    --card: #ffffff;
+    --text: #2b2740;
+    --muted: #6b6580;
+    --accent: #8a7fd6;
+    --accent-soft: #ece9fb;
+    --mint: #7fd6c0;
+    --border: #e7e3f5;
+    --code-bg: #f1eefb;
+    --warn-bg: #fff4e5;
+    --warn-border: #f0c987;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a26;
+      --card: #26233370;
+      --card: #262233;
+      --text: #ece9f7;
+      --muted: #a49ec2;
+      --accent: #b3a6f0;
+      --accent-soft: #342f4d;
+      --mint: #6fc9b3;
+      --border: #3a3550;
+      --code-bg: #2f2a44;
+      --warn-bg: #3a2f1f;
+      --warn-border: #8a6a2f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.25rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+    margin-top: 2.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--accent-soft);
+  }
+  h3 {
+    font-size: 1.02rem;
+    color: var(--accent);
+    margin-top: 1.6rem;
+  }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.3rem;
+    margin: 1rem 0;
+  }
+  code, pre {
+    background: var(--code-bg);
+    border-radius: 8px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  code { padding: 0.15rem 0.4rem; }
+  pre {
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+  }
+  pre code { padding: 0; background: none; }
+  ul, ol { padding-left: 1.3rem; }
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.5rem 0.2rem;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .checklist li:hover { background: var(--accent-soft); }
+  .checklist input[type="checkbox"] {
+    margin-top: 0.2rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: var(--mint);
+    flex-shrink: 0;
+  }
+  .checklist label.done {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .group-title {
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+  .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0;
+  }
+  .progress-bar {
+    height: 8px;
+    background: var(--accent-soft);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.6rem 0 0.2rem;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--mint);
+    width: 0%;
+    transition: width 0.25s ease;
+  }
+  .progress-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  button.reset {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+  button.reset:hover { border-color: var(--accent); color: var(--accent); }
+  a { color: var(--accent); }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Guia — Gerar APK de teste e publicar na Play Store</h1>
+  <p class="subtitle">Checklist interativo. Marque conforme for concluindo — o progresso fica salvo neste navegador.</p>
+
+  <div class="card">
+    <div class="progress-label"><span id="progress-text">0 de 0 concluídos</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <button class="reset" id="reset-btn">Limpar progresso</button>
+  </div>
+
+  <h2>Parte A — Gerar APK pra instalar num Android de teste</h2>
+
+  <h3>Pré-requisitos</h3>
+  <ul>
+    <li>Flutter instalado e funcionando (<code>flutter doctor</code> sem erro vermelho).</li>
+    <li>No aparelho: <strong>Depuração USB</strong> ligada (pra instalar via <code>adb</code>) OU <strong>instalar de fontes desconhecidas</strong> liberado (pra instalar o <code>.apk</code> copiado direto).</li>
+  </ul>
+
+  <h3>Passo a passo</h3>
+  <pre><code>cd frontend
+flutter pub get
+flutter build apk --release</code></pre>
+  <p>O APK sai em:</p>
+  <pre><code>frontend/build/app/outputs/flutter-apk/app-release.apk</code></pre>
+
+  <p><strong>Com o aparelho por USB:</strong></p>
+  <pre><code>adb install -r build/app/outputs/flutter-apk/app-release.apk</code></pre>
+
+  <p><strong>Sem <code>adb</code>:</strong> transfira o <code>.apk</code> pro celular (cabo, Drive, WhatsApp Web) e abra o arquivo no aparelho.</p>
+
+  <p><strong>Direto num device conectado:</strong></p>
+  <pre><code>flutter install -d &lt;device-id&gt;</code></pre>
+
+  <div class="warn">
+    <strong>Emulador via <code>./scripts/run_android.sh</code></strong> roda em modo debug — ótimo pra desenvolver, mas não gera artefato pra distribuir. Pra isso, use <code>flutter build apk --release</code>.
+  </div>
+
+  <p>Se <code>frontend/android/key.properties</code> existir (existe), o build já sai assinado com a keystore de upload. Sem ele, cairia pro signing de debug — serve pra testar, mas não é o artefato final de loja.</p>
+
+  <ul class="checklist" data-group="a"></ul>
+
+  <h2>Parte B — O que falta pra publicar na Play Store</h2>
+
+  <div class="card">
+    <strong>Já feito</strong> (contexto, não precisa marcar):
+    <ul>
+      <li>Keystore de upload gerada e configurada.</li>
+      <li>Permissões do manifest documentadas e justificadas.</li>
+      <li>Resposta de "Segurança dos dados" do Play Console redigida.</li>
+    </ul>
+  </div>
+
+  <div class="group-title">Keystore</div>
+  <ul class="checklist" data-group="keystore"></ul>
+
+  <div class="group-title">Versionamento</div>
+  <ul class="checklist" data-group="versao"></ul>
+
+  <div class="group-title">Arte</div>
+  <ul class="checklist" data-group="arte"></ul>
+
+  <div class="group-title">Textos da loja</div>
+  <ul class="checklist" data-group="textos"></ul>
+
+  <div class="group-title">Política de privacidade</div>
+  <ul class="checklist" data-group="privacidade"></ul>
+
+  <div class="group-title">Branding</div>
+  <ul class="checklist" data-group="branding"></ul>
+
+  <div class="group-title">Teste em device real</div>
+  <ul class="checklist" data-group="device"></ul>
+
+  <div class="group-title">Build final e envio</div>
+  <ul class="checklist" data-group="envio"></ul>
+
+  <div class="warn">
+    <strong>Bloqueio técnico conhecido:</strong> <code>permission_handler</code> preso em <code>^12.0.1</code> — a <code>^13</code> exige <code>compileSdk 37</code>, e o Flutter instalado hoje só oferece <code>compileSdk 36</code> por padrão. Não bloqueia publicação, é dívida técnica (Fase 24 do roadmap).
+  </div>
+
+  <footer>
+    Referências: <code>docs/PLAY_STORE.md</code>, <code>docs/roadmap_v3.md</code> (Fases 24 e 26).
+  </footer>
+</div>
+
+<script>
+const items = {
+  a: [
+    "flutter doctor sem erro crítico",
+    "Depuração USB ou fontes desconhecidas habilitada no aparelho de teste",
+    "flutter build apk --release rodou sem erro",
+    "APK instalado e app abre normalmente no aparelho",
+    "Testou o fluxo principal no aparelho físico"
+  ],
+  keystore: [
+    "Trocar a senha placeholder podcast-changeme da keystore",
+    "Confirmar que existe backup da keystore fora da máquina de dev"
+  ],
+  versao: [
+    "Revisar version: em pubspec.yaml (hoje 1.0.0+1) antes do primeiro envio"
+  ],
+  arte: [
+    "Ícone adaptativo do app",
+    "Splash screen customizado",
+    "Ícone da loja 512×512",
+    "Feature graphic 1024×500",
+    "Screenshots das telas principais"
+  ],
+  textos: [
+    "Descrição curta (pt-BR)",
+    "Descrição longa (pt-BR)",
+    "Categoria: Música e áudio",
+    "Classificação indicativa: Livre"
+  ],
+  privacidade: [
+    "Hospedar docs/privacy/index.html publicamente",
+    "Colar a URL final no Play Console"
+  ],
+  branding: [
+    "Revisar android:label no AndroidManifest.xml"
+  ],
+  device: [
+    "Android Auto (DHU ou carro real)",
+    "App shortcuts",
+    "Share",
+    "Deep link (podcastapp://...)",
+    "Notificações de novo episódio + controle de mídia"
+  ],
+  envio: [
+    "flutter build appbundle --release",
+    "Criar/configurar o app no Play Console",
+    "Subir numa faixa de teste interno primeiro",
+    "Preencher ficha da loja + privacidade + data safety",
+    "Revisar e enviar pra análise"
+  ]
+};
+
+const STORAGE_KEY = "podcast-guia-checklist";
+const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  updateProgress();
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll(".checklist input[type=checkbox]");
+  const done = document.querySelectorAll(".checklist input[type=checkbox]:checked");
+  document.getElementById("progress-text").textContent = `${done.length} de ${all.length} concluídos`;
+  const pct = all.length ? (done.length / all.length) * 100 : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+}
+
+Object.entries(items).forEach(([group, list]) => {
+  const ul = document.querySelector(`.checklist[data-group="${group}"]`);
+  list.forEach((text, i) => {
+    const id = `${group}-${i}`;
+    const li = document.createElement("li");
+    const checked = !!state[id];
+    li.innerHTML = `
+      <input type="checkbox" id="${id}" ${checked ? "checked" : ""}>
+      <label for="${id}" class="${checked ? "done" : ""}">${text}</label>
+    `;
+    const checkbox = li.querySelector("input");
+    const label = li.querySelector("label");
+    checkbox.addEventListener("change", () => {
+      state[id] = checkbox.checked;
+      label.classList.toggle("done", checkbox.checked);
+      save();
+    });
+    ul.appendChild(li);
+  });
+});
+
+document.getElementById("reset-btn").addEventListener("click", () => {
+  if (confirm("Limpar todo o progresso deste checklist?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+updateProgress();
+</script>
+</body>
+</html>

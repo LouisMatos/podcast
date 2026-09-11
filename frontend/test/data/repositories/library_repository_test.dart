@@ -74,6 +74,32 @@ void main() {
     expect(eps.map((e) => e.guid), ['g1']);
   });
 
+  test('watchDownloadedEpisodes não mistura downloads de outro podcast', () async {
+    const podcastB = Podcast(id: 2, title: 'P2', author: 'A2', feedUrl: 'https://x/f2.xml');
+
+    await repo.subscribe(podcast, [Episode(guid: 'g1', title: 'A1', audioUrl: 'u1')]);
+    await repo.subscribe(podcastB, [Episode(guid: 'g1', title: 'B1', audioUrl: 'u1')]);
+
+    await db.into(db.downloads).insert(DownloadsCompanion.insert(
+          podcastId: 1,
+          episodeGuid: 'g1',
+          status: const Value('complete'),
+          localPath: const Value('/tmp/a-g1.mp3'),
+        ));
+    await db.into(db.downloads).insert(DownloadsCompanion.insert(
+          podcastId: 2,
+          episodeGuid: 'g1',
+          status: const Value('complete'),
+          localPath: const Value('/tmp/b-g1.mp3'),
+        ));
+
+    final epsA = await repo.watchDownloadedEpisodes(1).first;
+    expect(epsA.map((e) => e.title), ['A1']);
+
+    final epsB = await repo.watchDownloadedEpisodes(2).first;
+    expect(epsB.map((e) => e.title), ['B1']);
+  });
+
   group('Fase 9 — feeds vivos', () {
     Episode ep(String guid) => Episode(guid: guid, title: guid, audioUrl: 'u-$guid');
 

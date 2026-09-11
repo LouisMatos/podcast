@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_bottom_bar.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
-import '../../player/view/mini_player.dart';
 import '../view_model/subscribe_feed_state.dart';
 import '../view_model/subscribe_feed_view_model.dart';
 
@@ -27,7 +28,13 @@ class SubscribeFeedScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Assinar feed')),
-      bottomNavigationBar: const MiniPlayer(),
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: currentShellTabIndex,
+        builder: (context, index, _) => AppBottomBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => goToShellTab(context, i),
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: _body(context, state, notifier),

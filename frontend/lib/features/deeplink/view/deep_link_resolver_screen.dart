@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_bottom_bar.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/episode.dart';
 import '../../../services/deeplinks/deep_link_service.dart';
@@ -66,6 +68,13 @@ class _DeepLinkResolverScreenState extends ConsumerState<DeepLinkResolverScreen>
     return Scaffold(
       backgroundColor: colors.background,
       body: Center(child: CircularProgressIndicator(color: colors.primary)),
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: currentShellTabIndex,
+        builder: (context, index, _) => AppBottomBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => goToShellTab(context, i),
+        ),
+      ),
     );
   }
 

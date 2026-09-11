@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/repositories/library_repository.dart';
 import '../../features/library/view_model/startup_feed_refresh_provider.dart';
-import '../../features/player/view/mini_player.dart';
 import '../../features/player/view_model/player_view_model.dart';
 import '../../services/shortcuts/app_shortcuts.dart';
+import 'app_bottom_bar.dart';
 import 'app_router.dart';
 
 /// Casca da navegação: corpo trocado por `StatefulShellRoute.indexedStack`
@@ -50,40 +50,15 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const MiniPlayer(),
-          NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) => navigationShell.goBranch(
-              index,
-              initialLocation: index == navigationShell.currentIndex,
-            ),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Início',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.explore_outlined),
-                selectedIcon: Icon(Icons.explore),
-                label: 'Descobrir',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.library_music_outlined),
-                selectedIcon: Icon(Icons.library_music),
-                label: 'Biblioteca',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: 'Ajustes',
-              ),
-            ],
-          ),
-        ],
+      bottomNavigationBar: AppBottomBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) {
+          currentShellTabIndex.value = index;
+          navigationShell.goBranch(
+            index,
+            initialLocation: index == navigationShell.currentIndex,
+          );
+        },
       ),
     );
   }

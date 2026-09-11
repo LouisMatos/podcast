@@ -263,6 +263,7 @@ class LibraryRepository {
             _db.downloads.status.equals(DownloadStatus.complete.name),
       ),
     ])
+      ..where(_db.episodeCache.podcastId.equals(podcastId))
       ..orderBy([OrderingTerm.desc(_db.episodeCache.publishedAt)]);
     return query
         .watch()

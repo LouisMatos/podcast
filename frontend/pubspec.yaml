@@ -73,6 +73,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
 
   build_runner: ^2.16.1
   riverpod_generator: ^4.0.9
@@ -90,3 +92,21 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/branding/source/icon_legacy_1024.png"
+  adaptive_icon_background: "assets/branding/source/icon_background.png"
+  adaptive_icon_foreground: "assets/branding/source/icon_foreground.png"
+
+flutter_native_splash:
+  color: "#B8AEE8"
+  image: "assets/branding/source/splash_icon.png"
+  color_dark: "#1E1B24"
+  image_dark: "assets/branding/source/splash_icon.png"
+  android_12:
+    color: "#B8AEE8"
+    color_dark: "#1E1B24"
+    image: "assets/branding/source/splash_icon.png"
+  android: true
+  ios: false

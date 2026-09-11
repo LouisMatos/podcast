@@ -22,6 +22,20 @@ import 'app_shell.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
+/// Última aba ativa da casca (`AppShell`). Rotas de topo (`/podcast`,
+/// `/episode`, `/player`, `/resolve/*`) não têm acesso ao
+/// `StatefulNavigationShell` — cobrem a casca numa subárvore diferente —
+/// então usam isso pra saber qual aba destacar na própria barra de abas e
+/// pra onde voltar ao trocar de aba.
+final ValueNotifier<int> currentShellTabIndex = ValueNotifier<int>(0);
+
+const _shellTabPaths = ['/home', '/discover', '/library', '/settings'];
+
+void goToShellTab(BuildContext context, int index) {
+  currentShellTabIndex.value = index;
+  context.go(_shellTabPaths[index]);
+}
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '/home',

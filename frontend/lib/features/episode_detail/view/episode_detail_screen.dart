@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_bottom_bar.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -13,7 +15,6 @@ import '../../../data/models/podcast.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../../services/share/episode_share.dart';
-import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
 
 /// Tela de descrição de um episódio. Aberta ao selecionar um episódio na
@@ -57,7 +58,13 @@ class EpisodeDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const MiniPlayer(),
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: currentShellTabIndex,
+        builder: (context, index, _) => AppBottomBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => goToShellTab(context, i),
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: ListView(

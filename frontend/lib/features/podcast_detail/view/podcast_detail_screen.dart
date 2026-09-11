@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_bottom_bar.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
@@ -19,7 +21,6 @@ import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
-import '../../player/view/mini_player.dart';
 import '../../player/view_model/player_view_model.dart';
 import '../../player/widgets/episode_swipe_actions.dart';
 import '../../player/widgets/queue_menu_button.dart';
@@ -59,9 +60,15 @@ class PodcastDetailScreen extends ConsumerWidget {
             ),
         ],
       ),
-      // Rota de topo (fora da casca) — monta o próprio mini-player, igual
-      // à tela de episódio.
-      bottomNavigationBar: const MiniPlayer(),
+      // Rota de topo (fora da casca) — monta o próprio mini-player + abas,
+      // igual à tela de episódio, pra navegação não sumir.
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: currentShellTabIndex,
+        builder: (context, index, _) => AppBottomBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => goToShellTab(context, i),
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: detail.when(
