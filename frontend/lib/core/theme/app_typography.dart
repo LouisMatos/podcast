@@ -5,8 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 /// com a forma do resto do app. Pesos 400/600/700; títulos com
 /// `letterSpacing` levemente negativo.
 abstract final class AppTypography {
-  static TextTheme textTheme({required Color primary, required Color muted}) {
-    final base = GoogleFonts.nunitoTextTheme();
+  static TextTheme textTheme({
+    required Color primary,
+    required Color muted,
+    required Brightness brightness,
+  }) {
+    final base = GoogleFonts.nunitoTextTheme(
+      brightness == Brightness.dark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
+    );
 
     return base.copyWith(
       headlineSmall: base.headlineSmall?.copyWith(

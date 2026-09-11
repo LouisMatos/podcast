@@ -26,7 +26,11 @@ abstract final class AppTheme {
       brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: colors.background,
-      textTheme: AppTypography.textTheme(primary: colors.textPrimary, muted: colors.textMuted),
+      textTheme: AppTypography.textTheme(
+        primary: colors.textPrimary,
+        muted: colors.textMuted,
+        brightness: brightness,
+      ),
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
       extensions: [colors],
