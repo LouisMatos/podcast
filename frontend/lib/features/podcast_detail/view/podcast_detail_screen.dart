@@ -549,15 +549,12 @@ class _EpisodeTile extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: Icon(
-                isCurrent && player.isPlaying
-                    ? Icons.pause_circle_filled
-                    : Icons.play_circle_outline,
-                color: colors.primary,
-                size: 32,
-              ),
-              tooltip: isCurrent && player.isPlaying ? 'Pausar' : 'Tocar',
+            _EpisodeArtworkPlayButton(
+              podcast: podcast,
+              episode: episode,
+              isCurrent: isCurrent,
+              isPlaying: player.isPlaying,
+              colors: colors,
               onPressed: () {
                 final n = ref.read(playerViewModelProvider.notifier);
                 if (isCurrent) {
@@ -645,6 +642,72 @@ class _EpisodeTile extends ConsumerWidget {
     if (hours > 0) return '${hours}h${minutes.toString().padLeft(2, '0')}min';
     return '${minutes}min';
   }
+}
+
+/// Capa do episódio (56x56) com o botão de play/pause sobreposto de forma
+/// translúcida — mantém a capa visível por baixo do controle.
+class _EpisodeArtworkPlayButton extends StatelessWidget {
+  const _EpisodeArtworkPlayButton({
+    required this.podcast,
+    required this.episode,
+    required this.isCurrent,
+    required this.isPlaying,
+    required this.colors,
+    required this.onPressed,
+  });
+
+  final Podcast podcast;
+  final Episode episode;
+  final bool isCurrent;
+  final bool isPlaying;
+  final AppColors colors;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final artUrl = episode.imageUrl ?? podcast.artworkUrl;
+    final playing = isCurrent && isPlaying;
+
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: AppRadii.smAll,
+            child: artUrl == null
+                ? _fallback()
+                : CachedNetworkImage(
+                    imageUrl: artUrl,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) =>
+                        const ShimmerBox(width: 56, height: 56),
+                    errorWidget: (_, _, _) => _fallback(),
+                  ),
+          ),
+          IconButton(
+            icon: Icon(
+              playing ? Icons.pause_circle_filled : Icons.play_circle_outline,
+              color: Colors.white.withValues(alpha: 0.75),
+              size: 32,
+            ),
+            tooltip: playing ? 'Pausar' : 'Tocar',
+            onPressed: onPressed,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fallback() => Container(
+    width: 56,
+    height: 56,
+    color: colors.primary.withValues(alpha: 0.5),
+    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
+  );
 }
 
 /// Barra de progresso + selo "ouvido" abaixo do meta do episódio. Só
