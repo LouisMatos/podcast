@@ -29,6 +29,7 @@ class PreferencesStore {
   static const _kVolumeBoostGainDb = 'pref.volume_boost_gain_db';
   static const _kLibraryGrid = 'pref.library_grid';
   static const _kLibrarySort = 'pref.library_sort';
+  static const _kFavoriteRadioIds = 'pref.favorite_radio_ids';
 
   /// Nome do `AppThemeMode` (a tradução pro enum fica no ViewModel, pra
   /// não acoplar `core/` a `features/settings/`).
@@ -103,6 +104,11 @@ class PreferencesStore {
   String? get librarySortName => _prefs.getString(_kLibrarySort);
   Future<void> setLibrarySortName(String name) =>
       _prefs.setString(_kLibrarySort, name);
+
+  /// IDs das rádios favoritadas (feature Rádio).
+  List<String> get favoriteRadioIds => _prefs.getStringList(_kFavoriteRadioIds) ?? const [];
+  Future<void> setFavoriteRadioIds(List<String> ids) =>
+      _prefs.setStringList(_kFavoriteRadioIds, ids);
 }
 
 /// Sobrescrito em `main.dart` com a instância real (mesmo padrão de

@@ -626,7 +626,7 @@ class PlayerViewModel extends _$PlayerViewModel {
   }
 
   void _onTick() {
-    if (state.episode == null) return;
+    if (state.episode == null || _radioActive) return;
 
     final playbackState = _handler.playbackState.value;
     state = state.copyWith(
@@ -641,8 +641,14 @@ class PlayerViewModel extends _$PlayerViewModel {
     }
   }
 
+  /// Rádio ao vivo toca no mesmo `PodcastAudioHandler` mas fora do fluxo de
+  /// fila/progresso/capítulos — sem isso, `_saveProgress` gravaria a posição
+  /// da rádio sob o guid do último episódio real tocado.
+  bool get _radioActive => _handler.mediaItem.value?.extras?['isRadio'] == true;
+
   void _onMediaItemChanged(audio_service.MediaItem? item) {
     if (item == null) return;
+    if (item.extras?['isRadio'] == true) return;
     final guid = item.extras?['guid'] as String?;
 
     // Trocou de episódio — zera a base do histórico de escuta (Fase 17).
@@ -683,6 +689,8 @@ class PlayerViewModel extends _$PlayerViewModel {
   }
 
   void _onPlaybackStateChanged(audio_service.PlaybackState playbackState) {
+    if (_radioActive) return;
+
     // Se estava tocando e parou de tocar (pause, fim do episódio, etc.),
     // salva na hora — não espera o próximo tick de 5s. Cobre o caso de
     // pausar bem no início, antes do primeiro ciclo de salvamento.

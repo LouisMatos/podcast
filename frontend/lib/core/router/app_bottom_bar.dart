@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/player/view/mini_player.dart';
 
-/// Barra de abas (Início/Descobrir/Biblioteca/Ajustes), reutilizada tanto
+/// Barra de abas (Início/Descobrir/Biblioteca/Rádio/Ajustes), reutilizada tanto
 /// pelo [AppShell] quanto pelas rotas de topo (`/podcast`, `/episode`,
 /// `/player`, `/resolve/*`) que cobrem a casca — sem isso essas telas
 /// ficavam sem navegação nenhuma.
@@ -42,6 +42,11 @@ class AppBottomBar extends StatelessWidget {
               icon: Icon(Icons.library_music_outlined),
               selectedIcon: Icon(Icons.library_music),
               label: 'Biblioteca',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.radio_outlined),
+              selectedIcon: Icon(Icons.radio),
+              label: 'Rádio',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),
