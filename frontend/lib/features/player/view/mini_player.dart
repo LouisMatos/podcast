@@ -91,6 +91,8 @@ class _Bar extends ConsumerWidget {
                                     (episode.imageUrl ?? podcast!.artworkUrl)!,
                                 width: 40,
                                 height: 40,
+                                memCacheWidth: (40 * MediaQuery.devicePixelRatioOf(context)).round(),
+                                memCacheHeight: (40 * MediaQuery.devicePixelRatioOf(context)).round(),
                                 fit: BoxFit.cover,
                               ),
                       ),

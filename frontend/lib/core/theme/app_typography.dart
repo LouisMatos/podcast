@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Tipografia do design system: Nunito, terminais arredondados combinando
 /// com a forma do resto do app. Pesos 400/600/700; títulos com
 /// `letterSpacing` levemente negativo.
+///
+/// Fonte vendorizada em `assets/fonts/` (não via google_fonts) pra não
+/// depender de fetch de rede no primeiro uso em aparelho fraco/offline.
 abstract final class AppTypography {
   static TextTheme textTheme({
     required Color primary,
     required Color muted,
     required Brightness brightness,
   }) {
-    final base = GoogleFonts.nunitoTextTheme(
-      brightness == Brightness.dark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
-    );
+    final base = (brightness == Brightness.dark ? ThemeData.dark().textTheme : ThemeData.light().textTheme)
+        .apply(fontFamily: 'Nunito');
 
     return base.copyWith(
       headlineSmall: base.headlineSmall?.copyWith(

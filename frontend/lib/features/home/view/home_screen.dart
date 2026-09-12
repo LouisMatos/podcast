@@ -157,6 +157,8 @@ class _ContinueCard extends StatelessWidget {
                       imageUrl: artUrl,
                       width: _width - 20,
                       height: _width - 20,
+                      memCacheWidth: ((_width - 20) * MediaQuery.devicePixelRatioOf(context)).round(),
+                      memCacheHeight: ((_width - 20) * MediaQuery.devicePixelRatioOf(context)).round(),
                       fit: BoxFit.cover,
                       placeholder: (_, _) => _fallback(colors),
                       errorWidget: (_, _, _) => _fallback(colors),
@@ -215,6 +217,8 @@ class _RecentEpisodeRow extends StatelessWidget {
                     imageUrl: artUrl,
                     width: 56,
                     height: 56,
+                    memCacheWidth: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                     placeholder: (_, _) =>
                         const ShimmerBox(width: 56, height: 56),

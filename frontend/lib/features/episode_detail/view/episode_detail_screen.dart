@@ -92,6 +92,8 @@ class EpisodeDetailScreen extends ConsumerWidget {
                             imageUrl: artUrl,
                             width: 200,
                             height: 200,
+                            memCacheWidth: (200 * MediaQuery.devicePixelRatioOf(context)).round(),
+                            memCacheHeight: (200 * MediaQuery.devicePixelRatioOf(context)).round(),
                             fit: BoxFit.cover,
                           ),
                   ),

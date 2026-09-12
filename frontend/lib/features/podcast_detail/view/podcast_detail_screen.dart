@@ -196,6 +196,8 @@ class _Header extends StatelessWidget {
                         imageUrl: podcast.artworkUrl!,
                         width: 96,
                         height: 96,
+                        memCacheWidth: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
+                        memCacheHeight: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
                             const ShimmerBox(width: 96, height: 96),
@@ -682,6 +684,8 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
                     imageUrl: artUrl,
                     width: 56,
                     height: 56,
+                    memCacheWidth: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                     placeholder: (_, _) =>
                         const ShimmerBox(width: 56, height: 56),

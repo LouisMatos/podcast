@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 
@@ -33,9 +34,7 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final results = json['results'] as List<dynamic>? ?? const [];
-    return results.map(_toPodcast).nonNulls.toList();
+    return Isolate.run(() => _parsePodcasts(body));
   }
 
   /// Busca episódios avulsos (`entity=podcastEpisode`). Cada resultado traz o
@@ -58,12 +57,22 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
+    return Isolate.run(() => _parseEpisodeResults(body));
+  }
+
+  static List<Podcast> _parsePodcasts(String body) {
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final results = json['results'] as List<dynamic>? ?? const [];
+    return results.map(_toPodcast).nonNulls.toList();
+  }
+
+  static List<EpisodeSearchResult> _parseEpisodeResults(String body) {
     final json = jsonDecode(body) as Map<String, dynamic>;
     final results = json['results'] as List<dynamic>? ?? const [];
     return results.map(_toEpisodeResult).nonNulls.toList();
   }
 
-  EpisodeSearchResult? _toEpisodeResult(dynamic json) {
+  static EpisodeSearchResult? _toEpisodeResult(dynamic json) {
     if (json is! Map<String, dynamic>) return null;
 
     final collectionId = json['collectionId'] as int?;
@@ -118,12 +127,10 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final results = json['results'] as List<dynamic>? ?? const [];
-    return results.map(_toPodcast).nonNulls.toList();
+    return Isolate.run(() => _parsePodcasts(body));
   }
 
-  Podcast? _toPodcast(dynamic json) {
+  static Podcast? _toPodcast(dynamic json) {
     if (json is! Map<String, dynamic>) return null;
 
     final id = json['collectionId'] as int?;

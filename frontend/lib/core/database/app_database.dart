@@ -21,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,21 @@ class AppDatabase extends _$AppDatabase {
           // `listen_history` (sem FK — sobrevive a desassinar o podcast).
           if (from < 7) {
             await m.createTable(listenHistory);
+          }
+          // v7 -> v8 (ponytail — perf em aparelho fraco): índices pras
+          // consultas cross-podcast que hoje escaneiam a tabela inteira
+          // (`watchRecentEpisodes`/`watchContinueListening`) e pro lookup
+          // de download por `taskId` (evento do flutter_downloader).
+          if (from < 8) {
+            await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_episode_cache_recent ON episode_cache (archived, published_at)',
+            );
+            await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_playback_progress_continue ON playback_progress (completed, updated_at)',
+            );
+            await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_downloads_task_id ON downloads (task_id)',
+            );
           }
         },
       );

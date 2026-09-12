@@ -116,6 +116,8 @@ class _FeedCard extends StatelessWidget {
                     imageUrl: artworkUrl!,
                     width: 96,
                     height: 96,
+                    memCacheWidth: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                     placeholder: (_, _) => _fallback(colors),
                     errorWidget: (_, _, _) => _fallback(colors),

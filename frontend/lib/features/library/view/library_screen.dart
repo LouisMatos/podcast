@@ -244,6 +244,8 @@ class _Artwork extends StatelessWidget {
                   imageUrl: podcast.artworkUrl!,
                   width: size,
                   height: size,
+                  memCacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
+                  memCacheHeight: (size * MediaQuery.devicePixelRatioOf(context)).round(),
                   fit: BoxFit.cover,
                   placeholder: (_, _) => ShimmerBox(width: size, height: size),
                   errorWidget: (_, _, _) => fallback(),

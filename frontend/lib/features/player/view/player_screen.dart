@@ -132,6 +132,8 @@ class PlayerView extends ConsumerWidget {
                                       imageUrl: artUrl,
                                       width: 260,
                                       height: 260,
+                                      memCacheWidth: (260 * MediaQuery.devicePixelRatioOf(context)).round(),
+                                      memCacheHeight: (260 * MediaQuery.devicePixelRatioOf(context)).round(),
                                       fit: BoxFit.cover,
                                     ),
                             ),

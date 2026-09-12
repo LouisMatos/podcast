@@ -86,6 +86,8 @@ class _DownloadTile extends ConsumerWidget {
                     imageUrl: item.artworkUrl!,
                     width: 48,
                     height: 48,
+                    memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                   ),
           ),

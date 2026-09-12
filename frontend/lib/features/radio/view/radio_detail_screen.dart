@@ -52,6 +52,8 @@ class RadioDetailScreen extends ConsumerWidget {
                           imageUrl: station.logoUrl!,
                           width: 220,
                           height: 220,
+                          memCacheWidth: (220 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          memCacheHeight: (220 * MediaQuery.devicePixelRatioOf(context)).round(),
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) => _fallback(colors),
                         ),

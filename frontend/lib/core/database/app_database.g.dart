@@ -4157,6 +4157,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $QueueItemsTable queueItems = $QueueItemsTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
   late final $ListenHistoryTable listenHistory = $ListenHistoryTable(this);
+  late final Index idxEpisodeCacheRecent = Index(
+    'idx_episode_cache_recent',
+    'CREATE INDEX idx_episode_cache_recent ON episode_cache (archived, published_at)',
+  );
+  late final Index idxPlaybackProgressContinue = Index(
+    'idx_playback_progress_continue',
+    'CREATE INDEX idx_playback_progress_continue ON playback_progress (completed, updated_at)',
+  );
+  late final Index idxDownloadsTaskId = Index(
+    'idx_downloads_task_id',
+    'CREATE INDEX idx_downloads_task_id ON downloads (task_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4169,6 +4181,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     queueItems,
     chapters,
     listenHistory,
+    idxEpisodeCacheRecent,
+    idxPlaybackProgressContinue,
+    idxDownloadsTaskId,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
