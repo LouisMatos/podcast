@@ -11,7 +11,11 @@ part 'startup_feed_refresh_provider.g.dart';
 /// resultado não importa pra UI.
 @riverpod
 Future<int> startupFeedRefresh(Ref ref) async {
-  final results = await ref.read(libraryRepositoryProvider).refreshAllSubscriptions();
+  // Concorrência menor que o pull-to-refresh (default 4): fire-and-forget no
+  // boot, não deve competir por I/O/CPU com o primeiro frame da UI.
+  final results = await ref
+      .read(libraryRepositoryProvider)
+      .refreshAllSubscriptions(concurrency: 2);
   // Gestão automática (Fase 13): auto-download dos recentes + limpeza dos
   // ouvidos. No-op se nenhuma assinatura tem config.
   await ref.read(autoDownloadServiceProvider).run();
