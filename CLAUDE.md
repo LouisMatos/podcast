@@ -2,6 +2,11 @@
 
 Guidance pra Claude Code trabalhar neste repositório.
 
+## Modo obrigatório
+
+Toda sessão neste repo: ativar caveman ultra + ponytail ultra antes de
+qualquer resposta/ação. Persiste sessão inteira, sem re-drift.
+
 ## Repositório
 
 App escuta podcast, Android/iOS. `frontend/` = app Flutter (único código
