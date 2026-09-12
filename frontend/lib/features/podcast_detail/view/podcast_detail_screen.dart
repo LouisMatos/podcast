@@ -78,12 +78,16 @@ class PodcastDetailScreen extends ConsumerWidget {
             onSubscribe: notifier.subscribe,
             onUnsubscribe: notifier.unsubscribe,
           ),
-          error: (error, _) => EmptyState(
-            icon: Icons.wifi_off,
-            title: 'Não foi possível carregar os episódios',
-            message: 'Verifique sua conexão e tente de novo.',
-            onRetry: () =>
+          // Erro só na lista de episódios — header/artwork/subscribe/tabs
+          // continuam visíveis e usáveis, igual ao caminho de loading.
+          error: (error, _) => _PodcastDetailBody(
+            podcast: podcast,
+            episodes: null,
+            episodesError: true,
+            onEpisodesRetry: () =>
                 ref.invalidate(podcastDetailViewModelProvider(podcast)),
+            onSubscribe: notifier.subscribe,
+            onUnsubscribe: notifier.unsubscribe,
           ),
           data: (state) => _PodcastDetailBody(
             podcast: state.podcast,
@@ -103,12 +107,20 @@ class _PodcastDetailBody extends ConsumerStatefulWidget {
     required this.episodes,
     required this.onSubscribe,
     required this.onUnsubscribe,
+    this.episodesError = false,
+    this.onEpisodesRetry,
   });
 
   final Podcast podcast;
 
-  /// `null` enquanto carrega — usado pra mostrar o skeleton.
+  /// `null` enquanto carrega (ou em erro, ver [episodesError]) — usado pra
+  /// mostrar o skeleton.
   final List<Episode>? episodes;
+
+  /// Erro de rede ao buscar episódios sem cache local pra cair. Só afeta a
+  /// aba Episódios — header/artwork/subscribe/tabs continuam normais.
+  final bool episodesError;
+  final VoidCallback? onEpisodesRetry;
 
   final Future<void> Function() onSubscribe;
   final Future<void> Function() onUnsubscribe;
@@ -269,6 +281,8 @@ class _PodcastDetailBodyState extends ConsumerState<_PodcastDetailBody>
                 episodes: widget.episodes,
                 isSubscribed: isSubscribed,
                 scrollController: _scrollController,
+                hasError: widget.episodesError,
+                onRetry: widget.onEpisodesRetry,
               ),
               _DownloadsTab(podcast: widget.podcast),
             ],
@@ -377,15 +391,28 @@ class _EpisodesTab extends ConsumerWidget {
     required this.episodes,
     required this.isSubscribed,
     required this.scrollController,
+    this.hasError = false,
+    this.onRetry,
   });
 
   final Podcast podcast;
   final List<Episode>? episodes;
   final bool isSubscribed;
   final ScrollController scrollController;
+  final bool hasError;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (hasError) {
+      return EmptyState(
+        icon: Icons.wifi_off,
+        title: 'Não foi possível carregar os episódios',
+        message: 'Verifique sua conexão e tente de novo.',
+        onRetry: onRetry,
+      );
+    }
+
     if (episodes == null) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

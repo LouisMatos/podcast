@@ -154,8 +154,15 @@ class _Body extends StatelessWidget {
   final ValueChanged<RadioStation> onPlayTap;
   final ValueChanged<RadioStation> onFavoriteTap;
 
-  @override
-  Widget build(BuildContext context) {
+  // TabBar sempre visível/tocável, mesmo durante loading/erro — só o
+  // conteúdo de cada aba (skeleton, erro ou lista) muda independente. Antes,
+  // loading/erro trocavam TabBar+TabBarView inteiros por um só bloco,
+  // escondendo "Todas"/"Favoritas" e a troca de aba enquanto carregava.
+  Widget _tabContent(
+    List<RadioStation> stations,
+    ScrollController controller, {
+    String emptyTitle = 'Nenhuma rádio encontrada',
+  }) {
     if (state.isLoading) {
       return ListView(
         padding: const EdgeInsets.only(bottom: 24),
@@ -178,7 +185,21 @@ class _Body extends StatelessWidget {
       );
     }
 
-    final filtered = filterStations(state.stations, state.query);
+    return _StationsList(
+      stations: stations,
+      state: state,
+      scrollController: controller,
+      onTapStation: onTapStation,
+      onPlayTap: onPlayTap,
+      onFavoriteTap: onFavoriteTap,
+      emptyTitle: emptyTitle,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasData = !state.isLoading && state.error == null;
+    final filtered = hasData ? filterStations(state.stations, state.query) : const <RadioStation>[];
     final favorites = filtered.where((s) => state.favoriteIds.contains(s.id)).toList();
 
     return DefaultTabController(
@@ -194,23 +215,8 @@ class _Body extends StatelessWidget {
           Expanded(
             child: TabBarView(
               children: [
-                _StationsList(
-                  stations: filtered,
-                  state: state,
-                  scrollController: allController,
-                  onTapStation: onTapStation,
-                  onPlayTap: onPlayTap,
-                  onFavoriteTap: onFavoriteTap,
-                ),
-                _StationsList(
-                  stations: favorites,
-                  state: state,
-                  scrollController: favController,
-                  onTapStation: onTapStation,
-                  onPlayTap: onPlayTap,
-                  onFavoriteTap: onFavoriteTap,
-                  emptyTitle: 'Nenhuma rádio favoritada',
-                ),
+                _tabContent(filtered, allController),
+                _tabContent(favorites, favController, emptyTitle: 'Nenhuma rádio favoritada'),
               ],
             ),
           ),
