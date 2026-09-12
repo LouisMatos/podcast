@@ -11,8 +11,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/icon_toggle_button.dart';
 import '../../../core/widgets/pastel_chip.dart';
-import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/search_field.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
@@ -97,7 +97,7 @@ class PodcastDetailScreen extends ConsumerWidget {
   }
 }
 
-class _PodcastDetailBody extends ConsumerWidget {
+class _PodcastDetailBody extends ConsumerStatefulWidget {
   const _PodcastDetailBody({
     required this.podcast,
     required this.episodes,
@@ -114,51 +114,167 @@ class _PodcastDetailBody extends ConsumerWidget {
   final Future<void> Function() onUnsubscribe;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PodcastDetailBody> createState() =>
+      _PodcastDetailBodyState();
+}
+
+class _PodcastDetailBodyState extends ConsumerState<_PodcastDetailBody>
+    with SingleTickerProviderStateMixin {
+  // Altura da barra de busca colapsada — fixa, layout simples e conhecido.
+  // A altura do header cheio varia (título pode quebrar linha) e por isso é
+  // medida de verdade via `_headerKey`, nunca cortada.
+  static const double _collapsedHeight = 76;
+
+  late final TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _headerKey = GlobalKey();
+  // 0 = header cheio, 1 = totalmente colapsado (busca fixa). Atualizado a
+  // cada pixel rolado — a suavidade vem do próprio gesto de scroll, sem
+  // AnimationController: mais barato pro J5 que animar via ticker.
+  final ValueNotifier<double> _collapseFraction = ValueNotifier(0);
+  // Chute inicial até a primeira medição real do header (primeiro frame).
+  double _headerHeight = 160;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(_onTabChanged);
+    _scrollController.addListener(_onScroll);
+  }
+
+  // Só colapsa na aba Episódios — Baixados não tem busca, o header fica
+  // sempre visível lá.
+  void _onTabChanged() {
+    if (_tabController.index != 0) {
+      _collapseFraction.value = 0;
+    }
+  }
+
+  void _onScroll() {
+    if (_tabController.index != 0) return;
+    final range = _headerHeight - _collapsedHeight;
+    if (range <= 0) return;
+    _collapseFraction.value = (_scrollController.offset / range).clamp(
+      0.0,
+      1.0,
+    );
+  }
+
+  void _measureHeader() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      if ((box.size.height - _headerHeight).abs() > 0.5) {
+        setState(() => _headerHeight = box.size.height);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _collapseFraction.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final isSubscribed =
-        ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+        ref.watch(isSubscribedProvider(widget.podcast.id)).value ?? false;
+    final controlsNotifier = ref.read(
+      episodeListControlsProvider(widget.podcast.id).notifier,
+    );
+    _measureHeader();
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: _Header(
-              podcast: podcast,
-              isSubscribed: isSubscribed,
-              onSubscribe: onSubscribe,
-              onUnsubscribe: onUnsubscribe,
-            ),
-          ),
-          TabBar(
-            dividerColor: Colors.transparent,
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorColor: colors.primary,
-            labelColor: colors.textPrimary,
-            unselectedLabelColor: colors.textMuted,
-            tabs: const [
-              Tab(text: 'Episódios'),
-              Tab(text: 'Baixados'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ValueListenableBuilder<double>(
+          valueListenable: _collapseFraction,
+          builder: (context, t, _) {
+            final height =
+                _headerHeight -
+                (_headerHeight - _collapsedHeight) * t;
+            return SizedBox(
+              height: height,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: 0,
+                  maxHeight: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Opacity(
+                        opacity: (1 - t * 1.6).clamp(0.0, 1.0),
+                        child: IgnorePointer(
+                          ignoring: t > 0.5,
+                          child: Padding(
+                            key: _headerKey,
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                            child: _Header(
+                              podcast: widget.podcast,
+                              isSubscribed: isSubscribed,
+                              onSubscribe: widget.onSubscribe,
+                              onUnsubscribe: widget.onUnsubscribe,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Opacity(
+                        opacity: ((t - 0.4) / 0.6).clamp(0.0, 1.0),
+                        child: IgnorePointer(
+                          ignoring: t < 0.5,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                            child: SearchField(
+                              hintText: 'Buscar episódio',
+                              onChanged: controlsNotifier.setQuery,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        TabBar(
+          controller: _tabController,
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorColor: colors.primary,
+          labelColor: colors.textPrimary,
+          unselectedLabelColor: colors.textMuted,
+          tabs: const [
+            Tab(text: 'Episódios'),
+            Tab(text: 'Baixados'),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _EpisodesTab(
+                podcast: widget.podcast,
+                episodes: widget.episodes,
+                isSubscribed: isSubscribed,
+                scrollController: _scrollController,
+              ),
+              _DownloadsTab(podcast: widget.podcast),
             ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _EpisodesTab(
-                  podcast: podcast,
-                  episodes: episodes,
-                  isSubscribed: isSubscribed,
-                ),
-                _DownloadsTab(podcast: podcast),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -238,16 +354,17 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            IconToggleButton(
+              selected: isSubscribed,
+              iconSelected: Icons.check,
+              iconUnselected: Icons.add,
+              tooltipSelected: 'Assinado, toque pra cancelar',
+              tooltipUnselected: 'Assinar',
+              onPressed: () =>
+                  isSubscribed ? onUnsubscribe() : onSubscribe(),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        PillButton(
-          label: isSubscribed ? 'Assinado' : 'Assinar',
-          icon: isSubscribed ? Icons.check : Icons.add,
-          variant: isSubscribed
-              ? PillButtonVariant.secondary
-              : PillButtonVariant.primary,
-          onPressed: isSubscribed ? onUnsubscribe : onSubscribe,
         ),
       ],
     );
@@ -259,11 +376,13 @@ class _EpisodesTab extends ConsumerWidget {
     required this.podcast,
     required this.episodes,
     required this.isSubscribed,
+    required this.scrollController,
   });
 
   final Podcast podcast;
   final List<Episode>? episodes;
   final bool isSubscribed;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -302,80 +421,114 @@ class _EpisodesTab extends ConsumerWidget {
       archivedGuids: archived,
     );
 
+    // Item 0 = filtros/chips (rola junto da lista, igual ao comportamento
+    // anterior); demais itens = episódios (ou o aviso de lista vazia).
+    final itemCount = 1 + (visible.isEmpty ? 1 : visible.length);
+
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
-      child: ListView(
+      child: ListView.builder(
+        controller: scrollController,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          SearchField(
-            hintText: 'Buscar episódio',
-            onChanged: controlsNotifier.setQuery,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final f in EpisodeFilter.values) ...[
-                        _SelectableChip(
-                          label: _filterLabel(f),
-                          selected: controls.filter == f,
-                          onTap: () => controlsNotifier.setFilter(f),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
-                ),
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _EpisodeFilters(
+                controls: controls,
+                controlsNotifier: controlsNotifier,
+                isSubscribed: isSubscribed,
+                hasArchived: archived.isNotEmpty,
               ),
-              _SortButton(
-                current: controls.sort,
-                onSelected: controlsNotifier.setSort,
-              ),
-            ],
-          ),
-          if (isSubscribed &&
-              (controls.showArchived || archived.isNotEmpty)) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _SelectableChip(
-                label: controls.showArchived
-                    ? 'Vendo arquivados'
-                    : 'Mostrar arquivados',
-                selected: controls.showArchived,
-                onTap: controlsNotifier.toggleShowArchived,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (visible.isEmpty)
-            Padding(
+            );
+          }
+          if (visible.isEmpty) {
+            return Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
                 'Nenhum episódio com esse filtro.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-            )
-          else
-            for (final episode in visible) ...[
-              _EpisodeTile(
-                podcast: podcast,
-                episode: episode,
-                queue: visible,
-                isSubscribed: isSubscribed,
-                progress: progress[episode.guid],
-                isArchived: archived.contains(episode.guid),
-              ),
-              const SizedBox(height: 12),
-            ],
-        ],
+            );
+          }
+          final episode = visible[index - 1];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _EpisodeTile(
+              podcast: podcast,
+              episode: episode,
+              queue: visible,
+              isSubscribed: isSubscribed,
+              progress: progress[episode.guid],
+              isArchived: archived.contains(episode.guid),
+            ),
+          );
+        },
       ),
+    );
+  }
+}
+
+class _EpisodeFilters extends StatelessWidget {
+  const _EpisodeFilters({
+    required this.controls,
+    required this.controlsNotifier,
+    required this.isSubscribed,
+    required this.hasArchived,
+  });
+
+  final EpisodeListControlsState controls;
+  final EpisodeListControls controlsNotifier;
+  final bool isSubscribed;
+  final bool hasArchived;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final f in EpisodeFilter.values) ...[
+                      _SelectableChip(
+                        label: _filterLabel(f),
+                        selected: controls.filter == f,
+                        onTap: () => controlsNotifier.setFilter(f),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            _SortButton(
+              current: controls.sort,
+              onSelected: controlsNotifier.setSort,
+            ),
+          ],
+        ),
+        if (isSubscribed && (controls.showArchived || hasArchived)) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _SelectableChip(
+              label: controls.showArchived
+                  ? 'Vendo arquivados'
+                  : 'Mostrar arquivados',
+              selected: controls.showArchived,
+              onTap: controlsNotifier.toggleShowArchived,
+            ),
+          ),
+        ],
+      ],
     );
   }
 

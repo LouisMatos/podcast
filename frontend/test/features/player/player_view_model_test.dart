@@ -186,6 +186,27 @@ void main() {
     expect(prefs.playbackSpeed, 2.0);
   });
 
+  group('fechar mini-player (dismiss)', () {
+    test('para o handler, limpa a fila e zera o episódio', () async {
+      final q = container.read(queueRepositoryProvider) as _MockQueue;
+      when(() => q.clear()).thenAnswer((_) async {});
+
+      await container
+          .read(playerViewModelProvider.notifier)
+          .playEpisode(podcast, episode);
+      expect(container.read(playerViewModelProvider).isIdle, false);
+
+      await container.read(playerViewModelProvider.notifier).dismiss();
+
+      final state = container.read(playerViewModelProvider);
+      expect(state.isIdle, true);
+      expect(state.podcast, null);
+      expect(state.queue, isEmpty);
+      expect(state.isPlaying, false);
+      verify(() => q.clear()).called(1);
+    });
+  });
+
   group('efeitos de áudio (Fase 14)', () {
     test('build restaura pular silêncio / reforço de volume salvos', () async {
       final c = await makeContainer({

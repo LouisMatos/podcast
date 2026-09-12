@@ -418,6 +418,26 @@ class PlayerViewModel extends _$PlayerViewModel {
     }
   }
 
+  /// Para a reprodução por completo e esconde o mini-player. Diferente de
+  /// pausar: esvazia a fila e zera o episódio atual, então `isIdle` volta a
+  /// `true` (`_onMediaItemChanged` nunca zera sozinho em item nulo).
+  Future<void> dismiss() async {
+    unawaited(HapticFeedback.selectionClick());
+    await _handler.stop();
+    await ref.read(queueRepositoryProvider).clear();
+    state = state.copyWith(
+      episode: null,
+      podcast: null,
+      queue: const [],
+      isPlaying: false,
+      isBuffering: false,
+      position: Duration.zero,
+      bufferedPosition: Duration.zero,
+      duration: null,
+      chapters: const [],
+    );
+  }
+
   void seek(Duration position) => _handler.seek(position);
 
   void skipForward([Duration amount = const Duration(seconds: 30)]) {

@@ -66,7 +66,7 @@ class _Bar extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
               child: Row(
                 children: [
                   Hero(
@@ -114,7 +114,6 @@ class _Bar extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   IconButton(
                     icon: Icon(
                       player.isBuffering
@@ -123,7 +122,12 @@ class _Bar extends ConsumerWidget {
                           ? Icons.pause_circle_filled
                           : Icons.play_circle_fill,
                       color: colors.primary,
-                      size: 36,
+                      size: 32,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
                     ),
                     tooltip: player.isBuffering
                         ? 'Carregando'
@@ -133,6 +137,22 @@ class _Bar extends ConsumerWidget {
                         : () => ref
                               .read(playerViewModelProvider.notifier)
                               .togglePlayPause(),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: colors.textMuted,
+                      size: 18,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    tooltip: 'Fechar player',
+                    onPressed: () => ref
+                        .read(playerViewModelProvider.notifier)
+                        .dismiss(),
                   ),
                 ],
               ),
