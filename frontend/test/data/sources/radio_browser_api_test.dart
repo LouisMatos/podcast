@@ -17,7 +17,14 @@ void main() {
   });
 
   void stubBody(List<dynamic> body) {
-    when(() => dio.get<List<dynamic>>(any())).thenAnswer(
+    when(
+      () => dio.get<List<dynamic>>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    ).thenAnswer(
       (_) async => Response<List<dynamic>>(data: body, requestOptions: RequestOptions(path: _endpoint)),
     );
   }

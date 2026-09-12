@@ -93,7 +93,14 @@ void main() {
   });
 
   Future<List<Episode>> fetchWith(String xml) {
-    when(() => dio.get<String>(any(), options: any(named: 'options'))).thenAnswer(
+    when(
+      () => dio.get<String>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    ).thenAnswer(
       (_) async => Response<String>(data: xml, requestOptions: RequestOptions(path: _feedUrl)),
     );
     return parser.fetchEpisodes(_feedUrl);
@@ -132,7 +139,14 @@ void main() {
   });
 
   test('feed vazio devolve lista vazia', () async {
-    when(() => dio.get<String>(any(), options: any(named: 'options'))).thenAnswer(
+    when(
+      () => dio.get<String>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    ).thenAnswer(
       (_) async => Response<String>(data: '', requestOptions: RequestOptions(path: _feedUrl)),
     );
     final episodes = await parser.fetchEpisodes(_feedUrl);

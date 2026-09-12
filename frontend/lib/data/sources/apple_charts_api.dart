@@ -3,6 +3,8 @@ import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 
+import '../../core/network/dio_client.dart';
+
 /// Rankings de podcast da Apple (públicos, sem chave).
 ///
 /// - Geral: "Marketing Tools" RSS
@@ -27,7 +29,7 @@ class AppleChartsApi {
 
     // Mesma armadilha da iTunes Search API: content-type nem sempre é
     // `application/json`. Pedimos texto puro e decodificamos na mão.
-    final response = await _dio.get<String>(url, options: Options(responseType: ResponseType.plain));
+    final response = await _dio.getWithDeadline<String>(url, options: Options(responseType: ResponseType.plain));
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 

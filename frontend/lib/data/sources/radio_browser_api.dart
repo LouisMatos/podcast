@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../core/network/dio_client.dart';
 import '../models/radio_station.dart';
 
 /// Rádios brasileiras com transmissão ao vivo (Radio Browser API, pública,
@@ -13,7 +14,7 @@ class RadioBrowserApi {
   static const String _baseUrl = 'https://de1.api.radio-browser.info';
 
   Future<List<RadioStation>> fetchBrStations() async {
-    final response = await _dio.get<List<dynamic>>(
+    final response = await _dio.getWithDeadline<List<dynamic>>(
       '$_baseUrl/json/stations/bycountrycodeexact/BR',
     );
     final entries = response.data ?? const [];

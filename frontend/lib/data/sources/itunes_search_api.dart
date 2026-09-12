@@ -3,6 +3,7 @@ import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 
+import '../../core/network/dio_client.dart';
 import '../models/episode.dart';
 import '../models/episode_search_result.dart';
 import '../models/podcast.dart';
@@ -20,7 +21,7 @@ class ItunesSearchApi {
     // A API devolve `Content-Type: text/javascript`, não `application/json`
     // — o decoder automático do Dio não reconhece isso, então pedimos texto
     // puro e decodificamos o JSON na mão.
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       _endpoint,
       queryParameters: {
         'media': 'podcast',
@@ -43,7 +44,7 @@ class ItunesSearchApi {
     String term, {
     int limit = 25,
   }) async {
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       _endpoint,
       queryParameters: {
         'media': 'podcast',
@@ -118,7 +119,7 @@ class ItunesSearchApi {
   Future<List<Podcast>> lookup(List<int> ids) async {
     if (ids.isEmpty) return const [];
 
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       'https://itunes.apple.com/lookup',
       queryParameters: {'id': ids.join(','), 'entity': 'podcast'},
       options: Options(responseType: ResponseType.plain),
