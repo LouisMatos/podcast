@@ -200,6 +200,26 @@ void main() {
       expect(state.isPlaying, isFalse);
       expect(state.isBuffering, isFalse);
     });
+
+    test('stop() para o handler e zera nowPlaying/nowPlayingId', () async {
+      when(() => repository.brStations()).thenAnswer((_) async => [_station]);
+      keepAlive();
+      final notifier = container.read(radioViewModelProvider.notifier);
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.play(_station);
+      handler.playbackState.add(PlaybackState(playing: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(radioViewModelProvider).nowPlaying, _station);
+
+      await notifier.stop();
+
+      final state = container.read(radioViewModelProvider);
+      expect(state.nowPlayingId, isNull);
+      expect(state.nowPlaying, isNull);
+      expect(state.isPlaying, isFalse);
+      expect(state.isBuffering, isFalse);
+    });
   });
 
   group('busca', () {

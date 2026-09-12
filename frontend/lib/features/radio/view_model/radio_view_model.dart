@@ -57,7 +57,12 @@ class RadioViewModel extends _$RadioViewModel {
       return;
     }
 
-    state = state.copyWith(nowPlayingId: station.id, isPlaying: false, isBuffering: true);
+    state = state.copyWith(
+      nowPlayingId: station.id,
+      nowPlaying: station,
+      isPlaying: false,
+      isBuffering: true,
+    );
     await _handler.setQueue([_toMediaItem(station)], playFirst: true);
   }
 
@@ -69,12 +74,29 @@ class RadioViewModel extends _$RadioViewModel {
     }
   }
 
+  /// Para a reprodução por completo e some com o estado "tocando agora" —
+  /// usado pelo botão de fechar do mini-player.
+  Future<void> stop() async {
+    await _handler.stop();
+    state = state.copyWith(
+      nowPlayingId: null,
+      nowPlaying: null,
+      isPlaying: false,
+      isBuffering: false,
+    );
+  }
+
   void _onMediaItemChanged(audio_service.MediaItem? item) {
     if (item?.extras?['isRadio'] != true) {
       // O handler compartilhado passou a tocar outra coisa (um episódio,
       // por exemplo) — sem isso o tile da rádio ficava travado em "tocando".
       if (state.nowPlayingId != null) {
-        state = state.copyWith(nowPlayingId: null, isPlaying: false, isBuffering: false);
+        state = state.copyWith(
+          nowPlayingId: null,
+          nowPlaying: null,
+          isPlaying: false,
+          isBuffering: false,
+        );
       }
       return;
     }

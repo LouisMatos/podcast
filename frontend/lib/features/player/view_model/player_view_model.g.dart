@@ -50,7 +50,7 @@ final class PlayerViewModelProvider
   }
 }
 
-String _$playerViewModelHash() => r'436da421664e2177e1d94bebaa05a388e698111b';
+String _$playerViewModelHash() => r'2aced57f086d965a3a5e55e1e3020e18573508a6';
 
 /// ViewModel do player — o único que fala com o [PodcastAudioHandler].
 /// `keepAlive`: o áudio toca em background e o mini-player aparece em

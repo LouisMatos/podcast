@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$RadioState {
 
- List<RadioStation> get stations; String get query; Set<String> get favoriteIds; bool get isLoading; String? get error; bool get offline; String? get nowPlayingId; bool get isPlaying; bool get isBuffering;
+ List<RadioStation> get stations; String get query; Set<String> get favoriteIds; bool get isLoading; String? get error; bool get offline; String? get nowPlayingId; RadioStation? get nowPlaying; bool get isPlaying; bool get isBuffering;
 /// Create a copy of RadioState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $RadioStateCopyWith<RadioState> get copyWith => _$RadioStateCopyWithImpl<RadioSt
 @override
 bool operator ==(Object other) {
   final _this = this as RadioState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RadioState&&const DeepCollectionEquality().equals(other.stations, _this.stations)&&(identical(other.query, _this.query) || other.query == _this.query)&&const DeepCollectionEquality().equals(other.favoriteIds, _this.favoriteIds)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&(identical(other.error, _this.error) || other.error == _this.error)&&(identical(other.offline, _this.offline) || other.offline == _this.offline)&&(identical(other.nowPlayingId, _this.nowPlayingId) || other.nowPlayingId == _this.nowPlayingId)&&(identical(other.isPlaying, _this.isPlaying) || other.isPlaying == _this.isPlaying)&&(identical(other.isBuffering, _this.isBuffering) || other.isBuffering == _this.isBuffering));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RadioState&&const DeepCollectionEquality().equals(other.stations, _this.stations)&&(identical(other.query, _this.query) || other.query == _this.query)&&const DeepCollectionEquality().equals(other.favoriteIds, _this.favoriteIds)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&(identical(other.error, _this.error) || other.error == _this.error)&&(identical(other.offline, _this.offline) || other.offline == _this.offline)&&(identical(other.nowPlayingId, _this.nowPlayingId) || other.nowPlayingId == _this.nowPlayingId)&&(identical(other.nowPlaying, _this.nowPlaying) || other.nowPlaying == _this.nowPlaying)&&(identical(other.isPlaying, _this.isPlaying) || other.isPlaying == _this.isPlaying)&&(identical(other.isBuffering, _this.isBuffering) || other.isBuffering == _this.isBuffering));
 }
 
 
 @override
 int get hashCode {
   final _this = this as RadioState;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.stations),_this.query,const DeepCollectionEquality().hash(_this.favoriteIds),_this.isLoading,_this.error,_this.offline,_this.nowPlayingId,_this.isPlaying,_this.isBuffering);
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.stations),_this.query,const DeepCollectionEquality().hash(_this.favoriteIds),_this.isLoading,_this.error,_this.offline,_this.nowPlayingId,_this.nowPlaying,_this.isPlaying,_this.isBuffering);
 }
 
 @override
 String toString() {
   final _this = this as RadioState;
-  return 'RadioState(stations: ${_this.stations}, query: ${_this.query}, favoriteIds: ${_this.favoriteIds}, isLoading: ${_this.isLoading}, error: ${_this.error}, offline: ${_this.offline}, nowPlayingId: ${_this.nowPlayingId}, isPlaying: ${_this.isPlaying}, isBuffering: ${_this.isBuffering})';
+  return 'RadioState(stations: ${_this.stations}, query: ${_this.query}, favoriteIds: ${_this.favoriteIds}, isLoading: ${_this.isLoading}, error: ${_this.error}, offline: ${_this.offline}, nowPlayingId: ${_this.nowPlayingId}, nowPlaying: ${_this.nowPlaying}, isPlaying: ${_this.isPlaying}, isBuffering: ${_this.isBuffering})';
 }
 
 
@@ -51,11 +51,11 @@ abstract mixin class $RadioStateCopyWith<$Res>  {
   factory $RadioStateCopyWith(RadioState value, $Res Function(RadioState) _then) = _$RadioStateCopyWithImpl;
 @useResult
 $Res call({
- List<RadioStation> stations, String query, Set<String> favoriteIds, bool isLoading, String? error, bool offline, String? nowPlayingId, bool isPlaying, bool isBuffering
+ List<RadioStation> stations, String query, Set<String> favoriteIds, bool isLoading, String? error, bool offline, String? nowPlayingId, RadioStation? nowPlaying, bool isPlaying, bool isBuffering
 });
 
 
-
+$RadioStationCopyWith<$Res>? get nowPlaying;
 
 }
 /// @nodoc
@@ -68,7 +68,7 @@ class _$RadioStateCopyWithImpl<$Res>
 
 /// Create a copy of RadioState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? stations = null,Object? query = null,Object? favoriteIds = null,Object? isLoading = null,Object? error = freezed,Object? offline = null,Object? nowPlayingId = freezed,Object? isPlaying = null,Object? isBuffering = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? stations = null,Object? query = null,Object? favoriteIds = null,Object? isLoading = null,Object? error = freezed,Object? offline = null,Object? nowPlayingId = freezed,Object? nowPlaying = freezed,Object? isPlaying = null,Object? isBuffering = null,}) {
   return _then(RadioState(
 stations: null == stations ? _self.stations : stations // ignore: cast_nullable_to_non_nullable
 as List<RadioStation>,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
@@ -77,12 +77,25 @@ as Set<String>,isLoading: null == isLoading ? _self.isLoading : isLoading // ign
 as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,offline: null == offline ? _self.offline : offline // ignore: cast_nullable_to_non_nullable
 as bool,nowPlayingId: freezed == nowPlayingId ? _self.nowPlayingId : nowPlayingId // ignore: cast_nullable_to_non_nullable
-as String?,isPlaying: null == isPlaying ? _self.isPlaying : isPlaying // ignore: cast_nullable_to_non_nullable
+as String?,nowPlaying: freezed == nowPlaying ? _self.nowPlaying : nowPlaying // ignore: cast_nullable_to_non_nullable
+as RadioStation?,isPlaying: null == isPlaying ? _self.isPlaying : isPlaying // ignore: cast_nullable_to_non_nullable
 as bool,isBuffering: null == isBuffering ? _self.isBuffering : isBuffering // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
+/// Create a copy of RadioState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$RadioStationCopyWith<$Res>? get nowPlaying {
+    if (_self.nowPlaying == null) {
+    return null;
+  }
 
+  return $RadioStationCopyWith<$Res>(_self.nowPlaying!, (value) {
+    return _then(_self.copyWith(nowPlaying: value));
+  });
+}
 }
 
 
@@ -164,10 +177,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  bool isPlaying,  bool isBuffering)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  RadioStation? nowPlaying,  bool isPlaying,  bool isBuffering)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RadioState() when $default != null:
-return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.isPlaying,_that.isBuffering);case _:
+return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.nowPlaying,_that.isPlaying,_that.isBuffering);case _:
   return orElse();
 
 }
@@ -185,10 +198,10 @@ return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  bool isPlaying,  bool isBuffering)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  RadioStation? nowPlaying,  bool isPlaying,  bool isBuffering)  $default,) {final _that = this;
 switch (_that) {
 case _RadioState():
-return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.isPlaying,_that.isBuffering);case _:
+return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.nowPlaying,_that.isPlaying,_that.isBuffering);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +218,10 @@ return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  bool isPlaying,  bool isBuffering)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<RadioStation> stations,  String query,  Set<String> favoriteIds,  bool isLoading,  String? error,  bool offline,  String? nowPlayingId,  RadioStation? nowPlaying,  bool isPlaying,  bool isBuffering)?  $default,) {final _that = this;
 switch (_that) {
 case _RadioState() when $default != null:
-return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.isPlaying,_that.isBuffering);case _:
+return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_that.error,_that.offline,_that.nowPlayingId,_that.nowPlaying,_that.isPlaying,_that.isBuffering);case _:
   return null;
 
 }
@@ -220,7 +233,7 @@ return $default(_that.stations,_that.query,_that.favoriteIds,_that.isLoading,_th
 
 
 class _RadioState implements RadioState {
-  const _RadioState({ List<RadioStation> stations = const <RadioStation>[], this.query = '',  Set<String> favoriteIds = const <String>{}, this.isLoading = false, this.error, this.offline = false, this.nowPlayingId, this.isPlaying = false, this.isBuffering = false}): _stations = stations,_favoriteIds = favoriteIds;
+  const _RadioState({ List<RadioStation> stations = const <RadioStation>[], this.query = '',  Set<String> favoriteIds = const <String>{}, this.isLoading = false, this.error, this.offline = false, this.nowPlayingId, this.nowPlaying, this.isPlaying = false, this.isBuffering = false}): _stations = stations,_favoriteIds = favoriteIds;
   
 
  final  List<RadioStation> _stations;
@@ -242,6 +255,7 @@ class _RadioState implements RadioState {
 @override final  String? error;
 @override@JsonKey() final  bool offline;
 @override final  String? nowPlayingId;
+@override final  RadioStation? nowPlaying;
 @override@JsonKey() final  bool isPlaying;
 @override@JsonKey() final  bool isBuffering;
 
@@ -255,18 +269,18 @@ _$RadioStateCopyWith<_RadioState> get copyWith => __$RadioStateCopyWithImpl<_Rad
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RadioState&&const DeepCollectionEquality().equals(other.stations, _stations)&&(identical(other.query, query) || other.query == query)&&const DeepCollectionEquality().equals(other.favoriteIds, _favoriteIds)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.error, error) || other.error == error)&&(identical(other.offline, offline) || other.offline == offline)&&(identical(other.nowPlayingId, nowPlayingId) || other.nowPlayingId == nowPlayingId)&&(identical(other.isPlaying, isPlaying) || other.isPlaying == isPlaying)&&(identical(other.isBuffering, isBuffering) || other.isBuffering == isBuffering));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RadioState&&const DeepCollectionEquality().equals(other.stations, _stations)&&(identical(other.query, query) || other.query == query)&&const DeepCollectionEquality().equals(other.favoriteIds, _favoriteIds)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.error, error) || other.error == error)&&(identical(other.offline, offline) || other.offline == offline)&&(identical(other.nowPlayingId, nowPlayingId) || other.nowPlayingId == nowPlayingId)&&(identical(other.nowPlaying, nowPlaying) || other.nowPlaying == nowPlaying)&&(identical(other.isPlaying, isPlaying) || other.isPlaying == isPlaying)&&(identical(other.isBuffering, isBuffering) || other.isBuffering == isBuffering));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_stations),query,const DeepCollectionEquality().hash(_favoriteIds),isLoading,error,offline,nowPlayingId,isPlaying,isBuffering);
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_stations),query,const DeepCollectionEquality().hash(_favoriteIds),isLoading,error,offline,nowPlayingId,nowPlaying,isPlaying,isBuffering);
 }
 
 @override
 String toString() {
-    return 'RadioState(stations: $stations, query: $query, favoriteIds: $favoriteIds, isLoading: $isLoading, error: $error, offline: $offline, nowPlayingId: $nowPlayingId, isPlaying: $isPlaying, isBuffering: $isBuffering)';
+    return 'RadioState(stations: $stations, query: $query, favoriteIds: $favoriteIds, isLoading: $isLoading, error: $error, offline: $offline, nowPlayingId: $nowPlayingId, nowPlaying: $nowPlaying, isPlaying: $isPlaying, isBuffering: $isBuffering)';
 }
 
 
@@ -277,11 +291,11 @@ abstract mixin class _$RadioStateCopyWith<$Res> implements $RadioStateCopyWith<$
   factory _$RadioStateCopyWith(_RadioState value, $Res Function(_RadioState) _then) = __$RadioStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<RadioStation> stations, String query, Set<String> favoriteIds, bool isLoading, String? error, bool offline, String? nowPlayingId, bool isPlaying, bool isBuffering
+ List<RadioStation> stations, String query, Set<String> favoriteIds, bool isLoading, String? error, bool offline, String? nowPlayingId, RadioStation? nowPlaying, bool isPlaying, bool isBuffering
 });
 
 
-
+@override $RadioStationCopyWith<$Res>? get nowPlaying;
 
 }
 /// @nodoc
@@ -294,7 +308,7 @@ class __$RadioStateCopyWithImpl<$Res>
 
 /// Create a copy of RadioState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? stations = null,Object? query = null,Object? favoriteIds = null,Object? isLoading = null,Object? error = freezed,Object? offline = null,Object? nowPlayingId = freezed,Object? isPlaying = null,Object? isBuffering = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? stations = null,Object? query = null,Object? favoriteIds = null,Object? isLoading = null,Object? error = freezed,Object? offline = null,Object? nowPlayingId = freezed,Object? nowPlaying = freezed,Object? isPlaying = null,Object? isBuffering = null,}) {
   return _then(_RadioState(
 stations: null == stations ? _self._stations : stations // ignore: cast_nullable_to_non_nullable
 as List<RadioStation>,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
@@ -303,13 +317,26 @@ as Set<String>,isLoading: null == isLoading ? _self.isLoading : isLoading // ign
 as bool,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as String?,offline: null == offline ? _self.offline : offline // ignore: cast_nullable_to_non_nullable
 as bool,nowPlayingId: freezed == nowPlayingId ? _self.nowPlayingId : nowPlayingId // ignore: cast_nullable_to_non_nullable
-as String?,isPlaying: null == isPlaying ? _self.isPlaying : isPlaying // ignore: cast_nullable_to_non_nullable
+as String?,nowPlaying: freezed == nowPlaying ? _self.nowPlaying : nowPlaying // ignore: cast_nullable_to_non_nullable
+as RadioStation?,isPlaying: null == isPlaying ? _self.isPlaying : isPlaying // ignore: cast_nullable_to_non_nullable
 as bool,isBuffering: null == isBuffering ? _self.isBuffering : isBuffering // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
 
+/// Create a copy of RadioState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$RadioStationCopyWith<$Res>? get nowPlaying {
+    if (_self.nowPlaying == null) {
+    return null;
+  }
 
+  return $RadioStationCopyWith<$Res>(_self.nowPlaying!, (value) {
+    return _then(_self.copyWith(nowPlaying: value));
+  });
+}
 }
 
 // dart format on

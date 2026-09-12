@@ -6,6 +6,7 @@ import '../../../core/router/app_bottom_bar.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/widgets/icon_toggle_button.dart';
 import '../../../data/models/radio_station.dart';
 import '../../player/view_model/player_view_model.dart';
 import '../view_model/radio_view_model.dart';
@@ -70,7 +71,16 @@ class RadioDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                IconToggleButton(
+                  selected: state.favoriteIds.contains(station.id),
+                  iconSelected: Icons.star,
+                  iconUnselected: Icons.star_border,
+                  tooltipSelected: 'Favorita, toque pra remover',
+                  tooltipUnselected: 'Favoritar',
+                  onPressed: () => notifier.toggleFavorite(station.id),
+                ),
+                const SizedBox(height: 20),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,

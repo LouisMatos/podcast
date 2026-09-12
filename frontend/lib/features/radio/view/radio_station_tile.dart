@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/widgets/icon_toggle_button.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/radio_station.dart';
@@ -81,12 +82,13 @@ class RadioStationTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
+          IconToggleButton(
+            selected: isFavorite,
+            iconSelected: Icons.star,
+            iconUnselected: Icons.star_border,
+            tooltipSelected: 'Favorita, toque pra remover',
+            tooltipUnselected: 'Favoritar',
             onPressed: onFavoriteTap,
-            icon: Icon(
-              isFavorite ? Icons.star : Icons.star_border,
-              color: isFavorite ? colors.primary : colors.textMuted,
-            ),
           ),
           if (isBuffering)
             const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2))
