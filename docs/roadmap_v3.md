@@ -60,6 +60,12 @@ físico).
 
 Ordem sugerida do resto: **26c/20 (mesma sessão de device físico) → 24 → 25**.
 
+**Perf em device físico + componentes independentes concluído** (2026-09-
+12/13, fora da numeração de fases desta v3 — branch
+`perf/device-profiling-and-concurrent-refresh`): detalhe completo em
+`docs/roadmap_perf_device.md`. Ver também `docs/roadmap_ponytail_perf.md`
+(otimização de APK/device fraco, sessão anterior).
+
 ## Regra de ouro (por fase) — igual v1/v2
 
 - `dart analyze` limpo (roda `riverpod_lint`; `flutter analyze` **não** roda o
@@ -89,8 +95,10 @@ local rotativo em `core/diagnostics/error_log.dart`, local-only);
 `ErrorWidget.builder` → `ErrorScreen` autossuficiente no lugar da tela cinza;
 `FeedSyncScheduler.apply` movido pra `addPostFrameCallback` (fora do caminho
 crítico do `runApp`). Cold start no emulador caiu de "Skipped 117 frames" pra
-~66. **Não feito:** profiling fino com devtools timeline (deixado pra quando
-houver device — o ganho fácil já entrou).
+~66. **Profiling fino com devtools timeline em device físico**: feito em
+2026-09-12/13, ver `docs/roadmap_perf_device.md` (cold start ~1.37s no J5,
+refresh de feeds paralelizado, prazo total por requisição HTTP, componentes
+de tela independentes de loading).
 
 **Problema:** cold start pinta "Skipped 117 frames" / "42 frames" no logcat —
 o primeiro frame carrega trabalho que podia esperar. E se o `runApp` explode
