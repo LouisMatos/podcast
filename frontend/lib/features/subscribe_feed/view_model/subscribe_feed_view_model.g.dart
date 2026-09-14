@@ -72,7 +72,7 @@ final class SubscribeFeedViewModelProvider
 }
 
 String _$subscribeFeedViewModelHash() =>
-    r'2cb0919c974a63fee034de6af57da3980a661095';
+    r'dc137eb2874f7b7101416bafadb38d97e719bc39';
 
 /// Fluxo "assinar este feed RSS" — aberto por um deep link `http(s)://…`
 /// (intent VIEW de outro app). Lê o feed, tenta casá-lo com um resultado da

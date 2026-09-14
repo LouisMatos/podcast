@@ -15,6 +15,7 @@ part 'app_database.g.dart';
     QueueItems,
     Chapters,
     ListenHistory,
+    QueryCache,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -39,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
         );
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +109,11 @@ class AppDatabase extends _$AppDatabase {
             await m.database.customStatement(
               'CREATE INDEX IF NOT EXISTS idx_downloads_task_id ON downloads (task_id)',
             );
+          }
+          // v8 -> v9 (Fase 27 — cache offline de busca/listagem): tabela
+          // genérica de cache de resposta de rede (busca, charts, rádio).
+          if (from < 9) {
+            await m.createTable(queryCache);
           }
         },
       );

@@ -75,6 +75,12 @@ device físico simples — 24 precisa API 34+, 25 é só código).
 `docs/roadmap_perf_device.md`. Ver também `docs/roadmap_ponytail_perf.md`
 (otimização de APK/device fraco, sessão anterior).
 
+**Cache offline de busca/listagem em andamento** (2026-09-14, capacidade
+nova — não é polimento da v3, numerada Fase 27 em `docs/roadmap_cache_offline.md`,
+branch `feature/cache-offline-fase27-1-schema` a partir de
+`feature/ui-density-fase4-unify-episode-row`): Fase 27.1 (schema
+`QueryCache`, v8→v9) concluída. Faltam 27.2–27.6.
+
 ## Regra de ouro (por fase) — igual v1/v2
 
 - `dart analyze` limpo (roda `riverpod_lint`; `flutter analyze` **não** roda o
