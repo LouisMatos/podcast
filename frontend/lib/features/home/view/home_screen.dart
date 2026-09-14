@@ -60,7 +60,7 @@ class HomeScreen extends ConsumerWidget {
               if (continueItems.isNotEmpty) ...[
                 const SectionHeader(title: 'Continuar ouvindo'),
                 SizedBox(
-                  height: 210,
+                  height: 198,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: continueItems.length,
@@ -131,7 +131,7 @@ class _ContinueCard extends StatelessWidget {
 
   final ContinueListeningItem item;
 
-  static const double _width = 150;
+  static const double _width = 140;
 
   @override
   Widget build(BuildContext context) {

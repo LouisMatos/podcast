@@ -117,7 +117,7 @@ class _DiscoverHome extends StatelessWidget {
 class _FeaturedCarousel extends ConsumerWidget {
   const _FeaturedCarousel();
 
-  static const double _height = 232;
+  static const double _height = 208;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

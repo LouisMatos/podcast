@@ -77,18 +77,19 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
 - Decisão: se reduzir risco for prioridade, pular esta fase — dívida técnica,
   não afeta densidade (já usa padding da Fase 1)
 
-## Fase 5 — Alturas fixas de carrossel
+## Fase 5 — Alturas fixas de carrossel — concluída
 Risco documentado no CLAUDE.md: overflow `RenderFlex` em carrossel de altura
 fixa já aconteceu antes nesse componente.
-- [ ] Home `_ContinueCard` (h:210) e Discover `_FeaturedCarousel` (h:232) —
-      medir conteúdo interno antes de cortar altura, não chutar número
-- [ ] Reduzir em incrementos pequenos, testar overflow a cada incremento, Home
-      e Discover em etapas separadas (estruturas diferentes)
-- [ ] Se overflow persistir, não forçar — parar e reportar antes de mudar
-      `maxLines`/truncamento (sai do escopo "só visual")
-- [ ] `flutter analyze`/`flutter test` limpos
-- [ ] Teste manual device: modo debug com overflow indicator visível, título
-      mais longo disponível nos dados reais; repetir em profile/release
+- [x] Discover `_FeaturedCarousel`: 232→208 (conteúdo calculado ~196, folga
+      preservada) — testado isolado primeiro, sem overflow
+- [x] Home `_ContinueCard`: mais justo (conteúdo ~207 de 210 disponíveis) —
+      reduzido width 150→140 (imagem 130→120 via fórmula `_width-20`) junto
+      com altura do container 210→198, mantendo a mesma folga proporcional
+- [x] Discover e Home testados em etapas separadas, cada um rebuild+screenshot
+      próprio no device antes de avançar
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): ambos carrosséis sem overflow, título
+      ainda 2 linhas com ellipsis, progress bar do `_ContinueCard` intacta
 
 ## Fase 6 (opcional) — Animação leve de entrada de lista
 - [ ] Fade-in único via `AppMotion.enter` + `AppMotion.fast` (250ms), sempre
