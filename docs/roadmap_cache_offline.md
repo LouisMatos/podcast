@@ -43,6 +43,12 @@ class QueryCache extends Table {
 - [x] `query_cache_migration_test.dart` novo — onCreate cria `queryCache` utilizável
 - [x] `sqlite3` promovido a dev_dependency direta (removeu `ignore: depend_on_referenced_packages`)
 - [x] `dart analyze` limpo, `flutter test` 247/247
+- [x] Device físico (SM-G570M): `flutter build apk --release` + reinstalado
+      (assinatura debug local diferia da release já instalada — reinstalo
+      exigiu uninstall, então validou fresh-install/`onCreate`, não o
+      upgrade real sobre dado existente; esse caminho já está coberto pelo
+      `migration_chain_test.dart`). App abre sem crash, sem erro
+      drift/sqlite no logcat.
 
 ## Fase 27.2 — `PodcastRepository` cache-aside
 - [ ] Construtor ganha `required AppDatabase db`
