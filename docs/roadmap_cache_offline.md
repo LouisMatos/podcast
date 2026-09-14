@@ -51,14 +51,16 @@ class QueryCache extends Table {
       drift/sqlite no logcat.
 
 ## Fase 27.2 — `PodcastRepository` cache-aside
-- [ ] Construtor ganha `required AppDatabase db`
-- [ ] `search`, `searchEpisodes`, `topPodcasts`, `podcastsByGenre`, `episodesFor` — cache-aside (assinatura de retorno inalterada)
-- [ ] `cachedSearchResults`, `cachedEpisodeSearchResults`, `cachedTopPodcasts`, `cachedPodcastsByGenre`, `cachedEpisodesFor(Podcast)` — leitura pura
-- [ ] Testes: sucesso escreve cache; falha com cache prévio não relança; falha sem cache relança; `cachedX` null antes do 1º fetch
+- [x] Construtor ganha `required AppDatabase db`
+- [x] `search`, `searchEpisodes`, `topPodcasts`, `podcastsByGenre`, `episodesFor` — cache-aside (assinatura de retorno inalterada)
+- [x] `cachedSearchResults`, `cachedEpisodeSearchResults`, `cachedTopPodcasts`, `cachedPodcastsByGenre`, `cachedEpisodesFor(Podcast)` — leitura pura
+- [x] Testes: sucesso escreve cache; falha com cache prévio não relança; falha sem cache relança; `cachedX` null antes do 1º fetch
+- [x] `dart analyze` limpo, `flutter test` 253/253
 
 ## Fase 27.3 — `RadioRepository` cache-aside
-- [ ] Mesmo padrão: `brStations()` cache-aside, `cachedBrStations()` novo
-- [ ] Teste novo, mesmo padrão de 3 casos
+- [x] Mesmo padrão: `brStations()` cache-aside, `cachedBrStations()` novo
+- [x] Teste novo, mesmo padrão de 3 casos
+- [x] `dart analyze` limpo, `flutter test` 256/256
 
 ## Fase 27.4 — Stale-while-revalidate nos ViewModels (fix real de "trava")
 - [ ] `DiscoverViewModel`/`FeaturedViewModel`/`RadioViewModel`: pintar cache na hora, revalidar em segundo plano
