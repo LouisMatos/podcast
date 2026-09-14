@@ -71,8 +71,11 @@ class QueryCache extends Table {
 - [~] Roteiro offline manual no device: **bloqueado** — `svc wifi disable`/broadcast de airplane mode falham nesse aparelho (Knox/ROM travada, sem permissão pro shell adb). Comportamento offline coberto de forma determinística pelos testes com `Completer` (mais confiável que depender de timing de rede real); usuário pode desligar wifi manualmente depois se quiser confirmação visual adicional
 
 ## Fase 27.5 — Subscribe Feed: polish de UX (sem cache real)
-- [ ] Trocar `_LoadingCard` full-block por skeleton consistente com o resto do app
-- [ ] Confirmar que o deadline de 20s (`getWithDeadline`) já existente mostra erro claro em vez de loading preso
+- [x] `_LoadingCard` — **já era** shimmer no formato do card final (`ShimmerBox`), não skeleton genérico; nenhuma mudança necessária
+- [x] Deadline de 20s (`getWithDeadline`) — **já existia** em `_load()` (feed) e `_resolvePodcast` (busca iTunes), ambos com prazo próprio; erro cai no `catch` genérico e vira mensagem clara, sem loading preso. Confirmado com teste novo (zero teste existia pra este ViewModel)
+- [x] `subscribe_feed_view_model_test.dart` novo: erro de rede → estado de erro claro; sucesso → podcast/episódios populados; `subscribe()` idempotente
+- [x] `dart analyze` limpo, `flutter test` 269/269
+- [x] Nenhuma mudança de código de produção nesta fase — investigação confirmou que a fase já estava resolvida por trabalho anterior (ponytail perf); só faltava cobertura de teste
 
 ## Fase 27.6 — Cleanup, pruning, polish final
 - [ ] `pruneStaleQueryCache({maxAge: 30 dias})`, disparado fire-and-forget perto do `startupFeedRefreshProvider`
