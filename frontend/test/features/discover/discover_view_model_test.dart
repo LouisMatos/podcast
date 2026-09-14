@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +27,10 @@ void main() {
 
   setUp(() {
     repository = _MockPodcastRepository();
+    // Sem cache por padrão (Fase 27.4) — testes que exercitam o caminho de
+    // pintura imediata sobrescrevem essas duas chamadas.
+    when(() => repository.cachedSearchResults(any())).thenAnswer((_) async => null);
+    when(() => repository.cachedEpisodeSearchResults(any())).thenAnswer((_) async => null);
     container = ProviderContainer(overrides: [podcastRepositoryProvider.overrideWithValue(repository)]);
     addTearDown(container.dispose);
     // discoverViewModelProvider é autoDispose — sem um listener permanente,
@@ -193,5 +199,43 @@ void main() {
     final state = container.read(discoverViewModelProvider);
     expect(state.results, isEmpty);
     expect(state.episodeResults, isEmpty);
+  });
+
+  group('stale-while-revalidate (Fase 27.4)', () {
+    test('pinta cache salvo na hora, sem skeleton, e revalida por trás', () async {
+      when(() => repository.cachedSearchResults('flutter')).thenAnswer((_) async => [_podcast]);
+      final gate = Completer<List<Podcast>>();
+      when(() => repository.search('flutter')).thenAnswer((_) => gate.future);
+      final notifier = container.read(discoverViewModelProvider.notifier);
+
+      notifier.onQueryChanged('flutter');
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+
+      var state = container.read(discoverViewModelProvider);
+      expect(state.results, [_podcast]);
+      expect(state.isLoading, isFalse);
+      expect(state.isRevalidating, isTrue);
+
+      final fresh = [_podcast, const Podcast(id: 2, title: 'Outro', author: 'A', feedUrl: 'https://x/2.xml')];
+      gate.complete(fresh);
+      await Future<void>.delayed(Duration.zero);
+
+      state = container.read(discoverViewModelProvider);
+      expect(state.results, fresh);
+      expect(state.isRevalidating, isFalse);
+    });
+
+    test('sem cache: mantém skeleton (isLoading) até a rede responder', () async {
+      final gate = Completer<List<Podcast>>();
+      when(() => repository.search('flutter')).thenAnswer((_) => gate.future);
+      final notifier = container.read(discoverViewModelProvider.notifier);
+
+      notifier.onQueryChanged('flutter');
+      await Future<void>.delayed(const Duration(milliseconds: 405));
+
+      expect(container.read(discoverViewModelProvider).isLoading, isTrue);
+      gate.complete([_podcast]);
+      await Future<void>.delayed(Duration.zero);
+    });
   });
 }

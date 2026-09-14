@@ -123,16 +123,26 @@ class RadioViewModel extends _$RadioViewModel {
   }
 
   Future<void> _load() async {
-    state = state.copyWith(isLoading: true, error: null, offline: false);
+    final repository = ref.read(radioRepositoryProvider);
+
+    // Pinta a última lista salva na hora — a busca de rede roda por trás,
+    // sem travar a tela esperando timeout de rede fora/lenta (Fase 27.4).
+    final cached = await repository.cachedBrStations();
+    if (!ref.mounted) return;
+    final hasCache = cached != null && cached.isNotEmpty;
+    state = hasCache
+        ? state.copyWith(stations: cached, isLoading: false, isRevalidating: true, error: null, offline: false)
+        : state.copyWith(isLoading: true, isRevalidating: false, error: null, offline: false);
+
     try {
-      final repository = ref.read(radioRepositoryProvider);
       final stations = await repository.brStations();
       if (!ref.mounted) return;
-      state = state.copyWith(stations: stations, isLoading: false);
+      state = state.copyWith(stations: stations, isLoading: false, isRevalidating: false);
     } catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(
         isLoading: false,
+        isRevalidating: false,
         error: 'Não foi possível carregar as rádios agora.',
         offline: _isConnectionError(e),
       );

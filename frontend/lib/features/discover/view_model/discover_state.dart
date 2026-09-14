@@ -13,6 +13,10 @@ abstract class DiscoverState with _$DiscoverState {
   const factory DiscoverState({
     @Default('') String query,
     @Default(false) bool isLoading,
+
+    /// `true` enquanto mostra resultado salvo (Fase 27) e busca de novo por
+    /// trás — a View pode usar isso pra um indicador sutil, sem skeleton.
+    @Default(false) bool isRevalidating,
     @Default(SearchMode.podcasts) SearchMode mode,
     @Default(<Podcast>[]) List<Podcast> results,
     @Default(<EpisodeSearchResult>[]) List<EpisodeSearchResult> episodeResults,

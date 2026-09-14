@@ -11,6 +11,10 @@ abstract class RadioState with _$RadioState {
     @Default('') String query,
     @Default(<String>{}) Set<String> favoriteIds,
     @Default(false) bool isLoading,
+
+    /// `true` enquanto mostra lista salva (Fase 27) e busca de novo por
+    /// trás.
+    @Default(false) bool isRevalidating,
     String? error,
     @Default(false) bool offline,
     String? nowPlayingId,

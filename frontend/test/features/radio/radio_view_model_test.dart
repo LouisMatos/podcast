@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +55,9 @@ void main() {
 
   setUp(() async {
     repository = _MockRadioRepository();
+    // Sem cache por padrão (Fase 27.4) — testes do caminho de pintura
+    // imediata sobrescrevem essa chamada.
+    when(() => repository.cachedBrStations()).thenAnswer((_) async => null);
     handler = _FakeHandler();
     prefs = await fakePreferencesStore();
     container = ProviderContainer(overrides: [
@@ -301,6 +306,29 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(freshContainer.read(radioViewModelProvider).favoriteIds, {_station.id});
+    });
+  });
+
+  group('stale-while-revalidate (Fase 27.4)', () {
+    test('pinta lista salva na hora, sem skeleton, e revalida por trás', () async {
+      when(() => repository.cachedBrStations()).thenAnswer((_) async => [_station]);
+      final gate = Completer<List<RadioStation>>();
+      when(() => repository.brStations()).thenAnswer((_) => gate.future);
+      keepAlive();
+
+      await Future<void>.delayed(Duration.zero);
+      var state = container.read(radioViewModelProvider);
+      expect(state.stations, [_station]);
+      expect(state.isLoading, isFalse);
+      expect(state.isRevalidating, isTrue);
+
+      const fresh = RadioStation(id: 'a2', name: 'Outra', streamUrl: 'https://x.com/live2');
+      gate.complete([_station, fresh]);
+      await Future<void>.delayed(Duration.zero);
+
+      state = container.read(radioViewModelProvider);
+      expect(state.stations, [_station, fresh]);
+      expect(state.isRevalidating, isFalse);
     });
   });
 }

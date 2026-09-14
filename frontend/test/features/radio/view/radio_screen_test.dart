@@ -43,6 +43,7 @@ void main() {
       when(() => repo.brStations()).thenAnswer(
         (_) => Completer<List<RadioStation>>().future,
       );
+      when(() => repo.cachedBrStations()).thenAnswer((_) async => null);
 
       await tester.pumpWidget(wrap(const RadioScreen(), repo));
       await tester.pump();
@@ -62,6 +63,7 @@ void main() {
     when(() => repo.brStations()).thenAnswer(
       (_) => Completer<List<RadioStation>>().future,
     );
+    when(() => repo.cachedBrStations()).thenAnswer((_) async => null);
 
     await tester.pumpWidget(wrap(const RadioScreen(), repo));
     await tester.pump();

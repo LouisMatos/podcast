@@ -47,6 +47,7 @@ class _MockRadioRepository extends Mock implements RadioRepository {}
 RadioRepository _radioRepoStub() {
   final repo = _MockRadioRepository();
   when(() => repo.brStations()).thenAnswer((_) async => const <RadioStation>[]);
+  when(() => repo.cachedBrStations()).thenAnswer((_) async => null);
   return repo;
 }
 
