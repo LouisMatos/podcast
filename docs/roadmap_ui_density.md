@@ -21,12 +21,12 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
 - `flutter test`: 246/246
 - Branch: `release/1.0.0` (snapshot pré-otimização, pushada)
 
-## Fase 0 — Token `AppSpacing` (infra, zero mudança visual)
-- [ ] Criar `frontend/lib/core/theme/app_spacing.dart` (padrão de
+## Fase 0 — Token `AppSpacing` (infra, zero mudança visual) — concluída
+- [x] Criar `frontend/lib/core/theme/app_spacing.dart` (padrão de
       `AppRadii`/`AppShadows`): `xs=4, sm=8, md=12, lg=16, xl=20, xxl=24`
-- [ ] Não consumido em nenhum widget ainda
-- [ ] `dart analyze` + `flutter test` limpos
-- [ ] Teste manual device: N/A (nada mudou na tela)
+- [x] Não consumido em nenhum widget ainda
+- [x] `dart analyze` + `flutter test` limpos (246/246)
+- [x] Teste manual device: N/A (nada mudou na tela)
 
 ## Fase 1 — Reduzir padding do `SoftCard`
 - [ ] `soft_card.dart:12`: `EdgeInsets.all(16)` → `EdgeInsets.all(AppSpacing.md)` (12)
