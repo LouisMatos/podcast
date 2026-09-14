@@ -767,12 +767,13 @@ void _showSleepTimerSheet(
     context: context,
     backgroundColor: colors.surface,
     showDragHandle: true,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
     ),
     builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: ListView(
+        shrinkWrap: true,
         children: [
           for (final option in _sleepOptions)
             ListTile(
