@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/database/app_database.dart';
+import '../../../core/database/query_cache_maintenance.dart';
 import '../../../data/repositories/library_repository.dart';
 import '../../../services/download/auto_download_service.dart';
 import '../../../services/download/download_service.dart';
@@ -12,6 +16,10 @@ part 'startup_feed_refresh_provider.g.dart';
 /// resultado não importa pra UI.
 @riverpod
 Future<int> startupFeedRefresh(Ref ref) async {
+  // Limpeza do cache de busca/listagem (Fase 27) — fire-and-forget, não
+  // atrasa nada abaixo nem derruba o boot se falhar.
+  unawaited(pruneStaleQueryCache(ref.read(appDatabaseProvider)).catchError((_) => 0));
+
   // Reconcilia downloads presos em queued/running/paused antes de mais
   // nada — se o app foi morto no meio de um download, essa é a única
   // chance de destravar a tela de Downloads sem intervenção manual.

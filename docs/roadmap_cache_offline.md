@@ -1,5 +1,9 @@
 # Cache offline — busca/listagem (Fase 27)
 
+**Concluída** (2026-09-14) — Fases 27.1–27.6, branch
+`feature/cache-offline-fase27-1-schema`. `dart analyze` limpo, `flutter
+test` 271/271, validada em device físico (SM-G570M).
+
 Discover, Featured, Rádio e detalhe de podcast não-assinado buscam da rede
 toda visita, sem guardar nada localmente — em conexão ruim/lenta a tela
 trava (skeleton infinito) ou falha completo, mesmo pra conteúdo já visto
@@ -78,9 +82,11 @@ class QueryCache extends Table {
 - [x] Nenhuma mudança de código de produção nesta fase — investigação confirmou que a fase já estava resolvida por trabalho anterior (ponytail perf); só faltava cobertura de teste
 
 ## Fase 27.6 — Cleanup, pruning, polish final
-- [ ] `pruneStaleQueryCache({maxAge: 30 dias})`, disparado fire-and-forget perto do `startupFeedRefreshProvider`
-- [ ] Indicador sutil "mostrando resultados salvos" quando revalidando offline (opcional, tokens de tema existentes)
-- [ ] Regressão completa das 4 abas + roteiros 27.4/27.5 em device físico
+- [x] `pruneStaleQueryCache({maxAge: 30 dias})` novo (`core/database/query_cache_maintenance.dart`), disparado fire-and-forget em `startupFeedRefreshProvider` (`.catchError` — nunca derruba o boot)
+- [x] Teste novo `query_cache_maintenance_test.dart`: remove só entrada velha, preserva recente, cache vazio não lança
+- [ ] Indicador sutil "mostrando resultados salvos" quando revalidando offline — **pulado de propósito** (opcional no plano original, escopo extra sem necessidade real agora)
+- [x] `dart analyze` limpo, `flutter test` 271/271
+- [x] Regressão completa em device físico (SM-G570M): instalação sobre dado existente (migração v9 ok), Início vazio ok, Descobrir→Featured carregou e pintou do cache, busca+detalhe de podcast não-assinado carregou episódios (cache genérico gravado), assinatura funcionou, Biblioteca mostra assinatura, Rádio carregou lista — zero crash/exceção fatal/erro sqlite-drift no logcat da sessão inteira
 
 ## Riscos / avisos
 - `podcastRepositoryProvider`/`radioRepositoryProvider` ganhando `AppDatabase` é plumbing — testes que constroem repositório direto precisam de update nas Fases 27.2/27.3
