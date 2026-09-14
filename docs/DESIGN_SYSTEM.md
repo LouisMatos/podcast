@@ -16,7 +16,7 @@ lá primeiro — nunca direto no widget.
 | `secondary` (menta) | `#A8D8C8` | destaques, progresso |
 | `accent` (pêssego) | `#F5C6AA` | badges, download |
 | `textPrimary` | `#3A3542` | títulos |
-| `textMuted` | `#8B8493` | metadados |
+| `textMuted` | `#6B6478` | metadados (era `#8B8493`, contraste 3.4:1 abaixo do mínimo 4.5:1 — escurecido mantendo o tom) |
 
 ### Escuro
 
@@ -28,9 +28,9 @@ Mesmos matizes dessaturados sobre `#1E1B24` (background) / `#282430` (surface).
 - Botões em `StadiumBorder` (raio total).
 - Sem `Divider`, sem borda dura. Separação vem de sombra suave:
   `blurRadius 24`, `offset (0, 8)`, `color: black.withValues(alpha: 0.06)`.
-- Tipografia: `google_fonts` → **Nunito** (terminais arredondados, combina
-  com a forma). Pesos 400/600/700; títulos com `letterSpacing` levemente
-  negativo.
+- Tipografia: **Nunito** (terminais arredondados, combina com a forma),
+  vendorizada em `assets/fonts/` (offline-first, não `google_fonts`). Pesos
+  400/600/700; títulos com `letterSpacing` levemente negativo.
 
 ## Movimento
 

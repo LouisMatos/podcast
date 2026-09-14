@@ -22,16 +22,6 @@ const _sleepOptions = [
   Duration(minutes: 60),
 ];
 
-/// Valor do item "fim do episódio" no menu do temporizador (o resto são
-/// `Duration`).
-const _sleepEndOfEpisode = 'end';
-
-/// Valor do item "Cancelar". Não pode ser `null`: `PopupMenuButton` trata
-/// `null` devolvido por `showMenu` como "menu dispensado sem seleção" e
-/// nunca chama `onSelected` — com `value: null` o item ficava morto (o
-/// temporizador nunca era cancelado pelo menu).
-const _sleepCancel = 'cancel';
-
 String _formatClock(Duration d) {
   final h = d.inHours;
   final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -321,16 +311,6 @@ class _PlayerTopBar extends StatelessWidget {
             tooltip: 'Fila',
             onPressed: () => _showQueueSheet(context),
           ),
-          if (state.episode case final episode? when state.podcast != null)
-            IconButton(
-              icon: const Icon(Icons.ios_share),
-              tooltip: 'Compartilhar',
-              onPressed: () => shareEpisode(
-                episode: episode,
-                podcast: state.podcast!,
-                position: state.position,
-              ),
-            ),
           if (state.chapters.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.list_alt),
@@ -343,7 +323,7 @@ class _PlayerTopBar extends StatelessWidget {
               tooltip: 'Áudio',
               onPressed: () => _showEqualizerSheet(context),
             ),
-          _SleepTimerButton(state: state, notifier: notifier),
+          _PlayerOverflowMenu(state: state, notifier: notifier),
         ],
       ),
     );
@@ -727,38 +707,101 @@ class _EqualizerSheet extends ConsumerWidget {
       : '${hz.round()}';
 }
 
-class _SleepTimerButton extends StatelessWidget {
-  const _SleepTimerButton({required this.state, required this.notifier});
+/// Menu de transbordo da barra superior — ações menos usadas (compartilhar,
+/// temporizador para dormir) saem da barra pra caber o título completo.
+class _PlayerOverflowMenu extends StatelessWidget {
+  const _PlayerOverflowMenu({required this.state, required this.notifier});
 
   final PlayerState state;
   final PlayerViewModel notifier;
 
+  static const _actionShare = 'share';
+  static const _actionSleep = 'sleep';
+
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<Object?>(
-      icon: Icon(state.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined),
-      tooltip: 'Temporizador para dormir',
+    final canShare = state.episode != null && state.podcast != null;
+    return PopupMenuButton<String>(
+      icon: Icon(state.hasSleepTimer ? Icons.bedtime : Icons.more_vert),
+      tooltip: 'Mais opções',
       onSelected: (choice) {
-        if (choice == _sleepCancel) {
-          notifier.cancelSleepTimer();
-        } else if (choice == _sleepEndOfEpisode) {
-          notifier.startSleepTimerAtEndOfEpisode();
-        } else if (choice is Duration) {
-          notifier.startSleepTimer(choice);
+        switch (choice) {
+          case _actionShare:
+            if (state.episode case final episode? when state.podcast != null) {
+              shareEpisode(
+                episode: episode,
+                podcast: state.podcast!,
+                position: state.position,
+              );
+            }
+          case _actionSleep:
+            _showSleepTimerSheet(context, state, notifier);
         }
       },
       itemBuilder: (context) => [
-        for (final option in _sleepOptions)
-          PopupMenuItem(value: option, child: Text('${option.inMinutes} min')),
-        const PopupMenuItem(
-          value: _sleepEndOfEpisode,
-          child: Text('Fim do episódio'),
+        if (canShare)
+          const PopupMenuItem(
+            value: _actionShare,
+            child: Text('Compartilhar'),
+          ),
+        PopupMenuItem(
+          value: _actionSleep,
+          child: Text(
+            state.hasSleepTimer
+                ? 'Temporizador para dormir (ativo)'
+                : 'Temporizador para dormir',
+          ),
         ),
-        if (state.hasSleepTimer)
-          const PopupMenuItem(value: _sleepCancel, child: Text('Cancelar')),
       ],
     );
   }
+}
+
+void _showSleepTimerSheet(
+  BuildContext context,
+  PlayerState state,
+  PlayerViewModel notifier,
+) {
+  final colors = Theme.of(context).extension<AppColors>()!;
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: colors.surface,
+    showDragHandle: true,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          for (final option in _sleepOptions)
+            ListTile(
+              title: Text('${option.inMinutes} min'),
+              onTap: () {
+                notifier.startSleepTimer(option);
+                Navigator.of(sheetContext).pop();
+              },
+            ),
+          ListTile(
+            title: const Text('Fim do episódio'),
+            onTap: () {
+              notifier.startSleepTimerAtEndOfEpisode();
+              Navigator.of(sheetContext).pop();
+            },
+          ),
+          if (state.hasSleepTimer)
+            ListTile(
+              title: const Text('Cancelar temporizador'),
+              onTap: () {
+                notifier.cancelSleepTimer();
+                Navigator.of(sheetContext).pop();
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Faixa compacta de navegação de capítulos, abaixo dos controles.

@@ -66,7 +66,7 @@ class RadioStationTile extends StatelessWidget {
               children: [
                 Text(
                   station.name,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),

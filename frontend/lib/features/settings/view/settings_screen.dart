@@ -45,6 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                   // segmentos não cabiam e o texto quebrava no meio da
                   // palavra ("Clar/o", "Sist/ema").
                   showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(side: BorderSide.none),
                   segments: const [
                     ButtonSegment(
                       value: AppThemeMode.light,

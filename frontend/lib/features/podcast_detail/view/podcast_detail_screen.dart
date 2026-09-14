@@ -21,6 +21,7 @@ import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../discover/podcast_genre_labels.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view_model/player_view_model.dart';
@@ -358,7 +359,7 @@ class _Header extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       if (podcast.genre case final genre?)
-                        PastelChip(label: genre),
+                        PastelChip(label: translateGenreLabel(genre)),
                       PastelChip(
                         label: podcast.episodeCount == 1
                             ? '1 episódio'
@@ -457,6 +458,8 @@ class _EpisodesTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
+      color: Theme.of(context).extension<AppColors>()!.primary,
+      backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
       child: ListView.builder(
         controller: scrollController,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),

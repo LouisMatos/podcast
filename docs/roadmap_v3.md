@@ -83,6 +83,14 @@ em `PodcastRepository`/`RadioRepository` + stale-while-revalidate em
 Discover/Featured/Rádio/Detail, validado em device físico (SM-G570M).
 Falta só mergear com PR #1 (que traz a base v8) antes de abrir PR desta.
 
+**Polimento UI/UX concluído** (2026-09-14, fora da numeração original da v3
+— capacidade de polimento pontual, não correção de robustez — numerada
+Fase 28, detalhe em `docs/roadmap_ui_review.md`, branch
+`feature/ui-review-fase28` a partir de
+`feature/cache-offline-fase27-pr-ready`): Fases 28.1–28.8, validado em
+device físico (SM-G570M). Um bug extra achado só no device (bottom sheet do
+temporizador do player estourando 8px) foi corrigido junto do item 28.4.
+
 ## Regra de ouro (por fase) — igual v1/v2
 
 - `dart analyze` limpo (roda `riverpod_lint`; `flutter analyze` **não** roda o
@@ -319,6 +327,40 @@ Sub-fases porque cada parte depende de um input externo diferente:
 
 **Arquivos:** `frontend/android/app/src/main/res/`, `frontend/pubspec.yaml`,
 `docs/PLAY_STORE.md`.
+
+---
+
+## Fase 28 — Polimento UI/UX · esforço S ✅ (2026-09-14)
+
+Achados de revisão UI/UX pontual (skill `ui-ux-pro-max`, device físico),
+detalhados em `docs/roadmap_ui_review.md`. Não é redesenho — polimento sobre
+o design system existente. Branch `feature/ui-review-fase28`, a partir de
+`feature/cache-offline-fase27-pr-ready`.
+
+- [x] **28.1** Borda dura no `SegmentedButton` de tema (Ajustes) removida.
+- [x] **28.2** `RefreshIndicator` tematizado em Início/Biblioteca/Detalhe do
+      podcast (Descobrir/Rádio não usam pull-to-refresh).
+- [x] **28.3** Título de rádio quebra em 2 linhas em vez de cortar.
+- [x] **28.4** Barra superior do player: compartilhar e temporizador movidos
+      pro menu de transbordo. Bug extra achado só no device (não em teste
+      de widget): bottom sheet do temporizador estourava 8px em telas
+      menores — `Column` trocado por `ListView` + `isScrollControlled`.
+- [x] **28.5** Chips de filtro do detalhe do podcast — já tinham scroll
+      horizontal de uma correção anterior; validado no device, sem mudança
+      de código necessária.
+- [x] **28.6** Gênero do podcast traduzido pt-BR (`podcast_genre_labels.dart`,
+      mapa de nome iTunes → pt-BR com fallback pro original).
+- [x] **28.7** Placeholder do filtro de assinaturas na Biblioteca encurtado
+      (não corta mais em 360dp). Hierarquia entre os dois campos de busca
+      fica pra `docs/roadmap_debito_tecnico.md` (decisão de produto).
+- [x] **28.8** `docs/DESIGN_SYSTEM.md` atualizado (fontes vendorizadas,
+      `textMuted #6B6478`).
+
+Validado em device físico (SM-G570M): as 8 telas da revisão renavegadas
+após os fixes. `dart analyze` limpo, `flutter test` 271/271.
+
+**Arquivos:** `frontend/lib/features/{settings,home,library,radio,player,
+podcast_detail,discover}/`, `docs/DESIGN_SYSTEM.md`.
 
 ---
 
