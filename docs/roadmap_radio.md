@@ -80,8 +80,11 @@ volume pra tela de rádio. `dart analyze` limpo, 236/236 testes verdes (1
 flaky pré-existente de debounce em `discover_view_model_test.dart`,
 passa isolado e na 2ª rodada — não relacionado a esta feature).
 
-Falta validar R5-R8 no emulador (buscar, abrir detalhe redesenhado,
-volume, favoritar, aba Favoritas, tocar favorita) — R0-R4 já validados
-no Pixel_6 antes. Sem grade de programação/now-playing (YAGNI, sem API
-gratuita real — ver Decisões). Pronto pra review/merge em `feat/fase-9`
-após validação manual.
+**R5-R8 validados em device físico (SM-G570M, 2026-09-13)**: buscar
+estação ("jovem" → resultado correto), abrir detalhe redesenhado (artwork,
+gêneros, localização), ajustar volume, favoritar/desfavoritar, aba
+Favoritas (mostra a favoritada, ícone de pausa refletindo estado real),
+tocar favorita direto da lista — tudo sem travar, mini-player sincronizado
+em cada ação. Nenhum bug encontrado. Sem grade de programação/now-playing
+(YAGNI, sem API gratuita real — ver Decisões). **Pronto pra review/merge em
+`feat/fase-9`, validação manual completa.**

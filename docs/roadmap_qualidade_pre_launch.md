@@ -104,9 +104,10 @@ agora custa pouco e evita re-trabalho depois.
 - [ ] **C1** — Atualizar `docs/roadmap_debito_tecnico.md`: remover/ajustar
       a linha de iOS se a Fase B tiver sido concluída; ou manter como está
       se ainda bloqueado por ambiente.
-- [ ] **C2** — Commit + push das Fases A (e B, se feita) numa branch
-      própria (ex. `chore/qualidade-pre-launch`), seguindo o mesmo padrão
-      do commit `bdfa159`.
+- [x] **C2** — Commit + push das Fases A/B. **Feito**: commits `bdfa159`,
+      `d40e894`, `249d7a5` já pushados em
+      `perf/device-profiling-and-concurrent-refresh` (confirmado via
+      `git log`, checkbox estava desatualizado).
 
 ## Verificação (repetir a cada fase)
 

@@ -53,12 +53,21 @@ gerados (`flutter_launcher_icons`/`flutter_native_splash`, arte própria em
 `podcast-changeme` não existe mais), `.apk`/`.aab` de release validados.
 Detalhe completo em `~/.claude/plans/deve-ler-o-arquivo-synchronous-quail.md`.
 
-**Falta:** 20 (precisa device físico + Bluetooth), 24 (precisa AVD API 34+),
-25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
-entraram junto), 26c (Android Auto/shortcuts/share/deep link em device
-físico).
+**Fase 20 e parte de 26c validadas em device físico** (SM-G570M, 2026-09-13):
+metadados de mídia (notificação com artwork/título corretos, `duration=0`/
+`image=null` não reproduz fora do emulador), app shortcuts, share de
+episódio e deep link `https://` — todos sem bug. Falta só a parte AVRCP
+real (fone/carro Bluetooth pareado, sem periférico disponível nesta sessão)
+e o Desktop Head Unit do Android Auto.
 
-Ordem sugerida do resto: **26c/20 (mesma sessão de device físico) → 24 → 25**.
+**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não resolve),
+25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
+entraram junto, trabalho de código puro sem bloqueio de hardware), 26c
+Android Auto/DHU (precisa Desktop Head Unit ou carro real) e AVRCP
+Bluetooth real (precisa periférico pareado).
+
+Ordem sugerida do resto: **24 → 25** (nenhum dos dois depende mais de
+device físico simples — 24 precisa API 34+, 25 é só código).
 
 **Perf em device físico + componentes independentes concluído** (2026-09-
 12/13, fora da numeração de fases desta v3 — branch
@@ -133,9 +142,13 @@ um fallback de erro que hoje não existe.
 artefato da stack Bluetooth AVRCP do emulador **ou** bug real que deixa o
 lockscreen sem barra de progresso e o display do carro sem capa.
 
-- [ ] Reproduzir em **device físico** + fone/carro Bluetooth real. Confirmar
-      se `MediaItem.duration` e `artUri` chegam no lockscreen e no AVRCP e se o
-      `metadata sync timeout` acontece fora do emulador.
+- [x] Reproduzir em **device físico** (SM-G570M, 2026-09-13): tocando episódio
+      real, `dumpsys media_session` mostra `metadata:size=12` preenchido
+      (título/subtítulo/artista corretos) e a notificação de mídia expandida
+      mostra artwork e texto certos — **`duration=0`/`image=null` não
+      reproduz fora do emulador**, era mesmo artefato de stack. Sem fone/
+      carro Bluetooth disponível nesta sessão — a parte AVRCP real segue não
+      testada (falta o periférico, não é bloqueio de código).
 - [ ] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
       campos de busca) — provável ruído; confirmar que nenhuma tecla é perdida.
 - [ ] Se for real: garantir `artUri` em todos os itens de `queue` publicados no
@@ -282,8 +295,19 @@ Sub-fases porque cada parte depende de um input externo diferente:
       é PKCS12 — só `storepasswd` existe pra esse formato, store/key
       compartilham senha). Senha real fora do repo em
       `~/podcast-keystore-secrets/`, detalhes em `docs/PLAY_STORE.md`.
-- [ ] **26c — Carro**: testar Android Auto com o Desktop Head Unit; testar app
-      shortcuts, share e deep link `https://` num device real.
+- [ ] **26c — Carro**: testar Android Auto com o Desktop Head Unit (segue
+      bloqueado — sem DHU/carro disponível).
+  - [x] App shortcuts (long-press no ícone "Ecoo"): menu mostra "Fila" e
+        "Continuar"; "Continuar" abre direto no episódio de "Continuar
+        ouvindo" e já dispara o play — validado em device físico
+        (SM-G570M, 2026-09-13).
+  - [x] Share de episódio: share sheet do Android abre, texto compartilhado
+        traz título + link real do episódio (ex.: link Spotify quando o
+        feed expõe um) — validado, sem bug.
+  - [x] Deep link `https://` num device real: `am start -a VIEW -d
+        "https://..."` com feed RSS externo abre a tela "Assinar feed" e
+        carrega corretamente (testado com feed de 2750 episódios) —
+        validado, sem bug.
 
 **Arquivos:** `frontend/android/app/src/main/res/`, `frontend/pubspec.yaml`,
 `docs/PLAY_STORE.md`.
