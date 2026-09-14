@@ -56,7 +56,7 @@ class LibraryScreen extends ConsumerWidget {
                 Expanded(
                   child: SearchField(
                     onChanged: controlsNotifier.setFilter,
-                    hintText: 'Filtrar por nome',
+                    hintText: 'Filtrar',
                   ),
                 ),
                 const SizedBox(width: 8),
