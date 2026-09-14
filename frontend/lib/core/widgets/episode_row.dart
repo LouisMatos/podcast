@@ -9,8 +9,10 @@ import 'shimmer_box.dart';
 import 'soft_card.dart';
 
 /// Linha de episódio reutilizável (histórico, busca na biblioteca, resultados
-/// de busca de episódio): capa 48, título 2 linhas, subtítulo livre e um
-/// widget opcional à direita (menu, contagem). Toca → callback.
+/// de busca de episódio, Home, Podcast Detail): capa 48 (ou [leading]
+/// customizado), título 2 linhas, subtítulo livre, [progress] opcional
+/// abaixo do subtítulo e um widget opcional à direita ([trailing] — pode ser
+/// um `Row` com múltiplos botões). Toca → callback.
 class EpisodeRow extends StatelessWidget {
   const EpisodeRow({
     super.key,
@@ -19,6 +21,8 @@ class EpisodeRow extends StatelessWidget {
     required this.subtitle,
     this.onTap,
     this.trailing,
+    this.leading,
+    this.progress,
   });
 
   final Podcast podcast;
@@ -26,6 +30,14 @@ class EpisodeRow extends StatelessWidget {
   final String subtitle;
   final VoidCallback? onTap;
   final Widget? trailing;
+
+  /// Substitui a capa padrão quando presente (ex.: capa com botão de
+  /// play/pause sobreposto no Podcast Detail). Espera-se 48x48.
+  final Widget? leading;
+
+  /// Widget opcional renderizado abaixo do subtítulo (ex.: barra de
+  /// progresso de reprodução).
+  final Widget? progress;
 
   @override
   Widget build(BuildContext context) {
@@ -38,22 +50,23 @@ class EpisodeRow extends StatelessWidget {
         children: [
           // Capa decorativa: título/subtítulo ao lado já dão o contexto.
           ExcludeSemantics(
-            child: ClipRRect(
-              borderRadius: AppRadii.smAll,
-              child: artUrl == null
-                  ? _fallback(colors)
-                  : CachedNetworkImage(
-                      imageUrl: artUrl,
-                      width: 48,
-                      height: 48,
-                      memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
-                      memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          const ShimmerBox(width: 48, height: 48),
-                      errorWidget: (_, _, _) => _fallback(colors),
-                    ),
-            ),
+            child: leading ??
+                ClipRRect(
+                  borderRadius: AppRadii.smAll,
+                  child: artUrl == null
+                      ? _fallback(colors)
+                      : CachedNetworkImage(
+                          imageUrl: artUrl,
+                          width: 48,
+                          height: 48,
+                          memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          fit: BoxFit.cover,
+                          placeholder: (_, _) =>
+                              const ShimmerBox(width: 48, height: 48),
+                          errorWidget: (_, _, _) => _fallback(colors),
+                        ),
+                ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -74,6 +87,7 @@ class EpisodeRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  ?progress,
                 ],
               ),
             ),
