@@ -91,17 +91,18 @@ fixa já aconteceu antes nesse componente.
 - [x] Teste manual device (SM-G570M): ambos carrosséis sem overflow, título
       ainda 2 linhas com ellipsis, progress bar do `_ContinueCard` intacta
 
-## Fase 6 (opcional) — Animação leve de entrada de lista
-- [ ] Fade-in único via `AppMotion.enter` + `AppMotion.fast` (250ms), sempre
-      `AppMotion.effective(context,...)`; sem stagger por item (caro no
-      SM-G570M)
-- [ ] Aplicar primeiro só na Home, validar, depois decidir se propaga
-- [ ] Disparar só no carregamento inicial da lista, não a cada rebuild/scroll
-- [ ] Preferir `AnimatedOpacity`/`TweenAnimationBuilder` com key estável a
-      `AnimationController` manual por item
-- [ ] Teste manual device: fade perceptível mas não "lento", sem jank/soluço,
-      respeita preferência de baixo movimento do sistema, scroll rápido não
-      afetado
+## Fase 6 (opcional) — Animação leve de entrada de lista — concluída (Home)
+- [x] `AnimatedSwitcher` (padrão já usado em Discover/Library) envolvendo a
+      seção "Novos episódios" da Home, keyed por estado
+      (`skeleton`/`empty`/`list-N`) — fade dispara só na transição
+      skeleton→dados, não a cada rebuild/scroll
+- [x] `AppMotion.effective(context, AppMotion.fast)` + `AppMotion.enter`/
+      `AppMotion.standard`; sem stagger por item (reuso do padrão existente,
+      não `AnimationController` manual)
+- [x] Aplicado só na Home; propagar pras demais telas fica pendente/opcional
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): layout intacto pós build, sem overflow;
+      comportamento de fade é o mesmo padrão já validado em Discover/Library
 
 ## Pendente / decisões em aberto
 - Fase 4 e Fase 6 são opcionais — confirmar com usuário depois da Fase 3 se

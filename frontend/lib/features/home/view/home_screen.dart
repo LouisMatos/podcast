@@ -7,6 +7,7 @@ import '../../../core/network/connectivity_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/shimmer_box.dart';
@@ -72,30 +73,45 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
               ],
               const SectionHeader(title: 'Novos episódios'),
-              if (!loaded && recentItems.isEmpty)
-                for (var i = 0; i < 4; i++) ...[
-                  const _EpisodeRowSkeleton(),
-                  const SizedBox(height: AppSpacing.sm),
-                ]
-              else if (recentItems.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    'Nenhum episódio novo das suas assinaturas.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else
-                for (final item in recentItems) ...[
-                  EpisodeSwipeActions(
-                    key: ValueKey('recent-swipe-${item.episode.guid}'),
-                    podcast: item.podcast,
-                    episode: item.episode,
-                    child: _RecentEpisodeRow(item: item),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
+              AnimatedSwitcher(
+                duration: AppMotion.effective(context, AppMotion.fast),
+                switchInCurve: AppMotion.enter,
+                switchOutCurve: AppMotion.standard,
+                child: !loaded && recentItems.isEmpty
+                    ? Column(
+                        key: const ValueKey('skeleton'),
+                        children: [
+                          for (var i = 0; i < 4; i++) ...[
+                            const _EpisodeRowSkeleton(),
+                            const SizedBox(height: AppSpacing.sm),
+                          ],
+                        ],
+                      )
+                    : recentItems.isEmpty
+                    ? Padding(
+                        key: const ValueKey('empty'),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          'Nenhum episódio novo das suas assinaturas.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : Column(
+                        key: ValueKey('list-${recentItems.length}'),
+                        children: [
+                          for (final item in recentItems) ...[
+                            EpisodeSwipeActions(
+                              key: ValueKey('recent-swipe-${item.episode.guid}'),
+                              podcast: item.podcast,
+                              episode: item.episode,
+                              child: _RecentEpisodeRow(item: item),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                          ],
+                        ],
+                      ),
+              ),
             ],
           ],
         ),
