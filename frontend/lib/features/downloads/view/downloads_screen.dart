@@ -46,14 +46,13 @@ class DownloadsScreen extends ConsumerWidget {
                   title: 'Nenhum download ainda',
                   message: 'Baixe um episódio pra ouvir sem internet.',
                 )
-              : ListView(
+              : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                  children: [
-                    for (final item in items) ...[
-                      _DownloadTile(item: item),
-                      const SizedBox(height: 12),
-                    ],
-                  ],
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _DownloadTile(item: items[index]),
+                  ),
                 ),
         ),
       ),

@@ -13,13 +13,14 @@
 
 ## Onde parei
 
-**Fase A verificada (2026-09-13)** — 2 dos 3 achados eram falso positivo
-(código já estava certo, ver tabela); sobrou só A2, opcional e sem
-urgência, não feito. **Fase B iniciada**: B1/B2 feitos (só edição de
+**Fase A fechada (2026-09-13)** — 2 dos 3 achados eram falso positivo
+(código já estava certo, ver tabela); A2 feito (`ListView.builder` nas
+duas telas, sem regressão). **Fase B**: B1/B2 feitos (só edição de
 `Info.plist`, não precisa Xcode pra escrever) e validados com
 `plutil -lint`. B3/B4 seguem bloqueados de verdade — precisam
-device/simulador iOS rodando o app, que não existe nesta máquina. Próximo
-passo: B3/B4 quando o ambiente permitir, ou A2 se algum dia importar.
+device/simulador iOS rodando o app, que não existe nesta máquina.
+**Documento sem pendência acionável nesta máquina** — só falta B3/B4
+quando o ambiente iOS existir.
 
 ## Método da revisão
 
@@ -68,11 +69,11 @@ não crescem, `.builder` não traria ganho).
 Dos 3 achados originais desta fase, 2 eram falso positivo (ver tabela
 acima) — o código já estava certo. Sobrou só isto, e é opcional:
 
-- [ ] **A2** (opcional) — `ListView.builder` na aba "Baixados" de
+- [x] **A2** (opcional) — `ListView.builder` na aba "Baixados" de
       `podcast_detail_screen.dart` e em `downloads_screen.dart` (mesmo
       padrão já usado na lista de episódios de `podcast_detail_screen.dart`
-      linha ~417). Só vale a pena se algum usuário real acumular muitos
-      downloads simultâneos — hoje o limite prático é espaço em disco.
+      linha ~417). **Feito (2026-09-13)** — `dart analyze` limpo, suíte
+      completa (246/246, testes de `podcast_detail` sem regressão).
 
 ## Fase B — Preparo iOS (fazer quando Xcode/CocoaPods estiverem disponíveis)
 

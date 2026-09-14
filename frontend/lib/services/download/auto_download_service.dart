@@ -1,10 +1,18 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/diagnostics/error_log.dart';
 import '../../data/repositories/library_repository.dart';
 import 'download_service.dart';
 
 part 'auto_download_service.g.dart';
+
+/// Prazo pro `enqueue` nativo (MethodChannel do `flutter_downloader`)
+/// responder. Não cobre o download em si (assíncrono via callback,
+/// desacoplado deste `await`) — só o registro da tarefa, que é local e
+/// rápido por natureza. Existe só pra não travar `run()` inteiro se o
+/// plugin nativo travar (mesma classe de bug do callback perdido).
+const _perItemDeadline = Duration(seconds: 8);
 
 /// Gestão automática de downloads (Fase 13). Roda depois de todo refresh de
 /// feeds (`startupFeedRefreshProvider` / pull-to-refresh): baixa os N
@@ -38,7 +46,13 @@ class AutoDownloadService {
           limit: settings.autoDownloadLimit,
         );
         for (final episode in candidates) {
-          await _downloads.download(podcastId: podcastId, episode: episode);
+          try {
+            await _downloads
+                .download(podcastId: podcastId, episode: episode)
+                .timeout(_perItemDeadline);
+          } catch (error, stack) {
+            await ErrorLog.instance.record(error, stack, context: 'AutoDownloadService.download');
+          }
         }
       }
 
@@ -48,7 +62,13 @@ class AutoDownloadService {
           Duration(days: settings.autoDeletePlayedDays),
         );
         for (final guid in stale) {
-          await _downloads.remove(podcastId: podcastId, episodeGuid: guid);
+          try {
+            await _downloads
+                .remove(podcastId: podcastId, episodeGuid: guid)
+                .timeout(_perItemDeadline);
+          } catch (error, stack) {
+            await ErrorLog.instance.record(error, stack, context: 'AutoDownloadService.remove');
+          }
         }
       }
     }

@@ -599,11 +599,14 @@ class _DownloadsTab extends ConsumerWidget {
             message: 'Baixe um episódio na aba ao lado pra ouvir sem internet.',
           );
         }
-        return ListView(
+        return ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            for (final episode in episodes) ...[
-              _EpisodeTile(
+          itemCount: episodes.length,
+          itemBuilder: (context, index) {
+            final episode = episodes[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _EpisodeTile(
                 podcast: podcast,
                 episode: episode,
                 queue: episodes,
@@ -611,9 +614,8 @@ class _DownloadsTab extends ConsumerWidget {
                 progress: progress[episode.guid],
                 isArchived: false,
               ),
-              const SizedBox(height: 12),
-            ],
-          ],
+            );
+          },
         );
       },
     );
