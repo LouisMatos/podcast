@@ -63,10 +63,12 @@ class QueryCache extends Table {
 - [x] `dart analyze` limpo, `flutter test` 256/256
 
 ## Fase 27.4 — Stale-while-revalidate nos ViewModels (fix real de "trava")
-- [ ] `DiscoverViewModel`/`FeaturedViewModel`/`RadioViewModel`: pintar cache na hora, revalidar em segundo plano
-- [ ] `PodcastDetailViewModel.build()`: lê cache **antes** do fetch (hoje só no `catch`), assinado via `LibraryRepository.cachedEpisodes`, não-assinado via `PodcastRepository.cachedEpisodesFor`
-- [ ] Testes com `Completer` gate no fetch de rede (cache antes, fresco depois, falha-após-seed mantém cache)
-- [ ] Roteiro manual device físico (busca offline, Featured offline, Rádio offline, detail assinado/não-assinado offline, revalidação ao voltar internet)
+- [x] `DiscoverViewModel`/`FeaturedViewModel`/`RadioViewModel`: pintar cache na hora, revalidar em segundo plano
+- [x] `PodcastDetailViewModel.build()`: lê cache **antes** do fetch (hoje só no `catch`), assinado via `LibraryRepository.cachedEpisodes`, não-assinado via `PodcastRepository.cachedEpisodesFor`
+- [x] Testes com `Completer` gate no fetch de rede (cache antes, fresco depois, falha-após-seed mantém cache) — achado real no processo: `FeaturedViewModel._revalidate` sem try/catch deixava exceção de rede escapar como erro não tratado; corrigido
+- [x] `dart analyze` limpo, `flutter test` 266/266
+- [x] Device físico (SM-G570M): reinstalado, sem crash, Featured carregou e escreveu no `QueryCache` (screenshot confirmado)
+- [~] Roteiro offline manual no device: **bloqueado** — `svc wifi disable`/broadcast de airplane mode falham nesse aparelho (Knox/ROM travada, sem permissão pro shell adb). Comportamento offline coberto de forma determinística pelos testes com `Completer` (mais confiável que depender de timing de rede real); usuário pode desligar wifi manualmente depois se quiser confirmação visual adicional
 
 ## Fase 27.5 — Subscribe Feed: polish de UX (sem cache real)
 - [ ] Trocar `_LoadingCard` full-block por skeleton consistente com o resto do app
