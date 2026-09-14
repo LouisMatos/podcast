@@ -35,6 +35,8 @@ class LibraryScreen extends ConsumerWidget {
         onRefresh: () => ref
             .read(libraryRepositoryProvider)
             .refreshAllSubscriptions(force: true),
+        color: Theme.of(context).extension<AppColors>()!.primary,
+        backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),

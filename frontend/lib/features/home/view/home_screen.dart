@@ -37,6 +37,8 @@ class HomeScreen extends ConsumerWidget {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () => _refresh(context, ref),
+        color: Theme.of(context).extension<AppColors>()!.primary,
+        backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           children: [

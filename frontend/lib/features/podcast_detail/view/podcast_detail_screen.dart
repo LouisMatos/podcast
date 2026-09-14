@@ -457,6 +457,8 @@ class _EpisodesTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
+      color: Theme.of(context).extension<AppColors>()!.primary,
+      backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
       child: ListView.builder(
         controller: scrollController,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
