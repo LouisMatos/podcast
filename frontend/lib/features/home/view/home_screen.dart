@@ -9,8 +9,8 @@ import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/episode_row.dart';
 import '../../../core/widgets/section_header.dart';
-import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
@@ -82,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
                         key: const ValueKey('skeleton'),
                         children: [
                           for (var i = 0; i < 4; i++) ...[
-                            const _EpisodeRowSkeleton(),
+                            const EpisodeRowSkeleton(),
                             const SizedBox(height: AppSpacing.sm),
                           ],
                         ],
@@ -105,7 +105,13 @@ class HomeScreen extends ConsumerWidget {
                               key: ValueKey('recent-swipe-${item.episode.guid}'),
                               podcast: item.podcast,
                               episode: item.episode,
-                              child: _RecentEpisodeRow(item: item),
+                              child: EpisodeRow(
+                                podcast: item.podcast,
+                                episode: item.episode,
+                                subtitle: _recentSubtitle(item),
+                                onTap: () => _openEpisode(context, item.podcast, item.episode),
+                                trailing: QueueMenuButton(podcast: item.podcast, episode: item.episode),
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
                           ],
@@ -140,6 +146,16 @@ void _openEpisode(BuildContext context, Podcast podcast, Episode episode) {
     '/episode',
     extra: (podcast: podcast, episode: episode, queue: <Episode>[episode]),
   );
+}
+
+String _recentSubtitle(RecentEpisodeItem item) {
+  final date = item.episode.publishedAt;
+  final parts = [
+    item.podcast.title,
+    if (date != null)
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
+  ];
+  return parts.join(' • ');
 }
 
 class _ContinueCard extends StatelessWidget {
@@ -212,103 +228,3 @@ class _ContinueCard extends StatelessWidget {
   );
 }
 
-class _RecentEpisodeRow extends StatelessWidget {
-  const _RecentEpisodeRow({required this.item});
-
-  final RecentEpisodeItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final artUrl = item.episode.imageUrl ?? item.podcast.artworkUrl;
-
-    return SoftCard(
-      onTap: () => _openEpisode(context, item.podcast, item.episode),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: AppRadii.smAll,
-            child: artUrl == null
-                ? _fallback(colors)
-                : CachedNetworkImage(
-                    imageUrl: artUrl,
-                    width: 48,
-                    height: 48,
-                    memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
-                    memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) =>
-                        const ShimmerBox(width: 48, height: 48),
-                    errorWidget: (_, _, _) => _fallback(colors),
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.episode.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _subtitle(item),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-          QueueMenuButton(podcast: item.podcast, episode: item.episode),
-        ],
-      ),
-    );
-  }
-
-  String _subtitle(RecentEpisodeItem item) {
-    final date = item.episode.publishedAt;
-    final parts = [
-      item.podcast.title,
-      if (date != null)
-        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
-    ];
-    return parts.join(' • ');
-  }
-
-  Widget _fallback(AppColors colors) => Container(
-    width: 48,
-    height: 48,
-    color: colors.primary.withValues(alpha: 0.5),
-    child: Icon(Icons.graphic_eq, color: colors.textPrimary),
-  );
-}
-
-class _EpisodeRowSkeleton extends StatelessWidget {
-  const _EpisodeRowSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      child: Row(
-        children: const [
-          ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ShimmerBox(height: 16),
-                SizedBox(height: 8),
-                ShimmerBox(width: 140, height: 12),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -62,20 +62,26 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
 - [x] Teste manual device (SM-G570M): botão play sobreposto no artwork do
       Podcast Detail — proporcional, sem overflow, trailing icons intactos
 
-## Fase 4 (opcional, maior risco) — Unificar EpisodeRow/_RecentEpisodeRow/_EpisodeTile
-- [ ] 4.1: estender `EpisodeRow` (slot leading customizável, barra de progresso
-      opcional, múltiplos trailings) sem trocar consumidor ainda — `EpisodeRow`
-      atual continua idêntico nos testes
-- [ ] 4.2: migrar `_RecentEpisodeRow` (Home, caso simples) primeiro, testar
-      isolado no device
-- [ ] 4.3: migrar `_EpisodeTile` (Podcast Detail — play overlay, progresso
-      condicional, 2 trailings, `EpisodeSwipeActions` envolvendo o card por
-      fora) só depois de 4.2 validado
-- [ ] Teste manual device: episódio com/sem progresso salvo, play/pause pelo
-      artwork trocando "current", swipe ouvido/arquivar, download
-      baixar/cancelar, toque no corpo abre `/episode` sem tocar áudio
-- Decisão: se reduzir risco for prioridade, pular esta fase — dívida técnica,
-  não afeta densidade (já usa padding da Fase 1)
+## Fase 4 — Unificar EpisodeRow/_RecentEpisodeRow/_EpisodeTile — concluída
+Feita em branch própria (`feature/ui-density-fase4-unify-episode-row`), depois
+da Fase 6, por ser a de maior risco (mexe em estrutura de widget).
+- [x] 4.1: `EpisodeRow` estendido com `leading`/`progress`/`crossAxisAlignment`
+      opcionais, sem trocar consumidor ainda — histórico/busca biblioteca
+      continuam idênticos nos testes
+- [x] 4.2: `_RecentEpisodeRow` (Home) migrado e removido (junto com
+      `_EpisodeRowSkeleton` local, agora reusa `EpisodeRowSkeleton`) — testado
+      isolado no device: visual idêntico, QueueMenuButton, toque abre /episode
+- [x] 4.3: `_EpisodeTile` (Podcast Detail) migrado — `leading` customizado
+      (`_EpisodeArtworkPlayButton`), `progress` (`_EpisodeProgressLine`),
+      `trailing` com `Row([QueueMenuButton, DownloadButton?])`,
+      `crossAxisAlignment: start` preservado; `EpisodeSwipeActions` continua
+      envolvendo por fora, inalterado
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): play/pause pelo artwork (mini-player
+      atualiza), menu de fila (marcar ouvido/arquivar), download
+      (baixar→ícone vira cancelar), swipe pra marcar ouvido com "Desfazer",
+      toque no corpo abre `/episode` sem tocar áudio — tudo funcional e
+      visualmente equivalente ao anterior
 
 ## Fase 5 — Alturas fixas de carrossel — concluída
 Risco documentado no CLAUDE.md: overflow `RenderFlex` em carrossel de altura
@@ -105,5 +111,4 @@ fixa já aconteceu antes nesse componente.
       comportamento de fade é o mesmo padrão já validado em Discover/Library
 
 ## Pendente / decisões em aberto
-- Fase 4 e Fase 6 são opcionais — confirmar com usuário depois da Fase 3 se
-  valem a pena ou se o ganho de 0-3+5 já resolve o scroll excessivo.
+Nenhuma — Fases 0-6 concluídas e validadas no device físico.
