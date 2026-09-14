@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-// ignore: depend_on_referenced_packages
 import 'package:sqlite3/sqlite3.dart';
 import 'package:podcast_app/core/database/app_database.dart';
 
 /// Cadeia inteira: monta o schema **v2** na mão (o mais antigo que os testes
-/// cobrem) e abre com o `AppDatabase` atual — o `onUpgrade` roda v2→v7 de uma
+/// cobrem) e abre com o `AppDatabase` atual — o `onUpgrade` roda v2→v9 de uma
 /// vez. Confere que todas as tabelas/colunas novas nasceram e que um dado
-/// gravado no v2 sobrevive até o v7.
+/// gravado no v2 sobrevive até o v9.
 void main() {
-  test('v2 → v7 numa abertura só: schema completo + dado preservado', () async {
+  test('v2 → v9 numa abertura só: schema completo + dado preservado', () async {
     final file = File(
       '${Directory.systemTemp.path}/mig_chain_${DateTime.now().microsecondsSinceEpoch}.db',
     );
@@ -58,7 +57,7 @@ void main() {
     // 1) user_version foi pra versão atual do schema.
     final version = await db.customSelect('PRAGMA user_version').getSingle();
     expect(version.data.values.first, db.schemaVersion);
-    expect(db.schemaVersion, 7);
+    expect(db.schemaVersion, 9);
 
     // 2) Tabelas novas das fases 12/14/17 existem.
     final tables = (await db
@@ -66,7 +65,7 @@ void main() {
             .get())
         .map((r) => r.data['name'] as String)
         .toSet();
-    expect(tables, containsAll(['queue_items', 'chapters', 'listen_history']));
+    expect(tables, containsAll(['queue_items', 'chapters', 'listen_history', 'query_cache']));
 
     // 3) Colunas novas de episode_cache (v3, v5, v6).
     final epCols = (await db
@@ -112,7 +111,23 @@ void main() {
     expect(ep.data['title'], 'E1');
     expect(ep.data['added_at'], 1700000000);
 
-    // 6) As tabelas novas aceitam escrita/leitura pelo drift já no schema atual.
+    // 6) Índices da v8 (ponytail — perf) existem na migração em cascata, não
+    // só no createAll de instalação nova.
+    final indexes = (await db
+            .customSelect("SELECT name FROM sqlite_master WHERE type = 'index'")
+            .get())
+        .map((r) => r.data['name'] as String)
+        .toSet();
+    expect(
+      indexes,
+      containsAll([
+        'idx_episode_cache_recent',
+        'idx_playback_progress_continue',
+        'idx_downloads_task_id',
+      ]),
+    );
+
+    // 7) As tabelas novas aceitam escrita/leitura pelo drift já no schema atual.
     await db.into(db.listenHistory).insert(
           ListenHistoryCompanion.insert(
             podcastId: 1,
@@ -122,5 +137,15 @@ void main() {
           ),
         );
     expect((await db.select(db.listenHistory).getSingle()).secondsListened, 90);
+
+    // 8) `query_cache` (v9) também aceita escrita/leitura pelo drift.
+    await db.into(db.queryCache).insert(
+          QueryCacheCompanion.insert(
+            cacheKey: 'podcast_search:cafe',
+            category: 'podcast_search',
+            payloadJson: '[]',
+          ),
+        );
+    expect((await db.select(db.queryCache).getSingle()).category, 'podcast_search');
   });
 }

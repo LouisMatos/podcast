@@ -61,10 +61,33 @@ class DiscoverViewModel extends _$DiscoverViewModel {
 
   Future<void> _search(String query) async {
     final mode = state.mode;
-    state = state.copyWith(isLoading: true, error: null, offline: false);
+    final repository = ref.read(podcastRepositoryProvider);
+
+    // Pinta o último resultado salvo na hora — a busca de rede roda por
+    // trás, sem travar a tela num skeleton enquanto a rede está lenta/fora
+    // (Fase 27.4). Só entra skeleton quando não há nada salvo ainda.
+    var hasCache = false;
+    if (mode == SearchMode.podcasts) {
+      final cached = await repository.cachedSearchResults(query);
+      if (_stale(query, mode)) return;
+      if (cached != null && cached.isNotEmpty) {
+        hasCache = true;
+        state = state.copyWith(results: cached, episodeResults: const []);
+      }
+    } else {
+      final cached = await repository.cachedEpisodeSearchResults(query);
+      if (_stale(query, mode)) return;
+      if (cached != null && cached.isNotEmpty) {
+        hasCache = true;
+        state = state.copyWith(episodeResults: cached, results: const []);
+      }
+    }
+
+    state = hasCache
+        ? state.copyWith(isLoading: false, isRevalidating: true, error: null, offline: false)
+        : state.copyWith(isLoading: true, isRevalidating: false, error: null, offline: false);
 
     try {
-      final repository = ref.read(podcastRepositoryProvider);
       if (mode == SearchMode.podcasts) {
         final results = await repository.search(query);
         if (_stale(query, mode)) return;
@@ -72,6 +95,7 @@ class DiscoverViewModel extends _$DiscoverViewModel {
           results: results,
           episodeResults: const [],
           isLoading: false,
+          isRevalidating: false,
         );
       } else {
         final results = await repository.searchEpisodes(query);
@@ -80,12 +104,14 @@ class DiscoverViewModel extends _$DiscoverViewModel {
           episodeResults: results,
           results: const [],
           isLoading: false,
+          isRevalidating: false,
         );
       }
     } catch (e) {
       if (_stale(query, mode)) return;
       state = state.copyWith(
         isLoading: false,
+        isRevalidating: false,
         error: 'Não foi possível buscar agora.',
         offline: _isConnectionError(e),
       );

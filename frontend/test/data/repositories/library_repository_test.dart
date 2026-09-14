@@ -158,6 +158,53 @@ void main() {
       await repo.cacheEpisodesIfSubscribed(99, [ep('g1')]);
       expect(await repo.cachedEpisodes(99), isEmpty);
     });
+
+    test(
+      'refreshAllSubscriptions em lotes: mais assinaturas que concurrency, '
+      'uma falha no meio do lote não derruba as outras',
+      () async {
+        // 6 assinaturas, concurrency=2 → 3 lotes; a 3ª (índice 2, no meio do
+        // 2º lote) falha. Todas as outras devem completar independente da
+        // posição/ordem de conclusão dentro do lote.
+        for (var i = 1; i <= 6; i++) {
+          await repo.subscribe(
+            Podcast(id: i, title: 'P$i', author: 'A', feedUrl: 'https://x/f$i.xml'),
+            [ep('g$i-0')],
+          );
+        }
+        for (var i = 1; i <= 6; i++) {
+          if (i == 3) {
+            when(() => feedParser.fetchEpisodes('https://x/f$i.xml')).thenThrow(Exception('sem rede'));
+          } else {
+            when(() => feedParser.fetchEpisodes('https://x/f$i.xml'))
+                .thenAnswer((_) async => [ep('g$i-0'), ep('g$i-1')]);
+          }
+        }
+
+        final results = await repo.refreshAllSubscriptions(force: true, concurrency: 2);
+
+        expect(results.map((r) => r.podcast.id).toSet(), {1, 2, 4, 5, 6});
+        expect((await repo.cachedEpisodes(3)).length, 1); // feed 3 não avançou
+        for (final id in [1, 2, 4, 5, 6]) {
+          expect((await repo.cachedEpisodes(id)).length, 2);
+        }
+      },
+    );
+
+    test('throttle 1h respeitado mesmo com refresh em paralelo (concurrency > 1)', () async {
+      await repo.subscribe(podcast, [ep('g1')]);
+      await repo.subscribe(
+        const Podcast(id: 2, title: 'P2', author: 'A', feedUrl: 'https://x/f2.xml'),
+        [ep('h1')],
+      );
+      when(() => feedParser.fetchEpisodes(any())).thenAnswer((_) async => [ep('g1'), ep('h1')]);
+
+      await repo.refreshAllSubscriptions(force: true, concurrency: 2);
+      final segunda = await repo.refreshAllSubscriptions(concurrency: 2); // sem force
+
+      expect(segunda, isEmpty);
+      verify(() => feedParser.fetchEpisodes(any())).called(2); // só a 1ª rodada
+    });
   });
 
   group('Fase 11 — tela Início', () {

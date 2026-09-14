@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/diagnostics/error_log.dart';
 import '../../core/prefs/preferences_store.dart';
 import '../../data/repositories/library_repository.dart';
 import '../../data/sources/rss_feed_parser.dart';
@@ -44,7 +45,10 @@ Future<bool> runFeedSync() async {
       await notifications.notifyNewEpisodes(results);
     }
     return true;
-  } catch (_) {
+  } catch (error, stack) {
+    // Sem isso, um lock de banco (app aberto ao mesmo tempo) ou qualquer
+    // outra falha aqui não deixa rastro nenhum pra diagnosticar no device.
+    await ErrorLog.instance.record(error, stack, context: 'feedSyncCallbackDispatcher');
     return false;
   } finally {
     await db.close();

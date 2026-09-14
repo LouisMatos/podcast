@@ -22,6 +22,7 @@ void main() {
         any(),
         queryParameters: any(named: 'queryParameters'),
         options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
       ),
     ).thenAnswer((_) async => Response<String>(data: body, requestOptions: RequestOptions(path: _endpoint)));
   }

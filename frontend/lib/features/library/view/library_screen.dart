@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/search_field.dart';
@@ -34,6 +35,8 @@ class LibraryScreen extends ConsumerWidget {
         onRefresh: () => ref
             .read(libraryRepositoryProvider)
             .refreshAllSubscriptions(force: true),
+        color: Theme.of(context).extension<AppColors>()!.primary,
+        backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -53,7 +56,7 @@ class LibraryScreen extends ConsumerWidget {
                 Expanded(
                   child: SearchField(
                     onChanged: controlsNotifier.setFilter,
-                    hintText: 'Filtrar por nome',
+                    hintText: 'Filtrar',
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -96,7 +99,7 @@ class LibraryScreen extends ConsumerWidget {
                   key: const ValueKey('loading'),
                   children: const [
                     _SubscriptionTileSkeleton(),
-                    SizedBox(height: 12),
+                    SizedBox(height: AppSpacing.sm),
                     _SubscriptionTileSkeleton(),
                   ],
                 ),
@@ -139,7 +142,7 @@ class LibraryScreen extends ConsumerWidget {
                           children: [
                             for (final sub in visible) ...[
                               _SubscriptionTile(sub: sub),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppSpacing.sm),
                             ],
                           ],
                         );
@@ -244,6 +247,8 @@ class _Artwork extends StatelessWidget {
                   imageUrl: podcast.artworkUrl!,
                   width: size,
                   height: size,
+                  memCacheWidth: (size * MediaQuery.devicePixelRatioOf(context)).round(),
+                  memCacheHeight: (size * MediaQuery.devicePixelRatioOf(context)).round(),
                   fit: BoxFit.cover,
                   placeholder: (_, _) => ShimmerBox(width: size, height: size),
                   errorWidget: (_, _, _) => fallback(),

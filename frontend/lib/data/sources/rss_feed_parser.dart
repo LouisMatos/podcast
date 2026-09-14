@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:rss_dart/dart_rss.dart';
 import 'package:xml/xml.dart';
 
+import '../../core/network/dio_client.dart';
 import '../models/episode.dart';
 
 /// Baixa e interpreta o feed RSS de um podcast, extraindo os episódios.
@@ -19,7 +20,7 @@ class RssFeedParser {
   final Dio _dio;
 
   Future<List<Episode>> fetchEpisodes(String feedUrl) async {
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       feedUrl,
       options: Options(responseType: ResponseType.plain),
     );

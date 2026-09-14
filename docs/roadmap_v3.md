@@ -53,12 +53,43 @@ gerados (`flutter_launcher_icons`/`flutter_native_splash`, arte própria em
 `podcast-changeme` não existe mais), `.apk`/`.aab` de release validados.
 Detalhe completo em `~/.claude/plans/deve-ler-o-arquivo-synchronous-quail.md`.
 
-**Falta:** 20 (precisa device físico + Bluetooth), 24 (precisa AVD API 34+),
-25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
-entraram junto), 26c (Android Auto/shortcuts/share/deep link em device
-físico).
+**Fase 20 e parte de 26c validadas em device físico** (SM-G570M, 2026-09-13):
+metadados de mídia (notificação com artwork/título corretos, `duration=0`/
+`image=null` não reproduz fora do emulador), app shortcuts, share de
+episódio e deep link `https://` — todos sem bug. Falta só a parte AVRCP
+real (fone/carro Bluetooth pareado, sem periférico disponível nesta sessão)
+e o Desktop Head Unit do Android Auto.
 
-Ordem sugerida do resto: **26c/20 (mesma sessão de device físico) → 24 → 25**.
+**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não resolve),
+25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
+entraram junto, trabalho de código puro sem bloqueio de hardware), 26c
+Android Auto/DHU (precisa Desktop Head Unit ou carro real) e AVRCP
+Bluetooth real (precisa periférico pareado).
+
+Ordem sugerida do resto: **24 → 25** (nenhum dos dois depende mais de
+device físico simples — 24 precisa API 34+, 25 é só código).
+
+**Perf em device físico + componentes independentes concluído** (2026-09-
+12/13, fora da numeração de fases desta v3 — branch
+`perf/device-profiling-and-concurrent-refresh`): detalhe completo em
+`docs/roadmap_perf_device.md`. Ver também `docs/roadmap_ponytail_perf.md`
+(otimização de APK/device fraco, sessão anterior).
+
+**Cache offline de busca/listagem concluído** (2026-09-14, capacidade
+nova — não é polimento da v3, numerada Fase 27 em `docs/roadmap_cache_offline.md`,
+branch `feature/cache-offline-fase27-1-schema` a partir de
+`feature/ui-density-fase4-unify-episode-row`): Fases 27.1–27.6, cache-aside
+em `PodcastRepository`/`RadioRepository` + stale-while-revalidate em
+Discover/Featured/Rádio/Detail, validado em device físico (SM-G570M).
+Falta só mergear com PR #1 (que traz a base v8) antes de abrir PR desta.
+
+**Polimento UI/UX concluído** (2026-09-14, fora da numeração original da v3
+— capacidade de polimento pontual, não correção de robustez — numerada
+Fase 28, detalhe em `docs/roadmap_ui_review.md`, branch
+`feature/ui-review-fase28` a partir de
+`feature/cache-offline-fase27-pr-ready`): Fases 28.1–28.8, validado em
+device físico (SM-G570M). Um bug extra achado só no device (bottom sheet do
+temporizador do player estourando 8px) foi corrigido junto do item 28.4.
 
 ## Regra de ouro (por fase) — igual v1/v2
 
@@ -89,8 +120,10 @@ local rotativo em `core/diagnostics/error_log.dart`, local-only);
 `ErrorWidget.builder` → `ErrorScreen` autossuficiente no lugar da tela cinza;
 `FeedSyncScheduler.apply` movido pra `addPostFrameCallback` (fora do caminho
 crítico do `runApp`). Cold start no emulador caiu de "Skipped 117 frames" pra
-~66. **Não feito:** profiling fino com devtools timeline (deixado pra quando
-houver device — o ganho fácil já entrou).
+~66. **Profiling fino com devtools timeline em device físico**: feito em
+2026-09-12/13, ver `docs/roadmap_perf_device.md` (cold start ~1.37s no J5,
+refresh de feeds paralelizado, prazo total por requisição HTTP, componentes
+de tela independentes de loading).
 
 **Problema:** cold start pinta "Skipped 117 frames" / "42 frames" no logcat —
 o primeiro frame carrega trabalho que podia esperar. E se o `runApp` explode
@@ -125,9 +158,13 @@ um fallback de erro que hoje não existe.
 artefato da stack Bluetooth AVRCP do emulador **ou** bug real que deixa o
 lockscreen sem barra de progresso e o display do carro sem capa.
 
-- [ ] Reproduzir em **device físico** + fone/carro Bluetooth real. Confirmar
-      se `MediaItem.duration` e `artUri` chegam no lockscreen e no AVRCP e se o
-      `metadata sync timeout` acontece fora do emulador.
+- [x] Reproduzir em **device físico** (SM-G570M, 2026-09-13): tocando episódio
+      real, `dumpsys media_session` mostra `metadata:size=12` preenchido
+      (título/subtítulo/artista corretos) e a notificação de mídia expandida
+      mostra artwork e texto certos — **`duration=0`/`image=null` não
+      reproduz fora do emulador**, era mesmo artefato de stack. Sem fone/
+      carro Bluetooth disponível nesta sessão — a parte AVRCP real segue não
+      testada (falta o periférico, não é bloqueio de código).
 - [ ] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
       campos de busca) — provável ruído; confirmar que nenhuma tecla é perdida.
 - [ ] Se for real: garantir `artUri` em todos os itens de `queue` publicados no
@@ -274,11 +311,56 @@ Sub-fases porque cada parte depende de um input externo diferente:
       é PKCS12 — só `storepasswd` existe pra esse formato, store/key
       compartilham senha). Senha real fora do repo em
       `~/podcast-keystore-secrets/`, detalhes em `docs/PLAY_STORE.md`.
-- [ ] **26c — Carro**: testar Android Auto com o Desktop Head Unit; testar app
-      shortcuts, share e deep link `https://` num device real.
+- [ ] **26c — Carro**: testar Android Auto com o Desktop Head Unit (segue
+      bloqueado — sem DHU/carro disponível).
+  - [x] App shortcuts (long-press no ícone "Ecoo"): menu mostra "Fila" e
+        "Continuar"; "Continuar" abre direto no episódio de "Continuar
+        ouvindo" e já dispara o play — validado em device físico
+        (SM-G570M, 2026-09-13).
+  - [x] Share de episódio: share sheet do Android abre, texto compartilhado
+        traz título + link real do episódio (ex.: link Spotify quando o
+        feed expõe um) — validado, sem bug.
+  - [x] Deep link `https://` num device real: `am start -a VIEW -d
+        "https://..."` com feed RSS externo abre a tela "Assinar feed" e
+        carrega corretamente (testado com feed de 2750 episódios) —
+        validado, sem bug.
 
 **Arquivos:** `frontend/android/app/src/main/res/`, `frontend/pubspec.yaml`,
 `docs/PLAY_STORE.md`.
+
+---
+
+## Fase 28 — Polimento UI/UX · esforço S ✅ (2026-09-14)
+
+Achados de revisão UI/UX pontual (skill `ui-ux-pro-max`, device físico),
+detalhados em `docs/roadmap_ui_review.md`. Não é redesenho — polimento sobre
+o design system existente. Branch `feature/ui-review-fase28`, a partir de
+`feature/cache-offline-fase27-pr-ready`.
+
+- [x] **28.1** Borda dura no `SegmentedButton` de tema (Ajustes) removida.
+- [x] **28.2** `RefreshIndicator` tematizado em Início/Biblioteca/Detalhe do
+      podcast (Descobrir/Rádio não usam pull-to-refresh).
+- [x] **28.3** Título de rádio quebra em 2 linhas em vez de cortar.
+- [x] **28.4** Barra superior do player: compartilhar e temporizador movidos
+      pro menu de transbordo. Bug extra achado só no device (não em teste
+      de widget): bottom sheet do temporizador estourava 8px em telas
+      menores — `Column` trocado por `ListView` + `isScrollControlled`.
+- [x] **28.5** Chips de filtro do detalhe do podcast — já tinham scroll
+      horizontal de uma correção anterior; validado no device, sem mudança
+      de código necessária.
+- [x] **28.6** Gênero do podcast traduzido pt-BR (`podcast_genre_labels.dart`,
+      mapa de nome iTunes → pt-BR com fallback pro original).
+- [x] **28.7** Placeholder do filtro de assinaturas na Biblioteca encurtado
+      (não corta mais em 360dp). Hierarquia entre os dois campos de busca
+      fica pra `docs/roadmap_debito_tecnico.md` (decisão de produto).
+- [x] **28.8** `docs/DESIGN_SYSTEM.md` atualizado (fontes vendorizadas,
+      `textMuted #6B6478`).
+
+Validado em device físico (SM-G570M): as 8 telas da revisão renavegadas
+após os fixes. `dart analyze` limpo, `flutter test` 271/271.
+
+**Arquivos:** `frontend/lib/features/{settings,home,library,radio,player,
+podcast_detail,discover}/`, `docs/DESIGN_SYSTEM.md`.
 
 ---
 

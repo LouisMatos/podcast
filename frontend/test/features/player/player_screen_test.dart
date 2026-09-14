@@ -9,9 +9,11 @@ import 'package:podcast_app/core/theme/motion.dart';
 import 'package:podcast_app/data/models/chapter.dart';
 import 'package:podcast_app/data/models/episode.dart';
 import 'package:podcast_app/data/models/podcast.dart';
+import 'package:podcast_app/data/models/radio_station.dart';
 import 'package:podcast_app/data/repositories/download_repository.dart';
 import 'package:podcast_app/data/repositories/library_repository.dart';
 import 'package:podcast_app/data/repositories/queue_repository.dart';
+import 'package:podcast_app/data/repositories/radio_repository.dart';
 import 'package:podcast_app/features/player/view/mini_player.dart';
 import 'package:podcast_app/features/player/view/player_screen.dart';
 import 'package:podcast_app/features/player/view_model/player_view_model.dart';
@@ -38,6 +40,17 @@ class _MockQueue extends Mock implements QueueRepository {}
 
 class _MockChapters extends Mock implements ChapterService {}
 
+class _MockRadioRepository extends Mock implements RadioRepository {}
+
+/// `RadioViewModel` (usado pelo `MiniPlayer`) carrega estações ao montar —
+/// sem esse stub, bateria rede de verdade em teste.
+RadioRepository _radioRepoStub() {
+  final repo = _MockRadioRepository();
+  when(() => repo.brStations()).thenAnswer((_) async => const <RadioStation>[]);
+  when(() => repo.cachedBrStations()).thenAnswer((_) async => null);
+  return repo;
+}
+
 /// `PodcastAudioHandler()` aqui não toca nada de verdade: seu construtor só
 /// cria um `just_audio.AudioPlayer` e assina os próprios streams — nenhum
 /// método que bata em platform channel (`setAudioSource`/`play`) é chamado
@@ -60,6 +73,7 @@ void main() {
         audioHandlerProvider.overrideWithValue(PodcastAudioHandler()),
         preferencesStoreProvider.overrideWithValue(prefs),
         queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
+        radioRepositoryProvider.overrideWithValue(_radioRepoStub()),
       ],
       child: MaterialApp(theme: AppTheme.light(), home: child),
     );
@@ -122,6 +136,7 @@ void main() {
       queueRepositoryProvider.overrideWithValue(q),
       chapterServiceProvider.overrideWithValue(cs),
       queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
+      radioRepositoryProvider.overrideWithValue(_radioRepoStub()),
     ]);
 
     final vm = container.read(playerViewModelProvider.notifier);
@@ -202,6 +217,7 @@ void main() {
       queueRepositoryProvider.overrideWithValue(q),
       chapterServiceProvider.overrideWithValue(cs),
       queueProvider.overrideWith((ref) => Stream.value(const <QueueEntry>[])),
+      radioRepositoryProvider.overrideWithValue(_radioRepoStub()),
     ]);
 
     await container.read(playerViewModelProvider.notifier).playEpisode(podcast, ep);

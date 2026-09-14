@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -23,4 +25,35 @@ Dio dioClient(Ref ref) {
   );
   dio.interceptors.add(RetryInterceptor(dio));
   return dio;
+}
+
+/// [Dio.connectTimeout]/[Dio.receiveTimeout] medem o intervalo *entre
+/// pacotes*, não o tempo total da requisição — um servidor (ou rota móvel
+/// ruim) que entrega dados aos poucos nunca estoura nenhum dos dois, e a
+/// requisição trava pra sempre sem lançar erro (nem retry, nem estado de
+/// erro pra UI mostrar). Confirmado em device físico: aba Rádio travou 70s+
+/// com 0% CPU (bloqueada em I/O) numa rede WiFi saudável.
+extension DioDeadline on Dio {
+  Future<Response<T>> getWithDeadline<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    Duration deadline = const Duration(seconds: 20),
+  }) async {
+    final cancelToken = CancelToken();
+    final timer = Timer(
+      deadline,
+      () => cancelToken.cancel('prazo total de $deadline excedido'),
+    );
+    try {
+      return await get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+    } finally {
+      timer.cancel();
+    }
+  }
 }

@@ -92,6 +92,27 @@ void main() {
         podcastId: any(named: 'podcastId'), episode: any(named: 'episode')));
   });
 
+  test('uma falha no download de um episódio não impede os demais nem a próxima assinatura', () async {
+    const p2 = Podcast(id: 2, title: 'P2', author: 'A', feedUrl: 'f2');
+    when(() => library.allSubscriptionsWithSettings()).thenAnswer(
+      (_) async => [
+        (podcast: p1, settings: settings(auto: AutoDownloadMode.always, limit: 2)),
+        (podcast: p2, settings: settings(auto: AutoDownloadMode.always, limit: 1)),
+      ],
+    );
+    when(() => library.recentUndownloadedEpisodes(1, limit: 2))
+        .thenAnswer((_) async => [ep('a'), ep('b')]);
+    when(() => library.recentUndownloadedEpisodes(2, limit: 1))
+        .thenAnswer((_) async => [ep('c')]);
+    when(() => downloads.download(podcastId: 1, episode: ep('a')))
+        .thenThrow(Exception('enqueue travou'));
+
+    await service.run();
+
+    verify(() => downloads.download(podcastId: 1, episode: ep('b'))).called(1);
+    verify(() => downloads.download(podcastId: 2, episode: ep('c'))).called(1);
+  });
+
   test('autoDeletePlayedDays > 0 remove os ouvidos antigos', () async {
     when(() => library.allSubscriptionsWithSettings()).thenAnswer(
         (_) async => [(podcast: p1, settings: settings(deleteDays: 7))]);

@@ -10,7 +10,7 @@ import 'shimmer_box.dart';
 import 'soft_card.dart';
 
 /// Linha de podcast reutilizável (resultados de busca, lista por categoria):
-/// capa 56 com Hero, título + autor, chip de gênero. Toca → detalhe.
+/// capa 48 com Hero, título + autor, chip de gênero. Toca → detalhe.
 class PodcastListTile extends StatelessWidget {
   const PodcastListTile({super.key, required this.podcast});
 
@@ -34,11 +34,13 @@ class PodcastListTile extends StatelessWidget {
                     ? _artworkFallback(colors)
                     : CachedNetworkImage(
                         imageUrl: podcast.artworkUrl!,
-                        width: 56,
-                        height: 56,
+                        width: 48,
+                        height: 48,
+                        memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                        memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
-                            const ShimmerBox(width: 56, height: 56),
+                            const ShimmerBox(width: 48, height: 48),
                         errorWidget: (context, url, error) =>
                             _artworkFallback(colors),
                       ),
@@ -79,8 +81,8 @@ class PodcastListTile extends StatelessWidget {
 
   Widget _artworkFallback(AppColors colors) {
     return Container(
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       color: colors.primary.withValues(alpha: 0.5),
       child: Icon(Icons.graphic_eq, color: colors.textPrimary),
     );
@@ -96,7 +98,7 @@ class PodcastListTileSkeleton extends StatelessWidget {
     return SoftCard(
       child: Row(
         children: const [
-          ShimmerBox(width: 56, height: 56, borderRadius: AppRadii.smAll),
+          ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
           SizedBox(width: 16),
           Expanded(
             child: Column(

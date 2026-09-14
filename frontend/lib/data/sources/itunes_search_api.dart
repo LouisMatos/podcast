@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:dio/dio.dart';
 
+import '../../core/network/dio_client.dart';
 import '../models/episode.dart';
 import '../models/episode_search_result.dart';
 import '../models/podcast.dart';
@@ -19,7 +21,7 @@ class ItunesSearchApi {
     // A API devolve `Content-Type: text/javascript`, não `application/json`
     // — o decoder automático do Dio não reconhece isso, então pedimos texto
     // puro e decodificamos o JSON na mão.
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       _endpoint,
       queryParameters: {
         'media': 'podcast',
@@ -33,9 +35,7 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final results = json['results'] as List<dynamic>? ?? const [];
-    return results.map(_toPodcast).nonNulls.toList();
+    return Isolate.run(() => _parsePodcasts(body));
   }
 
   /// Busca episódios avulsos (`entity=podcastEpisode`). Cada resultado traz o
@@ -44,7 +44,7 @@ class ItunesSearchApi {
     String term, {
     int limit = 25,
   }) async {
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       _endpoint,
       queryParameters: {
         'media': 'podcast',
@@ -58,12 +58,22 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
+    return Isolate.run(() => _parseEpisodeResults(body));
+  }
+
+  static List<Podcast> _parsePodcasts(String body) {
+    final json = jsonDecode(body) as Map<String, dynamic>;
+    final results = json['results'] as List<dynamic>? ?? const [];
+    return results.map(_toPodcast).nonNulls.toList();
+  }
+
+  static List<EpisodeSearchResult> _parseEpisodeResults(String body) {
     final json = jsonDecode(body) as Map<String, dynamic>;
     final results = json['results'] as List<dynamic>? ?? const [];
     return results.map(_toEpisodeResult).nonNulls.toList();
   }
 
-  EpisodeSearchResult? _toEpisodeResult(dynamic json) {
+  static EpisodeSearchResult? _toEpisodeResult(dynamic json) {
     if (json is! Map<String, dynamic>) return null;
 
     final collectionId = json['collectionId'] as int?;
@@ -109,7 +119,7 @@ class ItunesSearchApi {
   Future<List<Podcast>> lookup(List<int> ids) async {
     if (ids.isEmpty) return const [];
 
-    final response = await _dio.get<String>(
+    final response = await _dio.getWithDeadline<String>(
       'https://itunes.apple.com/lookup',
       queryParameters: {'id': ids.join(','), 'entity': 'podcast'},
       options: Options(responseType: ResponseType.plain),
@@ -118,12 +128,10 @@ class ItunesSearchApi {
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final results = json['results'] as List<dynamic>? ?? const [];
-    return results.map(_toPodcast).nonNulls.toList();
+    return Isolate.run(() => _parsePodcasts(body));
   }
 
-  Podcast? _toPodcast(dynamic json) {
+  static Podcast? _toPodcast(dynamic json) {
     if (json is! Map<String, dynamic>) return null;
 
     final id = json['collectionId'] as int?;

@@ -191,9 +191,16 @@ class LibraryRepository {
         await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId))).getSingleOrNull();
     if (sub == null) return const [];
 
-    if (!force &&
-        sub.lastRefreshedAt != null &&
-        DateTime.now().difference(sub.lastRefreshedAt!) < _refreshThrottle) {
+    final now = DateTime.now();
+    // `lastRefreshedAt` no futuro (troca de fuso/hora do aparelho) faria essa
+    // diferença ficar negativa e sempre `< _refreshThrottle` — o feed nunca
+    // mais atualizaria sozinho, nem reabrindo o app (o valor está persistido
+    // no banco). Trata como "nunca atualizado" em vez de honrar o throttle.
+    final lastRefreshedAt = sub.lastRefreshedAt;
+    final throttled = lastRefreshedAt != null &&
+        !lastRefreshedAt.isAfter(now) &&
+        now.difference(lastRefreshedAt) < _refreshThrottle;
+    if (!force && throttled) {
       return const [];
     }
 
@@ -204,28 +211,44 @@ class LibraryRepository {
     final existingGuids = {for (final row in existing) row.guid};
     final newEpisodes = fresh.where((e) => !existingGuids.contains(e.guid)).toList();
 
-    await _cacheEpisodes(podcastId, fresh);
-    await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
-        .write(SubscriptionsCompanion(lastRefreshedAt: Value(DateTime.now())));
+    // Sem transação: um kill do app entre as duas escritas deixa o feed com
+    // episódios cacheados mas `lastRefreshedAt` antigo (ou vice-versa).
+    await _db.transaction(() async {
+      await _cacheEpisodes(podcastId, fresh);
+      await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
+          .write(SubscriptionsCompanion(lastRefreshedAt: Value(now)));
+    });
 
     return newEpisodes;
   }
 
-  /// Rebusca todos os feeds assinados (respeitando o throttle por feed).
-  /// Um feed fora do ar não impede os outros. Devolve só os feeds que
-  /// tiveram episódio inédito.
-  Future<List<FeedRefreshResult>> refreshAllSubscriptions({bool force = false}) async {
+  /// Rebusca todos os feeds assinados em lotes concorrentes (respeitando o
+  /// throttle por feed). Um feed lento/fora do ar não trava os outros —
+  /// antes era sequencial, e um feed morto (timeout 10s + até 3 retentativas
+  /// ≈ 1min) segurava o refresh inteiro até chegar nele. `concurrency`
+  /// controla quantos feeds em paralelo por lote: pull-to-refresh (usuário
+  /// esperando) usa um valor maior que o refresh de startup (fire-and-forget,
+  /// não deve competir por I/O/CPU com o primeiro frame da UI).
+  Future<List<FeedRefreshResult>> refreshAllSubscriptions({
+    bool force = false,
+    int concurrency = 4,
+  }) async {
     final subs = await _db.select(_db.subscriptions).get();
     final results = <FeedRefreshResult>[];
-    for (final sub in subs) {
-      try {
-        final newEpisodes = await refreshFeed(sub.id, force: force);
-        if (newEpisodes.isNotEmpty) {
-          results.add((podcast: _podcastFromRow(sub), newEpisodes: newEpisodes));
+    for (var i = 0; i < subs.length; i += concurrency) {
+      final chunk = subs.skip(i).take(concurrency);
+      final chunkResults = await Future.wait(chunk.map((sub) async {
+        try {
+          final newEpisodes = await refreshFeed(sub.id, force: force);
+          if (newEpisodes.isNotEmpty) {
+            return (podcast: _podcastFromRow(sub), newEpisodes: newEpisodes);
+          }
+        } catch (_) {
+          // sem rede / feed quebrado — ignora, tenta os próximos
         }
-      } catch (_) {
-        // sem rede / feed quebrado — ignora, tenta os próximos
-      }
+        return null;
+      }));
+      results.addAll(chunkResults.whereType<FeedRefreshResult>());
     }
     return results;
   }

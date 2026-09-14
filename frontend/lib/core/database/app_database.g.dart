@@ -4145,6 +4145,329 @@ class ListenHistoryCompanion extends UpdateCompanion<ListenHistoryRow> {
   }
 }
 
+class $QueryCacheTable extends QueryCache
+    with TableInfo<$QueryCacheTable, QueryCacheRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $QueryCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cache_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    cacheKey,
+    category,
+    payloadJson,
+    fetchedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'query_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<QueryCacheRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('cache_key')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cache_key']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {cacheKey};
+  @override
+  QueryCacheRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return QueryCacheRow(
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cache_key'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $QueryCacheTable createAlias(String alias) {
+    return $QueryCacheTable(attachedDatabase, alias);
+  }
+}
+
+class QueryCacheRow extends DataClass implements Insertable<QueryCacheRow> {
+  final String cacheKey;
+  final String category;
+  final String payloadJson;
+  final DateTime fetchedAt;
+  const QueryCacheRow({
+    required this.cacheKey,
+    required this.category,
+    required this.payloadJson,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['cache_key'] = Variable<String>(cacheKey);
+    map['category'] = Variable<String>(category);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    return map;
+  }
+
+  QueryCacheCompanion toCompanion(bool nullToAbsent) {
+    return QueryCacheCompanion(
+      cacheKey: Value(cacheKey),
+      category: Value(category),
+      payloadJson: Value(payloadJson),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory QueryCacheRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return QueryCacheRow(
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      category: serializer.fromJson<String>(json['category']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'category': serializer.toJson<String>(category),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+    };
+  }
+
+  QueryCacheRow copyWith({
+    String? cacheKey,
+    String? category,
+    String? payloadJson,
+    DateTime? fetchedAt,
+  }) => QueryCacheRow(
+    cacheKey: cacheKey ?? this.cacheKey,
+    category: category ?? this.category,
+    payloadJson: payloadJson ?? this.payloadJson,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  QueryCacheRow copyWithCompanion(QueryCacheCompanion data) {
+    return QueryCacheRow(
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      category: data.category.present ? data.category.value : this.category,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueryCacheRow(')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('category: $category, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(cacheKey, category, payloadJson, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is QueryCacheRow &&
+          other.cacheKey == this.cacheKey &&
+          other.category == this.category &&
+          other.payloadJson == this.payloadJson &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class QueryCacheCompanion extends UpdateCompanion<QueryCacheRow> {
+  final Value<String> cacheKey;
+  final Value<String> category;
+  final Value<String> payloadJson;
+  final Value<DateTime> fetchedAt;
+  final Value<int> rowid;
+  const QueryCacheCompanion({
+    this.cacheKey = const Value.absent(),
+    this.category = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  QueryCacheCompanion.insert({
+    required String cacheKey,
+    required String category,
+    required String payloadJson,
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : cacheKey = Value(cacheKey),
+       category = Value(category),
+       payloadJson = Value(payloadJson);
+  static Insertable<QueryCacheRow> custom({
+    Expression<String>? cacheKey,
+    Expression<String>? category,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (cacheKey != null) 'cache_key': cacheKey,
+      if (category != null) 'category': category,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  QueryCacheCompanion copyWith({
+    Value<String>? cacheKey,
+    Value<String>? category,
+    Value<String>? payloadJson,
+    Value<DateTime>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return QueryCacheCompanion(
+      cacheKey: cacheKey ?? this.cacheKey,
+      category: category ?? this.category,
+      payloadJson: payloadJson ?? this.payloadJson,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (cacheKey.present) {
+      map['cache_key'] = Variable<String>(cacheKey.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QueryCacheCompanion(')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('category: $category, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4157,6 +4480,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $QueueItemsTable queueItems = $QueueItemsTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
   late final $ListenHistoryTable listenHistory = $ListenHistoryTable(this);
+  late final $QueryCacheTable queryCache = $QueryCacheTable(this);
+  late final Index idxEpisodeCacheRecent = Index(
+    'idx_episode_cache_recent',
+    'CREATE INDEX idx_episode_cache_recent ON episode_cache (archived, published_at)',
+  );
+  late final Index idxPlaybackProgressContinue = Index(
+    'idx_playback_progress_continue',
+    'CREATE INDEX idx_playback_progress_continue ON playback_progress (completed, updated_at)',
+  );
+  late final Index idxDownloadsTaskId = Index(
+    'idx_downloads_task_id',
+    'CREATE INDEX idx_downloads_task_id ON downloads (task_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4169,6 +4505,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     queueItems,
     chapters,
     listenHistory,
+    queryCache,
+    idxEpisodeCacheRecent,
+    idxPlaybackProgressContinue,
+    idxDownloadsTaskId,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6869,6 +7209,196 @@ typedef $$ListenHistoryTableProcessedTableManager =
       ListenHistoryRow,
       PrefetchHooks Function()
     >;
+typedef $$QueryCacheTableCreateCompanionBuilder = QueryCacheCompanion Function({
+  required String cacheKey,
+  required String category,
+  required String payloadJson,
+  Value<DateTime> fetchedAt,
+  Value<int> rowid,
+});
+typedef $$QueryCacheTableUpdateCompanionBuilder = QueryCacheCompanion Function({
+  Value<String> cacheKey,
+  Value<String> category,
+  Value<String> payloadJson,
+  Value<DateTime> fetchedAt,
+  Value<int> rowid,
+});
+
+class $$QueryCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $QueryCacheTable> {
+  $$QueryCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$QueryCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $QueryCacheTable> {
+  $$QueryCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$QueryCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $QueryCacheTable> {
+  $$QueryCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$QueryCacheTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $QueryCacheTable,
+          QueryCacheRow,
+          $$QueryCacheTableFilterComposer,
+          $$QueryCacheTableOrderingComposer,
+          $$QueryCacheTableAnnotationComposer,
+          $$QueryCacheTableCreateCompanionBuilder,
+          $$QueryCacheTableUpdateCompanionBuilder,
+          (
+            QueryCacheRow,
+            BaseReferences<_$AppDatabase, $QueryCacheTable, QueryCacheRow>,
+          ),
+          QueryCacheRow,
+          PrefetchHooks Function()
+        > {
+  $$QueryCacheTableTableManager(_$AppDatabase db, $QueryCacheTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$QueryCacheTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$QueryCacheTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$QueryCacheTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => QueryCacheCompanion(
+                cacheKey: cacheKey,
+                category: category,
+                payloadJson: payloadJson,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String cacheKey,
+                required String category,
+                required String payloadJson,
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => QueryCacheCompanion.insert(
+                cacheKey: cacheKey,
+                category: category,
+                payloadJson: payloadJson,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$QueryCacheTable, QueryCacheRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $QueryCacheTable,
+                    QueryCacheRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$QueryCacheTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $QueryCacheTable,
+      QueryCacheRow,
+      $$QueryCacheTableFilterComposer,
+      $$QueryCacheTableOrderingComposer,
+      $$QueryCacheTableAnnotationComposer,
+      $$QueryCacheTableCreateCompanionBuilder,
+      $$QueryCacheTableUpdateCompanionBuilder,
+      (
+        QueryCacheRow,
+        BaseReferences<_$AppDatabase, $QueryCacheTable, QueryCacheRow>,
+      ),
+      QueryCacheRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6887,6 +7417,8 @@ class $AppDatabaseManager {
       $$ChaptersTableTableManager(_db, _db.chapters);
   $$ListenHistoryTableTableManager get listenHistory =>
       $$ListenHistoryTableTableManager(_db, _db.listenHistory);
+  $$QueryCacheTableTableManager get queryCache =>
+      $$QueryCacheTableTableManager(_db, _db.queryCache);
 }
 
 // **************************************************************************

@@ -16,14 +16,26 @@ void main() {
 
   void stubBody(String body) {
     when(
-      () => dio.get<String>(any(), options: any(named: 'options')),
+      () => dio.get<String>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
     ).thenAnswer(
       (_) async => Response<String>(data: body, requestOptions: RequestOptions(path: '')),
     );
   }
 
   String? capturedUrl() {
-    final call = verify(() => dio.get<String>(captureAny(), options: any(named: 'options')));
+    final call = verify(
+      () => dio.get<String>(
+        captureAny(),
+        queryParameters: any(named: 'queryParameters'),
+        options: any(named: 'options'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    );
     return call.captured.single as String?;
   }
 

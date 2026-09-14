@@ -47,6 +47,11 @@ class Subscriptions extends Table {
 /// funcionar offline e como base pro progresso de escuta (Fase 4) e
 /// download (Fase 5) — a chave é `(podcastId, guid)` porque um guid de RSS
 /// só é único dentro do feed de origem.
+///
+/// Índice em `(archived, publishedAt)`: `watchRecentEpisodes` no
+/// `LibraryRepository` filtra por `archived` e ordena por `publishedAt`
+/// cruzando todos os podcasts (sem prefixo de PK pra usar).
+@TableIndex(name: 'idx_episode_cache_recent', columns: {#archived, #publishedAt})
 @DataClassName('EpisodeCacheRow')
 class EpisodeCache extends Table {
   IntColumn get podcastId => integer().references(Subscriptions, #id, onDelete: KeyAction.cascade)();
@@ -133,6 +138,10 @@ class ListenHistory extends Table {
 /// Posição de escuta de cada episódio. O schema já existe agora; quem
 /// escreve nela é o player, na Fase 4 — a biblioteca vai poder mostrar
 /// "continuar ouvindo" assim que isso existir.
+///
+/// Índice em `(completed, updatedAt)`: `watchContinueListening` filtra por
+/// `completed` e ordena por `updatedAt` cruzando todos os podcasts.
+@TableIndex(name: 'idx_playback_progress_continue', columns: {#completed, #updatedAt})
 @DataClassName('PlaybackProgressRow')
 class PlaybackProgress extends Table {
   IntColumn get podcastId => integer().references(Subscriptions, #id, onDelete: KeyAction.cascade)();
@@ -174,11 +183,36 @@ class QueueItems extends Table {
   Set<Column> get primaryKey => {podcastId, episodeGuid};
 }
 
+/// Cache genérico de resposta de rede (Fase 27 — cache offline de
+/// busca/listagem). Guarda o resultado bruto (JSON) de buscas iTunes,
+/// rankings Apple Charts e estações de rádio — conteúdo opaco, sempre
+/// substituído por inteiro a cada fetch, nunca filtrado por campo
+/// individual, então não compensa normalizar em tabela por tipo.
+///
+/// `cacheKey` identifica a consulta (ex.: `podcast_search:cafe`,
+/// `radio_stations:br`, `podcast_episodes:123`); `category` serve só pra
+/// pruning/analytics. Sem FK de propósito: cobre inclusive episódios de
+/// podcast não assinado (sem linha em `subscriptions` pra referenciar).
+@DataClassName('QueryCacheRow')
+class QueryCache extends Table {
+  TextColumn get cacheKey => text()();
+  TextColumn get category => text()();
+  TextColumn get payloadJson => text()();
+  DateTimeColumn get fetchedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {cacheKey};
+}
+
 /// Estado de download de um episódio. Escrito pelo `DownloadService`
 /// (Fase 5) a partir dos eventos do `flutter_downloader`. `taskId` é o
 /// identificador que o próprio `flutter_downloader` dá à tarefa — é por
 /// ele que encontramos a linha certa quando um evento de progresso chega
 /// (o evento só traz o `taskId`, não `podcastId`/`episodeGuid`).
+///
+/// Índice em `taskId`: é assim que todo evento de progresso do
+/// `flutter_downloader` encontra a linha (não é a PK).
+@TableIndex(name: 'idx_downloads_task_id', columns: {#taskId})
 @DataClassName('DownloadRow')
 class Downloads extends Table {
   IntColumn get podcastId => integer().references(Subscriptions, #id, onDelete: KeyAction.cascade)();

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/podcast_list_tile.dart';
@@ -116,7 +117,7 @@ class _DiscoverHome extends StatelessWidget {
 class _FeaturedCarousel extends ConsumerWidget {
   const _FeaturedCarousel();
 
-  static const double _height = 232;
+  static const double _height = 208;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -184,6 +185,8 @@ class _RankedPodcastCard extends StatelessWidget {
                             imageUrl: podcast.artworkUrl!,
                             width: _width - 20,
                             height: _width - 20,
+                            memCacheWidth: ((_width - 20) * MediaQuery.devicePixelRatioOf(context)).round(),
+                            memCacheHeight: ((_width - 20) * MediaQuery.devicePixelRatioOf(context)).round(),
                             fit: BoxFit.cover,
                             placeholder: (_, _) => _artworkFallback(colors),
                             errorWidget: (_, _, _) => _artworkFallback(colors),
@@ -349,7 +352,7 @@ class _SearchResults extends StatelessWidget {
         children: [
           for (var i = 0; i < 3; i++) ...[
             const PodcastListTileSkeleton(),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       );
@@ -386,7 +389,7 @@ class _SearchResults extends StatelessWidget {
         children: [
           for (final result in state.episodeResults) ...[
             _EpisodeResultTile(result: result),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       );
@@ -396,7 +399,7 @@ class _SearchResults extends StatelessWidget {
       children: [
         for (final podcast in state.results) ...[
           PodcastListTile(podcast: podcast),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ],
     );
@@ -472,6 +475,8 @@ class _EpisodeResultTileState extends ConsumerState<_EpisodeResultTile> {
                       imageUrl: artUrl,
                       width: 56,
                       height: 56,
+                      memCacheWidth: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
+                      memCacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
                       fit: BoxFit.cover,
                       placeholder: (_, _) => const ShimmerBox(width: 56, height: 56),
                       errorWidget: (_, _, _) => _fallback(colors),

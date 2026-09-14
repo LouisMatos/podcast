@@ -186,6 +186,27 @@ void main() {
     expect(prefs.playbackSpeed, 2.0);
   });
 
+  group('fechar mini-player (dismiss)', () {
+    test('para o handler, limpa a fila e zera o episódio', () async {
+      final q = container.read(queueRepositoryProvider) as _MockQueue;
+      when(() => q.clear()).thenAnswer((_) async {});
+
+      await container
+          .read(playerViewModelProvider.notifier)
+          .playEpisode(podcast, episode);
+      expect(container.read(playerViewModelProvider).isIdle, false);
+
+      await container.read(playerViewModelProvider.notifier).dismiss();
+
+      final state = container.read(playerViewModelProvider);
+      expect(state.isIdle, true);
+      expect(state.podcast, null);
+      expect(state.queue, isEmpty);
+      expect(state.isPlaying, false);
+      verify(() => q.clear()).called(1);
+    });
+  });
+
   group('efeitos de áudio (Fase 14)', () {
     test('build restaura pular silêncio / reforço de volume salvos', () async {
       final c = await makeContainer({
@@ -341,6 +362,61 @@ void main() {
             episodeGuid: 'g1',
             delta: const Duration(seconds: 30),
           )).called(1);
+    });
+  });
+
+  group('rádio ao vivo (guard isRadio)', () {
+    MediaItem radioItem() => const MediaItem(
+          id: 'https://stream.example.com/live',
+          title: 'Rádio Teste',
+          extras: {'isRadio': true},
+        );
+
+    test('MediaItem isRadio não sobrescreve episode/podcast/duration do state', () async {
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, episode);
+      await Future<void>.delayed(Duration.zero);
+      final before = container.read(playerViewModelProvider);
+
+      handler.mediaItem.add(radioItem());
+      await Future<void>.delayed(Duration.zero);
+
+      final after = container.read(playerViewModelProvider);
+      expect(after.episode, before.episode);
+      expect(after.podcast, before.podcast);
+      expect(after.duration, before.duration);
+    });
+
+    test('PlaybackState durante rádio não mexe em position nem chama _saveProgress', () async {
+      final lib = container.read(libraryRepositoryProvider) as _MockLibrary;
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, episode);
+      await Future<void>.delayed(Duration.zero);
+
+      handler.mediaItem.add(radioItem());
+      await Future<void>.delayed(Duration.zero);
+
+      // Tocando e depois "pausando" a rádio com posição bem distante da do
+      // episódio — se o guard falhar, isso vira save de progresso corrompido.
+      handler.playbackState.add(PlaybackState(
+        playing: true,
+        processingState: AudioProcessingState.ready,
+        updatePosition: const Duration(minutes: 42),
+      ));
+      await Future<void>.delayed(Duration.zero);
+      handler.playbackState.add(PlaybackState(
+        playing: false,
+        processingState: AudioProcessingState.ready,
+        updatePosition: const Duration(minutes: 42),
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(playerViewModelProvider);
+      expect(state.position, isNot(const Duration(minutes: 42)));
+      verifyNever(() => lib.savePlaybackPosition(
+            podcastId: any(named: 'podcastId'),
+            episodeGuid: any(named: 'episodeGuid'),
+            position: const Duration(minutes: 42),
+            completed: any(named: 'completed'),
+          ));
     });
   });
 }

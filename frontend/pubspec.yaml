@@ -11,8 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
-
   # Estado / MVVM
   flutter_riverpod: ^3.4.3
   riverpod_annotation: ^4.0.7
@@ -40,7 +38,6 @@ dependencies:
   # Áudio
   just_audio: ^0.10.6
   audio_service: ^0.18.19
-  audio_session: ^0.2.4
 
   # Download
   flutter_downloader: ^1.12.1
@@ -63,7 +60,6 @@ dependencies:
   file_picker: ^10.3.3
 
   # UI
-  google_fonts: ^8.2.1
   cached_network_image: ^4.0.0
   # Render da descrição (show notes) do episódio, que vem em HTML no RSS.
   # Dart puro (html + csslib) — não puxa analyzer/intl conflitante.
@@ -84,6 +80,7 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  sqlite3: ^3.5.2
 
   # riverpod_lint 3.x não usa mais custom_lint — roda no analysis_server_plugin
   # nativo (analyzer >=13, compatível com drift_dev). Ativado em
@@ -92,6 +89,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

@@ -2,6 +2,11 @@
 
 Guidance pra Claude Code trabalhar neste repositório.
 
+## Modo obrigatório
+
+Toda sessão neste repo: ativar caveman ultra + ponytail ultra antes de
+qualquer resposta/ação. Persiste sessão inteira, sem re-drift.
+
 ## Repositório
 
 App escuta podcast, Android/iOS. `frontend/` = app Flutter (único código
@@ -21,6 +26,10 @@ mostrou. Referenciar arquivo por caminho:linha em vez de recolar. Grep/Glob
 em vez de varrer diretório; ler só trecho necessário. Porquê de decisão
 técnica = 1 frase. Sem resumo redundante após Edit/Write/Bash (resultado já
 visível), sem banner/tabela decorativa, confirmação de ação = 1 linha.
+**Código gerado (Edit/Write) nunca leva comentário, nenhum caso — nem de
+docstring, nem de "por quê" — só código.** Prioriza tokens/velocidade sobre
+documentação inline; decisão técnica não-óbvia vai na mensagem de resposta,
+não no arquivo.
 
 ## Mapa
 

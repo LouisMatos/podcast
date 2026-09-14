@@ -9,8 +9,10 @@ import 'shimmer_box.dart';
 import 'soft_card.dart';
 
 /// Linha de episódio reutilizável (histórico, busca na biblioteca, resultados
-/// de busca de episódio): capa 56, título 2 linhas, subtítulo livre e um
-/// widget opcional à direita (menu, contagem). Toca → callback.
+/// de busca de episódio, Home, Podcast Detail): capa 48 (ou [leading]
+/// customizado), título 2 linhas, subtítulo livre, [progress] opcional
+/// abaixo do subtítulo e um widget opcional à direita ([trailing] — pode ser
+/// um `Row` com múltiplos botões). Toca → callback.
 class EpisodeRow extends StatelessWidget {
   const EpisodeRow({
     super.key,
@@ -19,6 +21,9 @@ class EpisodeRow extends StatelessWidget {
     required this.subtitle,
     this.onTap,
     this.trailing,
+    this.leading,
+    this.progress,
+    this.crossAxisAlignment = CrossAxisAlignment.center,
   });
 
   final Podcast podcast;
@@ -26,6 +31,19 @@ class EpisodeRow extends StatelessWidget {
   final String subtitle;
   final VoidCallback? onTap;
   final Widget? trailing;
+
+  /// Substitui a capa padrão quando presente (ex.: capa com botão de
+  /// play/pause sobreposto no Podcast Detail). Espera-se 48x48.
+  final Widget? leading;
+
+  /// Widget opcional renderizado abaixo do subtítulo (ex.: barra de
+  /// progresso de reprodução).
+  final Widget? progress;
+
+  /// Alinhamento vertical da linha (capa/texto/trailing). `start` mantém
+  /// capa e trailing colados no topo quando o conteúdo de texto varia de
+  /// altura (ex.: barra de progresso opcional no Podcast Detail).
+  final CrossAxisAlignment crossAxisAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -35,23 +53,27 @@ class EpisodeRow extends StatelessWidget {
     return SoftCard(
       onTap: onTap,
       child: Row(
+        crossAxisAlignment: crossAxisAlignment,
         children: [
           // Capa decorativa: título/subtítulo ao lado já dão o contexto.
           ExcludeSemantics(
-            child: ClipRRect(
-              borderRadius: AppRadii.smAll,
-              child: artUrl == null
-                  ? _fallback(colors)
-                  : CachedNetworkImage(
-                      imageUrl: artUrl,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          const ShimmerBox(width: 56, height: 56),
-                      errorWidget: (_, _, _) => _fallback(colors),
-                    ),
-            ),
+            child: leading ??
+                ClipRRect(
+                  borderRadius: AppRadii.smAll,
+                  child: artUrl == null
+                      ? _fallback(colors)
+                      : CachedNetworkImage(
+                          imageUrl: artUrl,
+                          width: 48,
+                          height: 48,
+                          memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                          fit: BoxFit.cover,
+                          placeholder: (_, _) =>
+                              const ShimmerBox(width: 48, height: 48),
+                          errorWidget: (_, _, _) => _fallback(colors),
+                        ),
+                ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -72,6 +94,8 @@ class EpisodeRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  if (progress != null) const SizedBox(height: 8),
+                  ?progress,
                 ],
               ),
             ),
@@ -83,8 +107,8 @@ class EpisodeRow extends StatelessWidget {
   }
 
   Widget _fallback(AppColors colors) => Container(
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     color: colors.primary.withValues(alpha: 0.5),
     child: Icon(Icons.graphic_eq, color: colors.textPrimary),
   );
@@ -99,7 +123,7 @@ class EpisodeRowSkeleton extends StatelessWidget {
     return SoftCard(
       child: Row(
         children: const [
-          ShimmerBox(width: 56, height: 56, borderRadius: AppRadii.smAll),
+          ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
           SizedBox(width: 12),
           Expanded(
             child: Column(

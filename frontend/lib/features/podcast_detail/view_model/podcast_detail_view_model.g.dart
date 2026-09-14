@@ -73,7 +73,7 @@ final class PodcastDetailViewModelProvider
 }
 
 String _$podcastDetailViewModelHash() =>
-    r'588c7b6913a3534e1dfd3dc568c2695eb853c9ba';
+    r'b98d3122ee584957a1e4301c8c48863a83008246';
 
 /// ViewModel do detalhe de um podcast. `family` pelo próprio [Podcast] —
 /// já vem completo da busca, então carregar os episódios é a única

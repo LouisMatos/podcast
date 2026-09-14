@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:dio/dio.dart';
+
+import '../../core/network/dio_client.dart';
 
 /// Rankings de podcast da Apple (públicos, sem chave).
 ///
@@ -26,10 +29,14 @@ class AppleChartsApi {
 
     // Mesma armadilha da iTunes Search API: content-type nem sempre é
     // `application/json`. Pedimos texto puro e decodificamos na mão.
-    final response = await _dio.get<String>(url, options: Options(responseType: ResponseType.plain));
+    final response = await _dio.getWithDeadline<String>(url, options: Options(responseType: ResponseType.plain));
     final body = response.data;
     if (body == null || body.isEmpty) return const [];
 
+    return Isolate.run(() => _parseIds(body));
+  }
+
+  static List<int> _parseIds(String body) {
     final json = jsonDecode(body) as Map<String, dynamic>;
     final entries = (json['feed'] as Map<String, dynamic>?)?['results'] ??
         (json['feed'] as Map<String, dynamic>?)?['entry'] ??
@@ -41,7 +48,7 @@ class AppleChartsApi {
 
   /// Extrai o id numérico de um item, seja o formato novo (`{"id": "123"}`)
   /// ou o legado (`{"id": {"attributes": {"im:id": "123"}}}`).
-  int? _idOf(dynamic entry) {
+  static int? _idOf(dynamic entry) {
     if (entry is! Map<String, dynamic>) return null;
 
     final raw = entry['id'];

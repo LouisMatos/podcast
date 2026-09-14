@@ -102,6 +102,21 @@ class DownloadRepository {
     );
   }
 
+  /// Downloads presos em não-terminal (`queued`/`running`/`paused`) — usado
+  /// no boot pra reconciliar com o status real do `flutter_downloader`
+  /// quando o app foi morto no meio de um download (o callback do isolate
+  /// nunca chega, e a UI ficaria travada mostrando progresso pra sempre).
+  Future<List<Download>> pendingRecords() async {
+    final nonTerminal = [
+      DownloadStatus.queued.name,
+      DownloadStatus.running.name,
+      DownloadStatus.paused.name,
+    ];
+    final query = _db.select(_db.downloads)..where((t) => t.status.isIn(nonTerminal));
+    final rows = await query.get();
+    return rows.map(_toDownload).toList();
+  }
+
   Future<String?> taskIdFor(int podcastId, String episodeGuid) async {
     final query = _db.select(_db.downloads)
       ..where((t) => t.podcastId.equals(podcastId) & t.episodeGuid.equals(episodeGuid));

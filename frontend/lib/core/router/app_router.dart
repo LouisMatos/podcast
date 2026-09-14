@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/models/episode.dart';
 import '../../data/models/podcast.dart';
+import '../../data/models/radio_station.dart';
 import '../../features/category/view/category_screen.dart';
 import '../../features/deeplink/view/deep_link_resolver_screen.dart';
 import '../../features/discover/view/discover_screen.dart';
@@ -14,6 +15,8 @@ import '../../features/library/view/library_screen.dart';
 import '../../features/library/view/library_search_screen.dart';
 import '../../features/player/view/player_screen.dart';
 import '../../features/podcast_detail/view/podcast_detail_screen.dart';
+import '../../features/radio/view/radio_detail_screen.dart';
+import '../../features/radio/view/radio_screen.dart';
 import '../../features/settings/view/settings_screen.dart';
 import '../../features/subscribe_feed/view/subscribe_feed_screen.dart';
 import '../../services/deeplinks/deep_link_service.dart';
@@ -29,7 +32,7 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(deb
 /// pra onde voltar ao trocar de aba.
 final ValueNotifier<int> currentShellTabIndex = ValueNotifier<int>(0);
 
-const _shellTabPaths = ['/home', '/discover', '/library', '/settings'];
+const _shellTabPaths = ['/home', '/discover', '/library', '/radio', '/settings'];
 
 void goToShellTab(BuildContext context, int index) {
   currentShellTabIndex.value = index;
@@ -96,6 +99,14 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: '/radio',
+              pageBuilder: (context, state) => _fadeSlidePage(state, const RadioScreen()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
               path: '/settings',
               pageBuilder: (context, state) => _fadeSlidePage(state, const SettingsScreen()),
               routes: [
@@ -120,6 +131,13 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) =>
           _fadeSlidePage(state, PodcastDetailScreen(podcast: state.extra! as Podcast)),
+    ),
+    // Detalhe da rádio — mesmo padrão de `/podcast`.
+    GoRoute(
+      path: '/radio-detail',
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) =>
+          _fadeSlidePage(state, RadioDetailScreen(station: state.extra! as RadioStation)),
     ),
     // Player cheio — cobre a tela inteira, aberto do mini-player em qualquer aba.
     GoRoute(

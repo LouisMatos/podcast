@@ -9,16 +9,19 @@ import '../../../core/router/app_bottom_bar.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/episode_row.dart';
+import '../../../core/widgets/icon_toggle_button.dart';
 import '../../../core/widgets/pastel_chip.dart';
-import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/search_field.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
 import '../../../data/models/episode.dart';
 import '../../../data/models/podcast.dart';
 import '../../../data/repositories/library_repository.dart';
+import '../../discover/podcast_genre_labels.dart';
 import '../../downloads/widgets/download_button.dart';
 import '../../library/view_model/is_subscribed_provider.dart';
 import '../../player/view_model/player_view_model.dart';
@@ -78,12 +81,16 @@ class PodcastDetailScreen extends ConsumerWidget {
             onSubscribe: notifier.subscribe,
             onUnsubscribe: notifier.unsubscribe,
           ),
-          error: (error, _) => EmptyState(
-            icon: Icons.wifi_off,
-            title: 'Não foi possível carregar os episódios',
-            message: 'Verifique sua conexão e tente de novo.',
-            onRetry: () =>
+          // Erro só na lista de episódios — header/artwork/subscribe/tabs
+          // continuam visíveis e usáveis, igual ao caminho de loading.
+          error: (error, _) => _PodcastDetailBody(
+            podcast: podcast,
+            episodes: null,
+            episodesError: true,
+            onEpisodesRetry: () =>
                 ref.invalidate(podcastDetailViewModelProvider(podcast)),
+            onSubscribe: notifier.subscribe,
+            onUnsubscribe: notifier.unsubscribe,
           ),
           data: (state) => _PodcastDetailBody(
             podcast: state.podcast,
@@ -97,68 +104,194 @@ class PodcastDetailScreen extends ConsumerWidget {
   }
 }
 
-class _PodcastDetailBody extends ConsumerWidget {
+class _PodcastDetailBody extends ConsumerStatefulWidget {
   const _PodcastDetailBody({
     required this.podcast,
     required this.episodes,
     required this.onSubscribe,
     required this.onUnsubscribe,
+    this.episodesError = false,
+    this.onEpisodesRetry,
   });
 
   final Podcast podcast;
 
-  /// `null` enquanto carrega — usado pra mostrar o skeleton.
+  /// `null` enquanto carrega (ou em erro, ver [episodesError]) — usado pra
+  /// mostrar o skeleton.
   final List<Episode>? episodes;
+
+  /// Erro de rede ao buscar episódios sem cache local pra cair. Só afeta a
+  /// aba Episódios — header/artwork/subscribe/tabs continuam normais.
+  final bool episodesError;
+  final VoidCallback? onEpisodesRetry;
 
   final Future<void> Function() onSubscribe;
   final Future<void> Function() onUnsubscribe;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PodcastDetailBody> createState() =>
+      _PodcastDetailBodyState();
+}
+
+class _PodcastDetailBodyState extends ConsumerState<_PodcastDetailBody>
+    with SingleTickerProviderStateMixin {
+  // Altura da barra de busca colapsada — fixa, layout simples e conhecido.
+  // A altura do header cheio varia (título pode quebrar linha) e por isso é
+  // medida de verdade via `_headerKey`, nunca cortada.
+  static const double _collapsedHeight = 76;
+
+  late final TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _headerKey = GlobalKey();
+  // 0 = header cheio, 1 = totalmente colapsado (busca fixa). Atualizado a
+  // cada pixel rolado — a suavidade vem do próprio gesto de scroll, sem
+  // AnimationController: mais barato pro J5 que animar via ticker.
+  final ValueNotifier<double> _collapseFraction = ValueNotifier(0);
+  // Chute inicial até a primeira medição real do header (primeiro frame).
+  double _headerHeight = 160;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(_onTabChanged);
+    _scrollController.addListener(_onScroll);
+  }
+
+  // Só colapsa na aba Episódios — Baixados não tem busca, o header fica
+  // sempre visível lá.
+  void _onTabChanged() {
+    if (_tabController.index != 0) {
+      _collapseFraction.value = 0;
+    }
+  }
+
+  void _onScroll() {
+    if (_tabController.index != 0) return;
+    final range = _headerHeight - _collapsedHeight;
+    if (range <= 0) return;
+    _collapseFraction.value = (_scrollController.offset / range).clamp(
+      0.0,
+      1.0,
+    );
+  }
+
+  void _measureHeader() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      if ((box.size.height - _headerHeight).abs() > 0.5) {
+        setState(() => _headerHeight = box.size.height);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _collapseFraction.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final isSubscribed =
-        ref.watch(isSubscribedProvider(podcast.id)).value ?? false;
+        ref.watch(isSubscribedProvider(widget.podcast.id)).value ?? false;
+    final controlsNotifier = ref.read(
+      episodeListControlsProvider(widget.podcast.id).notifier,
+    );
+    _measureHeader();
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: _Header(
-              podcast: podcast,
-              isSubscribed: isSubscribed,
-              onSubscribe: onSubscribe,
-              onUnsubscribe: onUnsubscribe,
-            ),
-          ),
-          TabBar(
-            dividerColor: Colors.transparent,
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorColor: colors.primary,
-            labelColor: colors.textPrimary,
-            unselectedLabelColor: colors.textMuted,
-            tabs: const [
-              Tab(text: 'Episódios'),
-              Tab(text: 'Baixados'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ValueListenableBuilder<double>(
+          valueListenable: _collapseFraction,
+          builder: (context, t, _) {
+            final height =
+                _headerHeight -
+                (_headerHeight - _collapsedHeight) * t;
+            return SizedBox(
+              height: height,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: 0,
+                  maxHeight: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      Opacity(
+                        opacity: (1 - t * 1.6).clamp(0.0, 1.0),
+                        child: IgnorePointer(
+                          ignoring: t > 0.5,
+                          child: Padding(
+                            key: _headerKey,
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                            child: _Header(
+                              podcast: widget.podcast,
+                              isSubscribed: isSubscribed,
+                              onSubscribe: widget.onSubscribe,
+                              onUnsubscribe: widget.onUnsubscribe,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Opacity(
+                        opacity: ((t - 0.4) / 0.6).clamp(0.0, 1.0),
+                        child: IgnorePointer(
+                          ignoring: t < 0.5,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                            child: SearchField(
+                              hintText: 'Buscar episódio',
+                              onChanged: controlsNotifier.setQuery,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        TabBar(
+          controller: _tabController,
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorColor: colors.primary,
+          labelColor: colors.textPrimary,
+          unselectedLabelColor: colors.textMuted,
+          tabs: const [
+            Tab(text: 'Episódios'),
+            Tab(text: 'Baixados'),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _EpisodesTab(
+                podcast: widget.podcast,
+                episodes: widget.episodes,
+                isSubscribed: isSubscribed,
+                scrollController: _scrollController,
+                hasError: widget.episodesError,
+                onRetry: widget.onEpisodesRetry,
+              ),
+              _DownloadsTab(podcast: widget.podcast),
             ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _EpisodesTab(
-                  podcast: podcast,
-                  episodes: episodes,
-                  isSubscribed: isSubscribed,
-                ),
-                _DownloadsTab(podcast: podcast),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -196,6 +329,8 @@ class _Header extends StatelessWidget {
                         imageUrl: podcast.artworkUrl!,
                         width: 96,
                         height: 96,
+                        memCacheWidth: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
+                        memCacheHeight: (96 * MediaQuery.devicePixelRatioOf(context)).round(),
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
                             const ShimmerBox(width: 96, height: 96),
@@ -224,7 +359,7 @@ class _Header extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       if (podcast.genre case final genre?)
-                        PastelChip(label: genre),
+                        PastelChip(label: translateGenreLabel(genre)),
                       PastelChip(
                         label: podcast.episodeCount == 1
                             ? '1 episódio'
@@ -236,16 +371,17 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
+            IconToggleButton(
+              selected: isSubscribed,
+              iconSelected: Icons.check,
+              iconUnselected: Icons.add,
+              tooltipSelected: 'Assinado, toque pra cancelar',
+              tooltipUnselected: 'Assinar',
+              onPressed: () =>
+                  isSubscribed ? onUnsubscribe() : onSubscribe(),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        PillButton(
-          label: isSubscribed ? 'Assinado' : 'Assinar',
-          icon: isSubscribed ? Icons.check : Icons.add,
-          variant: isSubscribed
-              ? PillButtonVariant.secondary
-              : PillButtonVariant.primary,
-          onPressed: isSubscribed ? onUnsubscribe : onSubscribe,
         ),
       ],
     );
@@ -257,21 +393,36 @@ class _EpisodesTab extends ConsumerWidget {
     required this.podcast,
     required this.episodes,
     required this.isSubscribed,
+    required this.scrollController,
+    this.hasError = false,
+    this.onRetry,
   });
 
   final Podcast podcast;
   final List<Episode>? episodes;
   final bool isSubscribed;
+  final ScrollController scrollController;
+  final bool hasError;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (hasError) {
+      return EmptyState(
+        icon: Icons.wifi_off,
+        title: 'Não foi possível carregar os episódios',
+        message: 'Verifique sua conexão e tente de novo.',
+        onRetry: onRetry,
+      );
+    }
+
     if (episodes == null) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
           for (var i = 0; i < 4; i++) ...[
             const _EpisodeSkeleton(),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       );
@@ -300,80 +451,116 @@ class _EpisodesTab extends ConsumerWidget {
       archivedGuids: archived,
     );
 
+    // Item 0 = filtros/chips (rola junto da lista, igual ao comportamento
+    // anterior); demais itens = episódios (ou o aviso de lista vazia).
+    final itemCount = 1 + (visible.isEmpty ? 1 : visible.length);
+
     return RefreshIndicator(
       onRefresh: () =>
           ref.read(podcastDetailViewModelProvider(podcast).notifier).refresh(),
-      child: ListView(
+      color: Theme.of(context).extension<AppColors>()!.primary,
+      backgroundColor: Theme.of(context).extension<AppColors>()!.surface,
+      child: ListView.builder(
+        controller: scrollController,
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          SearchField(
-            hintText: 'Buscar episódio',
-            onChanged: controlsNotifier.setQuery,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final f in EpisodeFilter.values) ...[
-                        _SelectableChip(
-                          label: _filterLabel(f),
-                          selected: controls.filter == f,
-                          onTap: () => controlsNotifier.setFilter(f),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
-                ),
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _EpisodeFilters(
+                controls: controls,
+                controlsNotifier: controlsNotifier,
+                isSubscribed: isSubscribed,
+                hasArchived: archived.isNotEmpty,
               ),
-              _SortButton(
-                current: controls.sort,
-                onSelected: controlsNotifier.setSort,
-              ),
-            ],
-          ),
-          if (isSubscribed &&
-              (controls.showArchived || archived.isNotEmpty)) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _SelectableChip(
-                label: controls.showArchived
-                    ? 'Vendo arquivados'
-                    : 'Mostrar arquivados',
-                selected: controls.showArchived,
-                onTap: controlsNotifier.toggleShowArchived,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (visible.isEmpty)
-            Padding(
+            );
+          }
+          if (visible.isEmpty) {
+            return Padding(
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
                 'Nenhum episódio com esse filtro.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-            )
-          else
-            for (final episode in visible) ...[
-              _EpisodeTile(
-                podcast: podcast,
-                episode: episode,
-                queue: visible,
-                isSubscribed: isSubscribed,
-                progress: progress[episode.guid],
-                isArchived: archived.contains(episode.guid),
-              ),
-              const SizedBox(height: 12),
-            ],
-        ],
+            );
+          }
+          final episode = visible[index - 1];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _EpisodeTile(
+              podcast: podcast,
+              episode: episode,
+              queue: visible,
+              isSubscribed: isSubscribed,
+              progress: progress[episode.guid],
+              isArchived: archived.contains(episode.guid),
+            ),
+          );
+        },
       ),
+    );
+  }
+}
+
+class _EpisodeFilters extends StatelessWidget {
+  const _EpisodeFilters({
+    required this.controls,
+    required this.controlsNotifier,
+    required this.isSubscribed,
+    required this.hasArchived,
+  });
+
+  final EpisodeListControlsState controls;
+  final EpisodeListControls controlsNotifier;
+  final bool isSubscribed;
+  final bool hasArchived;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final f in EpisodeFilter.values) ...[
+                      _SelectableChip(
+                        label: _filterLabel(f),
+                        selected: controls.filter == f,
+                        onTap: () => controlsNotifier.setFilter(f),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            _SortButton(
+              current: controls.sort,
+              onSelected: controlsNotifier.setSort,
+            ),
+          ],
+        ),
+        if (isSubscribed && (controls.showArchived || hasArchived)) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _SelectableChip(
+              label: controls.showArchived
+                  ? 'Vendo arquivados'
+                  : 'Mostrar arquivados',
+              selected: controls.showArchived,
+              onTap: controlsNotifier.toggleShowArchived,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -400,7 +587,7 @@ class _DownloadsTab extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: const [
           _EpisodeSkeleton(),
-          SizedBox(height: 12),
+          SizedBox(height: AppSpacing.sm),
           _EpisodeSkeleton(),
         ],
       ),
@@ -417,11 +604,14 @@ class _DownloadsTab extends ConsumerWidget {
             message: 'Baixe um episódio na aba ao lado pra ouvir sem internet.',
           );
         }
-        return ListView(
+        return ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            for (final episode in episodes) ...[
-              _EpisodeTile(
+          itemCount: episodes.length,
+          itemBuilder: (context, index) {
+            final episode = episodes[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _EpisodeTile(
                 podcast: podcast,
                 episode: episode,
                 queue: episodes,
@@ -429,9 +619,8 @@ class _DownloadsTab extends ConsumerWidget {
                 progress: progress[episode.guid],
                 isArchived: false,
               ),
-              const SizedBox(height: 12),
-            ],
-          ],
+            );
+          },
         );
       },
     );
@@ -539,57 +728,39 @@ class _EpisodeTile extends ConsumerWidget {
       episode: episode,
       // Fila / marcar ouvido só valem pra assinatura.
       enabled: isSubscribed,
-      child: SoftCard(
+      child: EpisodeRow(
+        podcast: podcast,
+        episode: episode,
+        subtitle: _meta(episode),
+        crossAxisAlignment: CrossAxisAlignment.start,
         // Tocar no tile abre a descrição do episódio — NÃO toca (Fase 8.3).
         // O play rápido fica no ícone à esquerda.
         onTap: () => context.push(
           '/episode',
           extra: (podcast: podcast, episode: episode, queue: queue),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        leading: _EpisodeArtworkPlayButton(
+          podcast: podcast,
+          episode: episode,
+          isCurrent: isCurrent,
+          isPlaying: player.isPlaying,
+          colors: colors,
+          onPressed: () {
+            final n = ref.read(playerViewModelProvider.notifier);
+            if (isCurrent) {
+              n.togglePlayPause();
+            } else {
+              unawaited(n.playEpisode(podcast, episode, autoPlay: true));
+            }
+          },
+        ),
+        progress: switch (progress) {
+          final p? => _EpisodeProgressLine(progress: p, duration: episode.duration),
+          null => null,
+        },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _EpisodeArtworkPlayButton(
-              podcast: podcast,
-              episode: episode,
-              isCurrent: isCurrent,
-              isPlaying: player.isPlaying,
-              colors: colors,
-              onPressed: () {
-                final n = ref.read(playerViewModelProvider.notifier);
-                if (isCurrent) {
-                  n.togglePlayPause();
-                } else {
-                  unawaited(n.playEpisode(podcast, episode, autoPlay: true));
-                }
-              },
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    episode.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _meta(episode),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  if (progress case final p?) ...[
-                    const SizedBox(height: 8),
-                    _EpisodeProgressLine(
-                      progress: p,
-                      duration: episode.duration,
-                    ),
-                  ],
-                ],
-              ),
-            ),
             QueueMenuButton(
               podcast: podcast,
               episode: episode,
@@ -644,7 +815,7 @@ class _EpisodeTile extends ConsumerWidget {
   }
 }
 
-/// Capa do episódio (56x56) com o botão de play/pause sobreposto de forma
+/// Capa do episódio (48x48) com o botão de play/pause sobreposto de forma
 /// translúcida — mantém a capa visível por baixo do controle.
 class _EpisodeArtworkPlayButton extends StatelessWidget {
   const _EpisodeArtworkPlayButton({
@@ -669,8 +840,8 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
     final playing = isCurrent && isPlaying;
 
     return SizedBox(
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -680,11 +851,13 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
                 ? _fallback()
                 : CachedNetworkImage(
                     imageUrl: artUrl,
-                    width: 56,
-                    height: 56,
+                    width: 48,
+                    height: 48,
+                    memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                     placeholder: (_, _) =>
-                        const ShimmerBox(width: 56, height: 56),
+                        const ShimmerBox(width: 48, height: 48),
                     errorWidget: (_, _, _) => _fallback(),
                   ),
           ),
@@ -703,8 +876,8 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
   }
 
   Widget _fallback() => Container(
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     color: colors.primary.withValues(alpha: 0.5),
     child: Icon(Icons.graphic_eq, color: colors.textPrimary),
   );

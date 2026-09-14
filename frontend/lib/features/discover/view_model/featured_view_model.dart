@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../data/repositories/podcast_repository.dart';
@@ -13,8 +15,29 @@ part 'featured_view_model.g.dart';
 @Riverpod(keepAlive: true)
 class FeaturedViewModel extends _$FeaturedViewModel {
   @override
-  Future<List<RankedPodcast>> build() {
-    return ref.watch(podcastRepositoryProvider).topPodcasts();
+  Future<List<RankedPodcast>> build() async {
+    final repository = ref.watch(podcastRepositoryProvider);
+
+    // Pinta o último ranking salvo na hora e revalida por trás (Fase 27.4)
+    // — sem isso o carrossel trava num skeleton esperando a rede mesmo
+    // quando já tem dado bom salvo de uma visita anterior.
+    final cached = await repository.cachedTopPodcasts();
+    if (cached != null && cached.isNotEmpty) {
+      unawaited(_revalidate(repository));
+      return cached;
+    }
+    return repository.topPodcasts();
+  }
+
+  Future<void> _revalidate(PodcastRepository repository) async {
+    try {
+      final fresh = await repository.topPodcasts();
+      if (!ref.mounted) return;
+      state = AsyncData(fresh);
+    } catch (_) {
+      // `topPodcasts()` já cai pro cache internamente; se chegou aqui é
+      // porque nem isso existia — mantém o que já foi pintado.
+    }
   }
 
   Future<void> refresh() async {

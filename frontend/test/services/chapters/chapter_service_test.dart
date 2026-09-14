@@ -38,7 +38,11 @@ void main() {
   tearDown(() => db.close());
 
   void respondWith(String body) {
-    when(() => dio.get<String>(any(), options: any(named: 'options'))).thenAnswer(
+    when(() => dio.get<String>(
+          any(),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+        )).thenAnswer(
       (_) async => Response<String>(data: body, requestOptions: RequestOptions(path: _url)),
     );
   }
@@ -61,7 +65,11 @@ void main() {
   test('chaptersUrl nulo é no-op (não toca a rede)', () async {
     await service.ensureChapters(podcastId: 1, episodeGuid: 'g1', chaptersUrl: null);
 
-    verifyNever(() => dio.get<String>(any(), options: any(named: 'options')));
+    verifyNever(() => dio.get<String>(
+          any(),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+        ));
     expect(await rows(), isEmpty);
   });
 
@@ -71,12 +79,20 @@ void main() {
     await service.ensureChapters(podcastId: 1, episodeGuid: 'g1', chaptersUrl: _url);
     await service.ensureChapters(podcastId: 1, episodeGuid: 'g1', chaptersUrl: _url);
 
-    verify(() => dio.get<String>(any(), options: any(named: 'options'))).called(1);
+    verify(() => dio.get<String>(
+          any(),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+        )).called(1);
     expect((await rows()).length, 2);
   });
 
   test('erro de rede não lança e não grava nada', () async {
-    when(() => dio.get<String>(any(), options: any(named: 'options')))
+    when(() => dio.get<String>(
+          any(),
+          options: any(named: 'options'),
+          cancelToken: any(named: 'cancelToken'),
+        ))
         .thenThrow(DioException(requestOptions: RequestOptions(path: _url)));
 
     await service.ensureChapters(podcastId: 1, episodeGuid: 'g1', chaptersUrl: _url);

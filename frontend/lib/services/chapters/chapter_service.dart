@@ -49,7 +49,7 @@ class ChapterService {
       // `ResponseType.plain` + `jsonDecode` na mão: vários hosts servem o
       // arquivo como `text/plain`/`application/octet-stream` e o decoder
       // automático do Dio devolveria String mesmo assim.
-      final response = await _dio.get<String>(
+      final response = await _dio.getWithDeadline<String>(
         chaptersUrl,
         options: Options(responseType: ResponseType.plain),
       );

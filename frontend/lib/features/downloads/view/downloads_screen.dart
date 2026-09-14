@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/shimmer_box.dart';
 import '../../../core/widgets/soft_card.dart';
@@ -31,7 +32,7 @@ class DownloadsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             children: const [
               _DownloadTileSkeleton(),
-              SizedBox(height: 12),
+              SizedBox(height: AppSpacing.sm),
               _DownloadTileSkeleton(),
             ],
           ),
@@ -46,14 +47,13 @@ class DownloadsScreen extends ConsumerWidget {
                   title: 'Nenhum download ainda',
                   message: 'Baixe um episódio pra ouvir sem internet.',
                 )
-              : ListView(
+              : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                  children: [
-                    for (final item in items) ...[
-                      _DownloadTile(item: item),
-                      const SizedBox(height: 12),
-                    ],
-                  ],
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _DownloadTile(item: items[index]),
+                  ),
                 ),
         ),
       ),
@@ -86,6 +86,8 @@ class _DownloadTile extends ConsumerWidget {
                     imageUrl: item.artworkUrl!,
                     width: 48,
                     height: 48,
+                    memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                   ),
           ),
