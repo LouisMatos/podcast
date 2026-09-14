@@ -40,15 +40,16 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
       ⋮/download) conferidos via screenshot real — sem overflow, sem ícone
       espremido, sem texto cortado
 
-## Fase 2 — Espaçamento entre itens de lista
-- [ ] `SizedBox(height:12)`/`Padding(bottom:12)` entre itens (não o gap interno
+## Fase 2 — Espaçamento entre itens de lista — concluída
+- [x] `SizedBox(height:12)`/`Padding(bottom:12)` entre itens (não o gap interno
       artwork↔texto) → `AppSpacing.sm` (8) em: home_screen.dart,
       discover_screen.dart, library_screen.dart, podcast_detail_screen.dart,
       downloads_screen.dart
-- [ ] Não mexer em `SectionHeader` nesta fase
-- [ ] `flutter test` passa
-- [ ] Teste manual device: comparar itens visíveis por tela antes/depois, scroll
-      não "grudado", área de toque ainda confortável
+- [x] Não mexido em `SectionHeader` nesta fase
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): Home (scroll com mais itens visíveis) e
+      Podcast Detail (`_EpisodeTile`, item mais denso) via screenshot real —
+      sem overflow, ícones trailing intactos, mais item cabe na tela
 
 ## Fase 3 — Artwork 56→48 em linhas de lista
 - [ ] `EpisodeRow` (`episode_row.dart:47-53` + skeleton `:104`),

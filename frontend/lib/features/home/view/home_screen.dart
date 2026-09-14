@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/connectivity_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/shimmer_box.dart';
@@ -74,7 +75,7 @@ class HomeScreen extends ConsumerWidget {
               if (!loaded && recentItems.isEmpty)
                 for (var i = 0; i < 4; i++) ...[
                   const _EpisodeRowSkeleton(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                 ]
               else if (recentItems.isEmpty)
                 Padding(
@@ -93,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                     episode: item.episode,
                     child: _RecentEpisodeRow(item: item),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                 ],
             ],
           ],

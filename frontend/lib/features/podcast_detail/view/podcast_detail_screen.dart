@@ -9,6 +9,7 @@ import '../../../core/router/app_bottom_bar.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/icon_toggle_button.dart';
@@ -419,7 +420,7 @@ class _EpisodesTab extends ConsumerWidget {
         children: [
           for (var i = 0; i < 4; i++) ...[
             const _EpisodeSkeleton(),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
           ],
         ],
       );
@@ -462,7 +463,7 @@ class _EpisodesTab extends ConsumerWidget {
         itemBuilder: (context, index) {
           if (index == 0) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: _EpisodeFilters(
                 controls: controls,
                 controlsNotifier: controlsNotifier,
@@ -483,7 +484,7 @@ class _EpisodesTab extends ConsumerWidget {
           }
           final episode = visible[index - 1];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: _EpisodeTile(
               podcast: podcast,
               episode: episode,
@@ -582,7 +583,7 @@ class _DownloadsTab extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: const [
           _EpisodeSkeleton(),
-          SizedBox(height: 12),
+          SizedBox(height: AppSpacing.sm),
           _EpisodeSkeleton(),
         ],
       ),
@@ -605,7 +606,7 @@ class _DownloadsTab extends ConsumerWidget {
           itemBuilder: (context, index) {
             final episode = episodes[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: _EpisodeTile(
                 podcast: podcast,
                 episode: episode,

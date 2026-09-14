@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radii.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/search_field.dart';
@@ -96,7 +97,7 @@ class LibraryScreen extends ConsumerWidget {
                   key: const ValueKey('loading'),
                   children: const [
                     _SubscriptionTileSkeleton(),
-                    SizedBox(height: 12),
+                    SizedBox(height: AppSpacing.sm),
                     _SubscriptionTileSkeleton(),
                   ],
                 ),
@@ -139,7 +140,7 @@ class LibraryScreen extends ConsumerWidget {
                           children: [
                             for (final sub in visible) ...[
                               _SubscriptionTile(sub: sub),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: AppSpacing.sm),
                             ],
                           ],
                         );
