@@ -829,7 +829,7 @@ class _EpisodeTile extends ConsumerWidget {
   }
 }
 
-/// Capa do episódio (56x56) com o botão de play/pause sobreposto de forma
+/// Capa do episódio (48x48) com o botão de play/pause sobreposto de forma
 /// translúcida — mantém a capa visível por baixo do controle.
 class _EpisodeArtworkPlayButton extends StatelessWidget {
   const _EpisodeArtworkPlayButton({
@@ -854,8 +854,8 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
     final playing = isCurrent && isPlaying;
 
     return SizedBox(
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -865,13 +865,13 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
                 ? _fallback()
                 : CachedNetworkImage(
                     imageUrl: artUrl,
-                    width: 56,
-                    height: 56,
-                    memCacheWidth: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
-                    memCacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    width: 48,
+                    height: 48,
+                    memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                    memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                     fit: BoxFit.cover,
                     placeholder: (_, _) =>
-                        const ShimmerBox(width: 56, height: 56),
+                        const ShimmerBox(width: 48, height: 48),
                     errorWidget: (_, _, _) => _fallback(),
                   ),
           ),
@@ -890,8 +890,8 @@ class _EpisodeArtworkPlayButton extends StatelessWidget {
   }
 
   Widget _fallback() => Container(
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     color: colors.primary.withValues(alpha: 0.5),
     child: Icon(Icons.graphic_eq, color: colors.textPrimary),
   );

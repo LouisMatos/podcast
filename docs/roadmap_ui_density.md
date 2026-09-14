@@ -51,17 +51,16 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
       Podcast Detail (`_EpisodeTile`, item mais denso) via screenshot real —
       sem overflow, ícones trailing intactos, mais item cabe na tela
 
-## Fase 3 — Artwork 56→48 em linhas de lista
-- [ ] `EpisodeRow` (`episode_row.dart:47-53` + skeleton `:104`),
-      `_RecentEpisodeRow` (home_screen.dart:218-224),
+## Fase 3 — Artwork 56→48 em linhas de lista — concluída
+- [x] `EpisodeRow` (`episode_row.dart`), `_RecentEpisodeRow` (home_screen.dart),
       `_EpisodeTile`/`_EpisodeArtworkPlayButton` (podcast_detail_screen.dart),
-      `PodcastListTile`: 56→48, ajustar `memCacheWidth/Height` junto
-- [ ] Não tocar 96x96 (header Podcast Detail) nem 200x200 (Episode Detail) —
+      `PodcastListTile`: 56→48, `memCacheWidth/Height` ajustado junto
+- [x] Não tocado 96x96 (header Podcast Detail) nem 200x200 (Episode Detail) —
       não são linha de lista
-- [ ] Fallback/skeleton ajustado pro mesmo tamanho (evita "pulo" de layout)
-- [ ] `flutter test` passa
-- [ ] Teste manual device: botão play sobreposto no artwork do Podcast Detail
-      (área de toque, proporção), skeleton sem "piscar" tamanho errado
+- [x] Fallback/skeleton ajustado pro mesmo tamanho (mesmo `sed` cobriu os dois)
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): botão play sobreposto no artwork do
+      Podcast Detail — proporcional, sem overflow, trailing icons intactos
 
 ## Fase 4 (opcional, maior risco) — Unificar EpisodeRow/_RecentEpisodeRow/_EpisodeTile
 - [ ] 4.1: estender `EpisodeRow` (slot leading customizável, barra de progresso

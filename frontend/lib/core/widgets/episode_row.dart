@@ -9,7 +9,7 @@ import 'shimmer_box.dart';
 import 'soft_card.dart';
 
 /// Linha de episódio reutilizável (histórico, busca na biblioteca, resultados
-/// de busca de episódio): capa 56, título 2 linhas, subtítulo livre e um
+/// de busca de episódio): capa 48, título 2 linhas, subtítulo livre e um
 /// widget opcional à direita (menu, contagem). Toca → callback.
 class EpisodeRow extends StatelessWidget {
   const EpisodeRow({
@@ -44,13 +44,13 @@ class EpisodeRow extends StatelessWidget {
                   ? _fallback(colors)
                   : CachedNetworkImage(
                       imageUrl: artUrl,
-                      width: 56,
-                      height: 56,
-                      memCacheWidth: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
-                      memCacheHeight: (56 * MediaQuery.devicePixelRatioOf(context)).round(),
+                      width: 48,
+                      height: 48,
+                      memCacheWidth: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
+                      memCacheHeight: (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                       fit: BoxFit.cover,
                       placeholder: (_, _) =>
-                          const ShimmerBox(width: 56, height: 56),
+                          const ShimmerBox(width: 48, height: 48),
                       errorWidget: (_, _, _) => _fallback(colors),
                     ),
             ),
@@ -85,8 +85,8 @@ class EpisodeRow extends StatelessWidget {
   }
 
   Widget _fallback(AppColors colors) => Container(
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     color: colors.primary.withValues(alpha: 0.5),
     child: Icon(Icons.graphic_eq, color: colors.textPrimary),
   );
@@ -101,7 +101,7 @@ class EpisodeRowSkeleton extends StatelessWidget {
     return SoftCard(
       child: Row(
         children: const [
-          ShimmerBox(width: 56, height: 56, borderRadius: AppRadii.smAll),
+          ShimmerBox(width: 48, height: 48, borderRadius: AppRadii.smAll),
           SizedBox(width: 12),
           Expanded(
             child: Column(
