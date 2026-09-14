@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radii.dart';
+import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
 
 /// Cartão base do design system: fundo `surface`, cantos arredondados e
 /// sombra suave — nunca borda dura.
@@ -9,7 +11,7 @@ class SoftCard extends StatelessWidget {
   const SoftCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(AppSpacing.md),
     this.borderRadius,
     this.onTap,
   });
@@ -28,9 +30,7 @@ class SoftCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: radius,
-        boxShadow: [
-          BoxShadow(color: colors.shadow, blurRadius: 24, offset: const Offset(0, 8)),
-        ],
+        boxShadow: AppShadows.soft(context),
       ),
       child: ClipRRect(
         borderRadius: radius,

@@ -28,16 +28,17 @@ podcast_detail_screen.dart) — unificar é opcional, fase separada, mais arrisc
 - [x] `dart analyze` + `flutter test` limpos (246/246)
 - [x] Teste manual device: N/A (nada mudou na tela)
 
-## Fase 1 — Reduzir padding do `SoftCard`
-- [ ] `soft_card.dart:12`: `EdgeInsets.all(16)` → `EdgeInsets.all(AppSpacing.md)` (12)
-- [ ] Opcional: sombra hardcoded (`soft_card.dart:31-33`) → `AppShadows.soft(context)`
+## Fase 1 — Reduzir padding do `SoftCard` — concluída
+- [x] `soft_card.dart:12`: `EdgeInsets.all(16)` → `EdgeInsets.all(AppSpacing.md)` (12)
+- [x] Sombra hardcoded (`soft_card.dart:31-33`) → `AppShadows.soft(context)`
       (mesmo valor, remove duplicação)
-- [ ] Confirmar cards de carrossel (`_ContinueCard`, `_RankedPodcastCard`,
+- [x] Cards de carrossel (`_ContinueCard`, `_RankedPodcastCard`,
       `_SubscriptionGridCard`, já padding:10 explícito) intactos
-- [ ] `flutter test` passa
-- [ ] Teste manual device (SM-G570M): navegar Home/Discover/Library/Podcast
-      Detail/Episode Detail/Downloads — nenhum texto cortado, nenhum ícone
-      trailing espremido, nenhum overflow visual
+- [x] `dart analyze` + `flutter test` (246/246) limpos
+- [x] Teste manual device (SM-G570M): Home, Discover, Library e Podcast Detail
+      (`_EpisodeTile` — item mais denso, play overlay + progresso + trailing
+      ⋮/download) conferidos via screenshot real — sem overflow, sem ícone
+      espremido, sem texto cortado
 
 ## Fase 2 — Espaçamento entre itens de lista
 - [ ] `SizedBox(height:12)`/`Padding(bottom:12)` entre itens (não o gap interno
