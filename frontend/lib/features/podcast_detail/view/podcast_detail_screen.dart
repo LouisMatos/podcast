@@ -12,6 +12,7 @@ import '../../../core/theme/app_radii.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/episode_row.dart';
 import '../../../core/widgets/icon_toggle_button.dart';
 import '../../../core/widgets/pastel_chip.dart';
 import '../../../core/widgets/search_field.dart';
@@ -724,57 +725,39 @@ class _EpisodeTile extends ConsumerWidget {
       episode: episode,
       // Fila / marcar ouvido só valem pra assinatura.
       enabled: isSubscribed,
-      child: SoftCard(
+      child: EpisodeRow(
+        podcast: podcast,
+        episode: episode,
+        subtitle: _meta(episode),
+        crossAxisAlignment: CrossAxisAlignment.start,
         // Tocar no tile abre a descrição do episódio — NÃO toca (Fase 8.3).
         // O play rápido fica no ícone à esquerda.
         onTap: () => context.push(
           '/episode',
           extra: (podcast: podcast, episode: episode, queue: queue),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        leading: _EpisodeArtworkPlayButton(
+          podcast: podcast,
+          episode: episode,
+          isCurrent: isCurrent,
+          isPlaying: player.isPlaying,
+          colors: colors,
+          onPressed: () {
+            final n = ref.read(playerViewModelProvider.notifier);
+            if (isCurrent) {
+              n.togglePlayPause();
+            } else {
+              unawaited(n.playEpisode(podcast, episode, autoPlay: true));
+            }
+          },
+        ),
+        progress: switch (progress) {
+          final p? => _EpisodeProgressLine(progress: p, duration: episode.duration),
+          null => null,
+        },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _EpisodeArtworkPlayButton(
-              podcast: podcast,
-              episode: episode,
-              isCurrent: isCurrent,
-              isPlaying: player.isPlaying,
-              colors: colors,
-              onPressed: () {
-                final n = ref.read(playerViewModelProvider.notifier);
-                if (isCurrent) {
-                  n.togglePlayPause();
-                } else {
-                  unawaited(n.playEpisode(podcast, episode, autoPlay: true));
-                }
-              },
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    episode.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _meta(episode),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  if (progress case final p?) ...[
-                    const SizedBox(height: 8),
-                    _EpisodeProgressLine(
-                      progress: p,
-                      duration: episode.duration,
-                    ),
-                  ],
-                ],
-              ),
-            ),
             QueueMenuButton(
               podcast: podcast,
               episode: episode,

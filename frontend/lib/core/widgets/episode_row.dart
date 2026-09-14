@@ -23,6 +23,7 @@ class EpisodeRow extends StatelessWidget {
     this.trailing,
     this.leading,
     this.progress,
+    this.crossAxisAlignment = CrossAxisAlignment.center,
   });
 
   final Podcast podcast;
@@ -39,6 +40,11 @@ class EpisodeRow extends StatelessWidget {
   /// progresso de reprodução).
   final Widget? progress;
 
+  /// Alinhamento vertical da linha (capa/texto/trailing). `start` mantém
+  /// capa e trailing colados no topo quando o conteúdo de texto varia de
+  /// altura (ex.: barra de progresso opcional no Podcast Detail).
+  final CrossAxisAlignment crossAxisAlignment;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -47,6 +53,7 @@ class EpisodeRow extends StatelessWidget {
     return SoftCard(
       onTap: onTap,
       child: Row(
+        crossAxisAlignment: crossAxisAlignment,
         children: [
           // Capa decorativa: título/subtítulo ao lado já dão o contexto.
           ExcludeSemantics(
@@ -87,6 +94,7 @@ class EpisodeRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  if (progress != null) const SizedBox(height: 8),
                   ?progress,
                 ],
               ),
