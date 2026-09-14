@@ -26,6 +26,28 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Sem isso o áudio para assim que o app sai de foreground no iOS
+	     (Android já funciona via foreground service do audio_service). -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<!-- Paridade com o intent-filter do scheme `podcastapp` no
+	     AndroidManifest.xml — sem isso nenhum deep link customizado abre
+	     no iOS. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.luismatos.podcastapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>podcastapp</string>
+			</array>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
