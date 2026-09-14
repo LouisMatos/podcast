@@ -1,0 +1,653 @@
+<title>Manual do Ecoo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF7F5;
+    --surface: #FFFFFF;
+    --surface-2: #F3EEF8;
+    --primary: #B8AEE8;
+    --primary-strong: #8F80D6;
+    --secondary: #A8D8C8;
+    --secondary-strong: #6FB89F;
+    --accent: #F5C6AA;
+    --accent-strong: #E89A69;
+    --text: #3A3542;
+    --text-muted: #8B8493;
+    --border-soft: rgba(58, 53, 66, 0.08);
+    --shadow: 0 8px 24px rgba(58, 53, 66, 0.06);
+    --shadow-lift: 0 14px 34px rgba(58, 53, 66, 0.10);
+    --radius-sm: 16px;
+    --radius-md: 24px;
+    --radius-surface: 32px;
+    --font-display: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1E1B24;
+      --surface: #282430;
+      --surface-2: #322C3C;
+      --primary: #A597E0;
+      --primary-strong: #C6BBEF;
+      --secondary: #8FC8B4;
+      --secondary-strong: #ACDCC9;
+      --accent: #E3A97D;
+      --accent-strong: #F0C39D;
+      --text: #F1EDF6;
+      --text-muted: #A79FB4;
+      --border-soft: rgba(241, 237, 246, 0.08);
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+      --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.38);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1E1B24;
+    --surface: #282430;
+    --surface-2: #322C3C;
+    --primary: #A597E0;
+    --primary-strong: #C6BBEF;
+    --secondary: #8FC8B4;
+    --secondary-strong: #ACDCC9;
+    --accent: #E3A97D;
+    --accent-strong: #F0C39D;
+    --text: #F1EDF6;
+    --text-muted: #A79FB4;
+    --border-soft: rgba(241, 237, 246, 0.08);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.38);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a { color: inherit; }
+
+  .skip-link {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--surface); color: var(--text);
+    padding: 12px 20px; border-radius: var(--radius-sm); z-index: 200;
+  }
+  .skip-link:focus { left: 16px; top: 16px; }
+
+  /* ---------- Shell layout ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Sidebar (mirrors the app's own tab bar) ---------- */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    padding: 32px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    border-right: 1px solid var(--border-soft);
+  }
+
+  @media (max-width: 880px) {
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border-soft);
+      padding: 24px 20px;
+    }
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: grid; place-items: center;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 24px; height: 24px; }
+  .brand-name { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+  .brand-tag { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+
+  .navlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .navlist a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.94rem;
+    color: var(--text-muted);
+    transition: background 180ms ease, color 180ms ease;
+  }
+  .navlist a:hover, .navlist a:focus-visible { background: var(--surface-2); color: var(--text); outline: none; }
+  .navlist .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+  .theme-toggle {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+    background: var(--surface-2);
+    padding: 4px;
+    border-radius: 999px;
+  }
+  .theme-toggle button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 8px 6px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+  }
+  .theme-toggle button[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- Main content ---------- */
+  main { padding: 56px 40px 120px; min-width: 0; }
+  @media (max-width: 880px) { main { padding: 40px 20px 90px; } }
+
+  .hero { max-width: 640px; margin-bottom: 72px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--secondary-strong);
+    margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 18px; height: 2px; background: var(--secondary-strong); border-radius: 2px; }
+
+  h1 {
+    font-size: clamp(2.1rem, 4.2vw, 3rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .hero p { font-size: 1.08rem; color: var(--text-muted); max-width: 54ch; margin: 0 0 28px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-size: 0.82rem; font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  section.feature {
+    scroll-margin-top: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 48px;
+    align-items: start;
+    padding: 56px 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  section.feature:first-of-type { border-top: none; }
+  section.feature.flip { grid-template-columns: 300px minmax(0, 1fr); }
+  section.feature.flip .feature-figure { order: -1; }
+
+  @media (max-width: 880px) {
+    section.feature, section.feature.flip { grid-template-columns: 1fr; }
+    section.feature.flip .feature-figure { order: 0; }
+  }
+
+  .feature-index {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .feature-sub { color: var(--secondary-strong); font-weight: 700; font-size: 0.92rem; margin: 0 0 18px; }
+
+  .feature p { margin: 0 0 14px; max-width: 62ch; }
+  .feature ul { margin: 0 0 14px; padding-left: 1.2em; max-width: 60ch; }
+  .feature li { margin-bottom: 6px; }
+
+  .note {
+    display: flex; gap: 10px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 0.92rem;
+    color: var(--text);
+    margin-top: 16px;
+    max-width: 60ch;
+  }
+  .note b { color: var(--accent-strong); }
+
+  code, .kbd {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    background: var(--surface-2);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  /* ---------- Phone frame with real screenshots ---------- */
+  .feature-figure { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .phone {
+    width: 100%;
+    max-width: 240px;
+    aspect-ratio: 9 / 19.5;
+    background: var(--surface);
+    border-radius: 34px;
+    padding: 8px;
+    box-shadow: var(--shadow-lift);
+    border: 1px solid var(--border-soft);
+  }
+  .phone-screen {
+    width: 100%; height: 100%;
+    border-radius: 26px;
+    overflow: hidden;
+    background: var(--surface-2);
+    position: relative;
+  }
+  .phone-screen img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+  .figure-caption { font-size: 0.8rem; color: var(--text-muted); text-align: center; max-width: 220px; }
+
+  footer {
+    max-width: 640px;
+    padding: 56px 0 0;
+    margin-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  footer p { max-width: 62ch; }
+  .footer-marks { display: flex; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+  .footer-marks span { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); }
+  .footer-marks .swatch { width: 12px; height: 12px; border-radius: 4px; }
+</style>
+
+<a class="skip-link" href="#inicio">Pular pro conteúdo</a>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Seções do manual">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 13a8 8 0 0 1 16 0" stroke="#3A3542" stroke-width="2" stroke-linecap="round"/>
+          <rect x="3" y="13" width="4" height="7" rx="2" fill="#3A3542"/>
+          <rect x="17" y="13" width="4" height="7" rx="2" fill="#3A3542"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Ecoo</div>
+        <div class="brand-tag">Manual do usuário</div>
+      </div>
+    </div>
+
+    <ul class="navlist">
+      <li><a href="#inicio"><span class="dot"></span>Início</a></li>
+      <li><a href="#descobrir"><span class="dot"></span>Descobrir</a></li>
+      <li><a href="#assinar"><span class="dot"></span>Assinar de qualquer lugar</a></li>
+      <li><a href="#biblioteca"><span class="dot"></span>Biblioteca</a></li>
+      <li><a href="#radio"><span class="dot"></span>Rádio ao vivo</a></li>
+      <li><a href="#player"><span class="dot"></span>Player</a></li>
+      <li><a href="#downloads"><span class="dot"></span>Downloads</a></li>
+      <li><a href="#historico"><span class="dot"></span>Histórico &amp; estatísticas</a></li>
+      <li><a href="#atalhos"><span class="dot"></span>Atalhos &amp; compartilhar</a></li>
+      <li><a href="#ajustes"><span class="dot"></span>Ajustes</a></li>
+    </ul>
+
+    <div class="theme-toggle" role="group" aria-label="Tema do manual">
+      <button type="button" data-theme-choice="light" aria-pressed="false">Claro</button>
+      <button type="button" data-theme-choice="dark" aria-pressed="false">Escuro</button>
+      <button type="button" data-theme-choice="system" aria-pressed="true">Sistema</button>
+    </div>
+  </nav>
+
+  <main id="inicio">
+    <div class="hero">
+      <div class="eyebrow">Manual do usuário</div>
+      <h1>Ouça seus podcasts do seu jeito, mesmo sem internet.</h1>
+      <p>
+        O Ecoo é um app de podcast local: sem conta, sem login, sem dado seu
+        saindo do aparelho. Este manual mostra o que cada tela faz — direto,
+        com telas reais do app.
+      </p>
+      <div class="chip-row">
+        <a class="chip" href="#biblioteca">📚 Biblioteca &amp; downloads</a>
+        <a class="chip" href="#radio">📻 Rádio ao vivo</a>
+        <a class="chip" href="#player">🎧 Player completo</a>
+        <a class="chip" href="#ajustes">⚙️ Tema &amp; backup</a>
+      </div>
+    </div>
+
+    <section class="feature" aria-labelledby="h-inicio">
+      <div>
+        <div class="feature-index">Aba 1 de 5</div>
+        <h2 id="h-inicio">Início — de onde você parou</h2>
+        <p class="feature-sub">"De onde você parou e o que saiu de novo"</p>
+        <p>
+          A primeira tela mostra dois carrosséis: <b>Continuar ouvindo</b>,
+          com os episódios que você deixou pela metade (toque pra retomar
+          exatamente na posição salva), e <b>Novos episódios</b>, juntando os
+          lançamentos mais recentes de todas as suas assinaturas num só
+          lugar — sem precisar abrir podcast por podcast.
+        </p>
+        <p>
+          Antes de você abrir o app, o Ecoo já rebuscou os feeds assinados
+          em segundo plano (respeitando um limite de 1h por feed, pra não
+          gastar dados à toa) — então o que aparece aqui já está atualizado.
+        </p>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/inicio.png" alt="Tela Início do Ecoo mostrando os carrosséis Continuar ouvindo e Novos episódios" loading="lazy"></div></div>
+        <div class="figure-caption">Início — retomar e descobrir novidades num só olhar</div>
+      </div>
+    </section>
+
+    <section class="feature flip" aria-labelledby="h-descobrir">
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/descobrir.png" alt="Tela Descobrir com busca e ranking Mais ouvidos no Brasil" loading="lazy"></div></div>
+        <div class="figure-caption">Busca + ranking + categorias por gênero</div>
+      </div>
+      <div>
+        <div class="feature-index">Aba 2 de 5</div>
+        <h2 id="h-descobrir">Descobrir novos podcasts</h2>
+        <p class="feature-sub">"Encontre seu próximo podcast favorito"</p>
+        <p>
+          Busque por nome direto na caixa de pesquisa, ou navegue pelo
+          ranking <b>Mais ouvidos no Brasil</b> e pelas categorias (Notícias,
+          Comédia, Sociedade e Cultura, True Crime e outras). Cada resultado
+          mostra autor, capa e quantidade de episódios antes de você assinar.
+        </p>
+        <ul>
+          <li>Toque num podcast pra ver a lista completa de episódios antes de assinar.</li>
+          <li>A busca também funciona por episódio, não só por programa.</li>
+          <li>Uma categoria abre a lista inteira daquele gênero, com o mesmo cartão de resultado.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="feature" id="assinar" aria-labelledby="h-assinar">
+      <div>
+        <div class="feature-index">Extra</div>
+        <h2 id="h-assinar">Assinar de qualquer lugar</h2>
+        <p class="feature-sub">Deep link — sem precisar abrir o app primeiro</p>
+        <p>
+          Recebeu o link de um feed RSS por WhatsApp, e-mail ou achou um
+          <code>https://…</code> de podcast no navegador? Tocar nele abre o
+          Ecoo direto na tela de assinatura, já com nome, capa e contagem de
+          episódios do feed — sem copiar/colar nada.
+        </p>
+        <p>
+          Se o link estiver quebrado ou não for um feed válido, o app mostra
+          um aviso claro de "Link inválido" — nunca some silenciosamente
+          pra tela inicial.
+        </p>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/deeplink.png" alt="Tela de assinar feed aberta a partir de um link externo, mostrando podcast encontrado" loading="lazy"></div></div>
+        <div class="figure-caption">Um link vira uma assinatura em dois toques</div>
+      </div>
+    </section>
+
+    <section class="feature flip" id="biblioteca" aria-labelledby="h-biblioteca">
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/biblioteca.png" alt="Tela Biblioteca com lista de assinaturas e contagem de não ouvidos" loading="lazy"></div></div>
+        <div class="figure-caption">Suas assinaturas, com contagem de episódios novos</div>
+      </div>
+      <div>
+        <div class="feature-index">Aba 3 de 5</div>
+        <h2 id="h-biblioteca">Biblioteca — seus podcasts assinados</h2>
+        <p class="feature-sub">Filtrar, ordenar e buscar sem sair da tela</p>
+        <p>
+          Cada assinatura mostra quantos episódios novos tem e um coração
+          pra favoritar. Dois campos de busca separados: um filtra os
+          <b>podcasts</b> pelo nome, outro busca <b>episódios</b> por título
+          em toda a biblioteca de uma vez.
+        </p>
+        <p>
+          Dentro de cada podcast, filtros de <b>Todos / Não ouvidos / Ouvidos</b>
+          e ordenação por data — e um painel de ajustes só daquele podcast:
+        </p>
+        <ul>
+          <li><b>Baixar automaticamente</b>: nunca, só no Wi-Fi, ou sempre.</li>
+          <li><b>Apagar depois de ouvir</b>: nunca, 7, 14 ou 30 dias.</li>
+          <li><b>Velocidade fixa</b> pra aquele podcast, sobrepondo a velocidade global.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="feature" id="radio" aria-labelledby="h-radio">
+      <div>
+        <div class="feature-index">Aba 4 de 5</div>
+        <h2 id="h-radio">Rádio ao vivo</h2>
+        <p class="feature-sub">"Rádios brasileiras ao vivo"</p>
+        <p>
+          Busque uma emissora por nome, favorite as que você mais ouve (aba
+          <b>Favoritas</b> separada) e toque play — o streaming começa em
+          segundos. O volume da rádio tem controle próprio, independente do
+          volume dos episódios.
+        </p>
+        <p>
+          Tocar uma rádio pausa automaticamente qualquer episódio em
+          andamento (e vice-versa) — os dois nunca disputam o alto-falante
+          ao mesmo tempo.
+        </p>
+        <div class="note">💡 <span>A tela de detalhe da rádio mostra gênero e localização da emissora antes de você decidir favoritar.</span></div>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/radio_tocando.png" alt="Rádio 87 FM tocando, com botão de pausa e mini-player sincronizado" loading="lazy"></div></div>
+        <div class="figure-caption">Uma rádio favoritada, tocando ao vivo</div>
+      </div>
+    </section>
+
+    <section class="feature flip" id="player" aria-labelledby="h-player">
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/player.png" alt="Player completo com barra de progresso, play, avançar 30s, voltar 10s e volume" loading="lazy"></div></div>
+        <div class="figure-caption">Controles completos, sem sair da tela</div>
+      </div>
+      <div>
+        <div class="feature-index">Sempre à mão</div>
+        <h2 id="h-player">Player — tudo num toque</h2>
+        <p>
+          Um mini-player fica grudado embaixo da tela sempre que algo está
+          tocando; arraste ou toque pra abrir o player cheio, com:
+        </p>
+        <ul>
+          <li><b>Avançar 30s / voltar 10s</b>, além da barra de progresso arrastável.</li>
+          <li><b>Velocidade</b> de 0.5× a 3×, com atalho por podcast (ver Biblioteca).</li>
+          <li><b>Capítulos</b>, quando o episódio publica marcação — navegue direto pro trecho.</li>
+          <li><b>Temporizador pra dormir</b>: 5/15/30/60 min ou "fim do episódio" — <b>agite o celular pra somar mais 5 minutos</b> sem tirar do bolso.</li>
+          <li><b>Fila</b>: enfileire episódios direto do menu de opções, reordene e toque em qualquer um.</li>
+          <li><b>Equalizador e reforço de volume</b> (Android): 5 bandas + presets.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="feature" aria-label="Temporizador para dormir">
+      <div>
+        <div class="feature-index">Detalhe</div>
+        <h2>Temporizador pra dormir</h2>
+        <p>
+          Escolha um tempo e o áudio pausa sozinho — sem precisar lembrar de
+          voltar depois. Selecionar "fim do episódio" pausa exatamente
+          quando a faixa atual acaba, ideal pra quem ouve antes de dormir.
+        </p>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/sleep_timer.png" alt="Menu do temporizador para dormir com opções de 5 a 60 minutos e fim do episódio" loading="lazy"></div></div>
+        <div class="figure-caption">Ícone de lua preenchido = temporizador ativo</div>
+      </div>
+    </section>
+
+    <section class="feature flip" id="downloads" aria-labelledby="h-downloads">
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/downloads.png" alt="Tela de Downloads mostrando episódio baixado com tamanho em disco" loading="lazy"></div></div>
+        <div class="figure-caption">Baixado e pronto pra ouvir no avião</div>
+      </div>
+      <div>
+        <div class="feature-index">Offline-first</div>
+        <h2 id="h-downloads">Downloads — ouça sem internet</h2>
+        <p>
+          Toque no ícone de download em qualquer episódio; o progresso
+          aparece ali mesmo e na notificação do sistema. Uma vez baixado, o
+          Ecoo sempre toca o arquivo local — mesmo em modo avião — e mostra
+          quanto espaço cada episódio ocupa.
+        </p>
+        <p>
+          Fechar o app no meio de um download não perde o arquivo: ao
+          reabrir, o Ecoo confere o status real e corrige sozinho qualquer
+          download que tenha ficado "preso".
+        </p>
+      </div>
+    </section>
+
+    <section class="feature" id="historico" aria-labelledby="h-historico">
+      <div>
+        <div class="feature-index">Seu progresso</div>
+        <h2 id="h-historico">Histórico &amp; estatísticas</h2>
+        <p class="feature-sub">"Sua escuta" — tempo total, semana atual, sequência de dias</p>
+        <p>
+          Ajustes traz um resumo rápido de quanto você já ouviu, quanto foi
+          nesta semana e há quantos dias seguidos você não larga o hábito —
+          com um gráfico dia a dia. O <b>Histórico de escuta</b> completo
+          lista cada episódio ouvido, do mais recente pro mais antigo.
+        </p>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/stats.png" alt="Gráfico Sua escuta com tempo total, semana e sequência de dias" loading="lazy"></div></div>
+        <div class="figure-caption">Sequência de dias e gráfico da semana</div>
+      </div>
+    </section>
+
+    <section class="feature flip" id="atalhos" aria-labelledby="h-atalhos">
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/shortcuts.png" alt="Menu de atalhos ao segurar o ícone do app, com opções Fila e Continuar" loading="lazy"></div></div>
+        <div class="figure-caption">Segure o ícone do app pra atalhos rápidos</div>
+      </div>
+      <div>
+        <div class="feature-index">Mais rápido</div>
+        <h2 id="h-atalhos">Atalhos &amp; compartilhar</h2>
+        <p>
+          Segure o ícone do Ecoo na tela inicial do celular pra abrir direto
+          na <b>Fila</b> ou em <b>Continuar</b> (retoma o último episódio sem
+          passar pelas abas). Já dentro de um episódio, o botão de
+          compartilhar manda o título, o podcast e o link real do episódio
+          pra qualquer app — WhatsApp, e-mail, o que preferir.
+        </p>
+        <div class="note">💡 <span>Compartilhar durante a reprodução também inclui o ponto exato onde você está ouvindo.</span></div>
+      </div>
+    </section>
+
+    <section class="feature" id="ajustes" aria-labelledby="h-ajustes">
+      <div>
+        <div class="feature-index">Aba 5 de 5</div>
+        <h2 id="h-ajustes">Ajustes</h2>
+        <p>Tudo que configura o app do seu jeito, num só lugar:</p>
+        <ul>
+          <li><b>Tema</b> claro, escuro ou seguindo o sistema.</li>
+          <li><b>Atualização em segundo plano</b> a cada ~6h, com opção de só fazer isso no Wi-Fi.</li>
+          <li><b>Avisar de episódio novo</b> por notificação.</li>
+          <li><b>Backup por OPML</b>: exporte suas assinaturas num arquivo pra compartilhar ou guardar, e importe de volta em outro aparelho.</li>
+        </ul>
+        <p class="feature-sub" style="margin-top:20px;">Claro ou escuro — sua escolha</p>
+      </div>
+      <div class="feature-figure">
+        <div class="phone"><div class="phone-screen"><img src="manual_img/tema_escuro.png" alt="Tela de Ajustes em tema escuro" loading="lazy"></div></div>
+        <div class="figure-caption">O mesmo Ajustes, em modo escuro</div>
+      </div>
+    </section>
+
+    <footer>
+      <h2 style="font-size:1.1rem;">Local-first, de propósito</h2>
+      <p>
+        O Ecoo não tem conta, não tem login, não manda nada seu pra fora do
+        aparelho — suas assinaturas, downloads e histórico vivem só no seu
+        celular. Exportar OPML é a única forma de levar seus dados pra outro
+        lugar, e é você quem decide quando.
+      </p>
+      <div class="footer-marks">
+        <span><span class="swatch" style="background:var(--primary)"></span>Lavanda</span>
+        <span><span class="swatch" style="background:var(--secondary)"></span>Menta</span>
+        <span><span class="swatch" style="background:var(--accent)"></span>Pêssego</span>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll('[data-theme-choice]');
+    var stored = null;
+    try { stored = localStorage.getItem('ecoo-manual-theme'); } catch (e) {}
+
+    function apply(choice) {
+      if (choice === 'light' || choice === 'dark') {
+        root.setAttribute('data-theme', choice);
+      } else {
+        root.removeAttribute('data-theme');
+      }
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-choice') === choice));
+      });
+    }
+
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var choice = b.getAttribute('data-theme-choice');
+        apply(choice);
+        try { localStorage.setItem('ecoo-manual-theme', choice); } catch (e) {}
+      });
+    });
+
+    apply(stored || 'system');
+  })();
+</script>

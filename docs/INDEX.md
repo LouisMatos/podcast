@@ -20,6 +20,10 @@ Add topic files in `docs/learnings/` and list them here.
 - `roadmap_v3.md` — v3 (Fases 19+), correções e robustez Android. **Trabalho novo entra aqui.**
 - `roadmap_debito_tecnico.md` — rework grande / decisão de arquitetura, sem prazo.
 
+## Manual do usuário
+
+- `manual_ecoo.html` — manual interativo (abrir no navegador), telas reais do app, assets em `manual_img/`.
+
 ---
 
 **Last Updated**: 2026-09-08
