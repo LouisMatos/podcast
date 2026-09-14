@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../data/repositories/library_repository.dart';
 import '../../../services/download/auto_download_service.dart';
+import '../../../services/download/download_service.dart';
 
 part 'startup_feed_refresh_provider.g.dart';
 
@@ -11,6 +12,11 @@ part 'startup_feed_refresh_provider.g.dart';
 /// resultado não importa pra UI.
 @riverpod
 Future<int> startupFeedRefresh(Ref ref) async {
+  // Reconcilia downloads presos em queued/running/paused antes de mais
+  // nada — se o app foi morto no meio de um download, essa é a única
+  // chance de destravar a tela de Downloads sem intervenção manual.
+  await ref.read(downloadServiceProvider).reconcileStuckDownloads();
+
   // Concorrência menor que o pull-to-refresh (default 4): fire-and-forget no
   // boot, não deve competir por I/O/CPU com o primeiro frame da UI.
   final results = await ref

@@ -18,7 +18,25 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'podcast_app'));
+  AppDatabase([QueryExecutor? executor])
+      : super(
+          executor ??
+              driftDatabase(
+                name: 'podcast_app',
+                native: DriftNativeOptions(
+                  // Sem isso: rollback-journal (padrão do sqlite3) + sem
+                  // busy_timeout. O app principal e o isolate do WorkManager
+                  // (`background_sync.dart`) abrem conexões separadas pro
+                  // mesmo arquivo — sem WAL, uma escrita de um bloqueia
+                  // leitura do outro; sem busy_timeout, a segunda conexão
+                  // lança `SQLITE_BUSY` na hora em vez de esperar.
+                  setup: (db) {
+                    db.execute('PRAGMA journal_mode=WAL');
+                    db.execute('PRAGMA busy_timeout=5000');
+                  },
+                ),
+              ),
+        );
 
   @override
   int get schemaVersion => 8;

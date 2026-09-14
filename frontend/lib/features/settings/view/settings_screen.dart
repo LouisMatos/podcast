@@ -40,20 +40,22 @@ class SettingsScreen extends ConsumerWidget {
                 Text('Tema', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 SegmentedButton<AppThemeMode>(
+                  // Sem `icon:` nos segmentos e sem o check de seleção: em
+                  // telas estreitas (~360dp), ícone + texto + check nos 3
+                  // segmentos não cabiam e o texto quebrava no meio da
+                  // palavra ("Clar/o", "Sist/ema").
+                  showSelectedIcon: false,
                   segments: const [
                     ButtonSegment(
                       value: AppThemeMode.light,
-                      icon: Icon(Icons.light_mode_outlined),
                       label: Text('Claro'),
                     ),
                     ButtonSegment(
                       value: AppThemeMode.dark,
-                      icon: Icon(Icons.dark_mode_outlined),
                       label: Text('Escuro'),
                     ),
                     ButtonSegment(
                       value: AppThemeMode.system,
-                      icon: Icon(Icons.brightness_auto_outlined),
                       label: Text('Sistema'),
                     ),
                   ],

@@ -99,6 +99,49 @@ class DownloadService {
     await _repository.enqueueRecord(podcastId: podcastId, episodeGuid: episode.guid, taskId: taskId);
   }
 
+  /// Chamado no boot: se o app foi morto no meio de um download, o callback
+  /// do isolate do `flutter_downloader` nunca chegou e a linha fica presa em
+  /// `queued`/`running`/`paused` no drift pra sempre, mesmo reabrindo o app.
+  /// O plugin mantém seu próprio registro de tarefas (sobrevive ao restart);
+  /// aqui a gente sincroniza o status real de volta pro drift.
+  Future<void> reconcileStuckDownloads() async {
+    final pending = await _repository.pendingRecords();
+    if (pending.isEmpty) return;
+
+    final tasks = await FlutterDownloader.loadTasks() ?? const <DownloadTask>[];
+    final taskById = {for (final task in tasks) task.taskId: task};
+
+    for (final download in pending) {
+      final taskId = download.taskId;
+      if (taskId == null) continue;
+      final task = taskById[taskId];
+      if (task == null) {
+        // Tarefa não existe mais nem no plugin — sem como retomar.
+        await _repository.updateByTaskId(
+          taskId: taskId,
+          status: DownloadStatus.failed,
+          progress: download.progress,
+        );
+        continue;
+      }
+      var status = _toDomainStatus(task.status);
+      var progress = task.progress;
+      if (status == DownloadStatus.paused) {
+        // Retomável sem perder o que já baixou.
+        await FlutterDownloader.resume(taskId: taskId);
+        status = DownloadStatus.running;
+      } else if (status == DownloadStatus.running || status == DownloadStatus.queued) {
+        // O app morreu, então nada está de fato rodando — o plugin só não
+        // teve chance de marcar como falho. Falha explícita, sem tentar
+        // adivinhar se dá pra retomar; usuário baixa de novo se quiser.
+        status = DownloadStatus.failed;
+      }
+      final localPath =
+          status == DownloadStatus.complete && task.filename != null ? '${task.savedDir}/${task.filename}' : null;
+      await _repository.updateByTaskId(taskId: taskId, status: status, progress: progress, localPath: localPath);
+    }
+  }
+
   Future<void> cancel({required int podcastId, required String episodeGuid}) async {
     final taskId = await _repository.taskIdFor(podcastId, episodeGuid);
     if (taskId != null) await FlutterDownloader.cancel(taskId: taskId);

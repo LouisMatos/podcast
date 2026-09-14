@@ -23,8 +23,14 @@ const _sleepOptions = [
 ];
 
 /// Valor do item "fim do episódio" no menu do temporizador (o resto são
-/// `Duration`; `null` = cancelar).
+/// `Duration`).
 const _sleepEndOfEpisode = 'end';
+
+/// Valor do item "Cancelar". Não pode ser `null`: `PopupMenuButton` trata
+/// `null` devolvido por `showMenu` como "menu dispensado sem seleção" e
+/// nunca chama `onSelected` — com `value: null` o item ficava morto (o
+/// temporizador nunca era cancelado pelo menu).
+const _sleepCancel = 'cancel';
 
 String _formatClock(Duration d) {
   final h = d.inHours;
@@ -733,7 +739,7 @@ class _SleepTimerButton extends StatelessWidget {
       icon: Icon(state.hasSleepTimer ? Icons.bedtime : Icons.bedtime_outlined),
       tooltip: 'Temporizador para dormir',
       onSelected: (choice) {
-        if (choice == null) {
+        if (choice == _sleepCancel) {
           notifier.cancelSleepTimer();
         } else if (choice == _sleepEndOfEpisode) {
           notifier.startSleepTimerAtEndOfEpisode();
@@ -749,7 +755,7 @@ class _SleepTimerButton extends StatelessWidget {
           child: Text('Fim do episódio'),
         ),
         if (state.hasSleepTimer)
-          const PopupMenuItem(value: null, child: Text('Cancelar')),
+          const PopupMenuItem(value: _sleepCancel, child: Text('Cancelar')),
       ],
     );
   }

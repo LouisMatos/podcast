@@ -29,7 +29,7 @@ class SubscribeFeedViewModel extends _$SubscribeFeedViewModel {
   Future<void> _load(String feedUrl) async {
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get<String>(
+      final response = await dio.getWithDeadline<String>(
         feedUrl,
         options: Options(responseType: ResponseType.plain),
       );

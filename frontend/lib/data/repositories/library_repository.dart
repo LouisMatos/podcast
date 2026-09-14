@@ -191,9 +191,16 @@ class LibraryRepository {
         await (_db.select(_db.subscriptions)..where((t) => t.id.equals(podcastId))).getSingleOrNull();
     if (sub == null) return const [];
 
-    if (!force &&
-        sub.lastRefreshedAt != null &&
-        DateTime.now().difference(sub.lastRefreshedAt!) < _refreshThrottle) {
+    final now = DateTime.now();
+    // `lastRefreshedAt` no futuro (troca de fuso/hora do aparelho) faria essa
+    // diferença ficar negativa e sempre `< _refreshThrottle` — o feed nunca
+    // mais atualizaria sozinho, nem reabrindo o app (o valor está persistido
+    // no banco). Trata como "nunca atualizado" em vez de honrar o throttle.
+    final lastRefreshedAt = sub.lastRefreshedAt;
+    final throttled = lastRefreshedAt != null &&
+        !lastRefreshedAt.isAfter(now) &&
+        now.difference(lastRefreshedAt) < _refreshThrottle;
+    if (!force && throttled) {
       return const [];
     }
 
@@ -204,9 +211,13 @@ class LibraryRepository {
     final existingGuids = {for (final row in existing) row.guid};
     final newEpisodes = fresh.where((e) => !existingGuids.contains(e.guid)).toList();
 
-    await _cacheEpisodes(podcastId, fresh);
-    await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
-        .write(SubscriptionsCompanion(lastRefreshedAt: Value(DateTime.now())));
+    // Sem transação: um kill do app entre as duas escritas deixa o feed com
+    // episódios cacheados mas `lastRefreshedAt` antigo (ou vice-versa).
+    await _db.transaction(() async {
+      await _cacheEpisodes(podcastId, fresh);
+      await (_db.update(_db.subscriptions)..where((t) => t.id.equals(podcastId)))
+          .write(SubscriptionsCompanion(lastRefreshedAt: Value(now)));
+    });
 
     return newEpisodes;
   }
