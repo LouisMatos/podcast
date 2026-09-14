@@ -102,3 +102,15 @@ do débito se a premissa do projeto mudar.
 
 Namespace estendido do Podcasting 2.0. É feature nova, não correção — entra num
 eventual roadmap v4, não aqui.
+
+## Biblioteca: hierarquia entre os dois campos de busca
+
+**Hoje:** "Filtrar" (assinaturas, inline) e "Buscar episódios na biblioteca"
+(card, abre `/library/search`) ficam empilhados sem diferenciação visual
+clara de escopo — Fase 28.7 só encurtou o placeholder que cortava, não
+mudou a estrutura.
+
+**Como fazer bem:** decisão de produto sobre esconder o segundo campo até
+o usuário expandir "Buscar episódios", ou dar hierarquia visual mais forte
+entre os dois. Fora do polimento pontual da Fase 28 — pedir direção antes
+de mexer.
