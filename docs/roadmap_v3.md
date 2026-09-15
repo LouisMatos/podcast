@@ -60,14 +60,16 @@ episódio e deep link `https://` — todos sem bug. Falta só a parte AVRCP
 real (fone/carro Bluetooth pareado, sem periférico disponível nesta sessão)
 e o Desktop Head Unit do Android Auto.
 
-**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não resolve),
-25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
-entraram junto, trabalho de código puro sem bloqueio de hardware), 26c
-Android Auto/DHU (precisa Desktop Head Unit ou carro real) e AVRCP
-Bluetooth real (precisa periférico pareado).
+**Fase 20 e Fase 25 fechadas** (2026-09-15, ver
+`docs/roadmap_pendencias_implementacoes.md` Fases 2-3): testes de
+`_toMediaItem`/deep link/duração adicionados, badge de não-ouvidos já
+tinha cobertura, IME timeout confirmado ruído de emulador no SM-G570M.
 
-Ordem sugerida do resto: **24 → 25** (nenhum dos dois depende mais de
-device físico simples — 24 precisa API 34+, 25 é só código).
+**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não
+resolve), 26c Android Auto/DHU (precisa Desktop Head Unit ou carro real) e
+AVRCP Bluetooth real (precisa periférico pareado). Schema test formal
+`drift_dev` avaliado na Fase 25 e não coube — segue registrado em
+`docs/roadmap_debito_tecnico.md`.
 
 **Perf em device físico + componentes independentes concluído** (2026-09-
 12/13, fora da numeração de fases desta v3 — branch
@@ -165,14 +167,16 @@ lockscreen sem barra de progresso e o display do carro sem capa.
       reproduz fora do emulador**, era mesmo artefato de stack. Sem fone/
       carro Bluetooth disponível nesta sessão — a parte AVRCP real segue não
       testada (falta o periférico, não é bloqueio de código).
-- [ ] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
-      campos de busca) — provável ruído; confirmar que nenhuma tecla é perdida.
-- [ ] Se for real: garantir `artUri` em todos os itens de `queue` publicados no
-      `audio_service` (pré-resolver / cachear a art antes do `queue.add`).
-      Confirmar que a duração real que o `_broadcastPlaybackState` descobre é
-      propagada pro item correspondente na `queue`, não só pro `mediaItem`.
-- [ ] Teste: `_toMediaItem` produz `duration` + `artUri` corretos (real e
-      `file://`); `_syncQueue` mantém art em todos os itens.
+- [x] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
+      campos de busca) — **confirmado ruído de emulador** (2026-09-15,
+      SM-G570M): digitação normal e sob stress na busca de Descobrir,
+      zero ocorrência no `logcat`, nenhuma tecla perdida.
+- [x] "Se for real": N/A — `duration=0`/`image=null` (linha 161-167) e o
+      timeout do IME (item 5) foram ambos confirmados artefato de
+      emulador, não reproduzem em device físico. Sem correção necessária.
+- [x] Teste: `_toMediaItem` produz `duration` + `artUri` corretos —
+      `test/features/player/player_view_model_test.dart` (Fase 25 v3,
+      2026-09-15).
 
 **Arquivos:** `frontend/lib/services/audio/podcast_audio_handler.dart`,
 `frontend/lib/features/player/view_model/player_view_model.dart` (`_toMediaItem`

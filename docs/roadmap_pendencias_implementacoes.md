@@ -30,10 +30,17 @@ aberto no SM-G570M sem crash (MediaSession ativo). Schema test formal
 `drift_dev` deixado registrado em `roadmap_debito_tecnico.md` como estava
 — trabalho grande, sessão própria.
 
-**Falta:** Fase 3 (v3 Fase 20 — fechar investigação), sem bloqueio de
-hardware mas precisa device físico conectado pra build+install+smoke test
-ao final. Fase 4 e 5 bloqueadas por hardware (device API 34+ novo /
-Desktop Head Unit) — aguardando usuário.
+**Fase 3 concluída** (2026-09-15) — verificado no SM-G570M: digitação
+normal e sob stress (backspace repetido) no campo de busca de Descobrir,
+zero ocorrência de `InputConnectionWrapper`/`TimeoutException` no
+`logcat`. Confirma a suspeita original: item 5 era ruído específico de
+emulador, não reproduz em device físico. Sem mudança de código — só
+verificação.
+
+**Falta:** Fase 4 e 5, bloqueadas por hardware (device API 34+ novo /
+Desktop Head Unit) — aguardando usuário arranjar o aparelho/DHU. AVRCP
+Bluetooth real (item da Fase 20) segue bloqueado por falta de periférico
+pareado, independente do device novo.
 
 ## Fase 1 — Consolidação de documentação ✅
 
@@ -82,15 +89,19 @@ conectado só pro smoke test final.
       build debug + `adb install` no SM-G570M, app abre sem crash
       (MediaSession ativo, confirmado via `logcat`).
 
-## Fase 3 — v3 Fase 20: fechar investigação de metadados de mídia
+## Fase 3 — v3 Fase 20: fechar investigação de metadados de mídia ✅
 
-- [ ] Verificar item 5 do achado original: IME `InputConnectionWrapper`
-      `TimeoutException` nos campos de busca — confirmar se é ruído de
-      plataforma (suspeita already documentada) ou bug real.
-- [ ] AVRCP Bluetooth real: continua bloqueado por falta de periférico
-      pareado (fone/carro Bluetooth) — registrar como bloqueio
-      independente do device novo, não fechar sozinho nesta fase.
-- [ ] Fim de fase: build + instalar no device físico, testar.
+- [x] Verificar item 5 do achado original: IME `InputConnectionWrapper`
+      `TimeoutException` nos campos de busca — testado no SM-G570M
+      (digitação normal + stress com backspace repetido na busca de
+      Descobrir), zero ocorrência no `logcat`. Confirmado: ruído de
+      emulador, não reproduz em device físico.
+- [x] AVRCP Bluetooth real: continua bloqueado por falta de periférico
+      pareado (fone/carro Bluetooth) — registrado como bloqueio
+      independente do device novo, não fecha sozinho.
+- [x] Fim de fase: sem mudança de código (só verificação), app já
+      instalado no device físico nesta sessão (Fase 2), smoke test feito
+      ao exercitar a busca.
 
 ## Fase 4 — v3 Fase 24: toolchain e SDK — BLOQUEADA
 
