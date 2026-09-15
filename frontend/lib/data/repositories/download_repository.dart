@@ -1,3 +1,5 @@
+import 'dart:io' show File;
+
 import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value, innerJoin;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -59,13 +61,18 @@ class DownloadRepository {
   /// Caminho local de cada episódio já baixado de um podcast — usado pelo
   /// player pra tocar offline sempre que existir um arquivo, sem precisar
   /// consultar episódio por episódio.
+  ///
+  /// Confirma que o arquivo ainda existe em disco — reinstalar o app ou
+  /// limpar o storage deixa a linha `complete` no banco mas o arquivo
+  /// sumido; sem essa checagem o player recebia um path morto em vez de
+  /// cair pro stream de rede.
   Future<Map<String, String>> completedPathsForPodcast(int podcastId) async {
     final query = _db.select(_db.downloads)
       ..where((t) => t.podcastId.equals(podcastId) & t.status.equals(DownloadStatus.complete.name));
     final rows = await query.get();
     return {
       for (final row in rows)
-        if (row.localPath != null) row.episodeGuid: row.localPath!,
+        if (row.localPath != null && File(row.localPath!).existsSync()) row.episodeGuid: row.localPath!,
     };
   }
 

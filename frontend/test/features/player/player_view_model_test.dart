@@ -26,6 +26,7 @@ class _FakeHandler extends PodcastAudioHandler {
   int calls = 0;
   bool? lastAutoPlay;
   List<MediaItem>? lastItems;
+  bool shouldThrowOnSetQueue = false;
 
   @override
   Future<void> setQueue(
@@ -34,6 +35,7 @@ class _FakeHandler extends PodcastAudioHandler {
     Duration? initialPosition,
     bool autoPlay = true,
   }) async {
+    if (shouldThrowOnSetQueue) throw Exception('URL inalcançável');
     lastItems = items;
     if (playFirst) {
       calls++;
@@ -507,6 +509,21 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       verifyNever(() => lib.updateEpisodeDuration(any(), any(), any()));
+    });
+  });
+
+  group('recuperação de falha ao tocar (robustez pós-27)', () {
+    test('setQueue lançando não deixa o spinner preso — volta pro estado ocioso', () async {
+      handler.shouldThrowOnSetQueue = true;
+
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, episode);
+
+      final state = container.read(playerViewModelProvider);
+      expect(state.isBuffering, isFalse);
+      expect(state.isPlaying, isFalse);
+      expect(state.episode, isNull);
+      expect(state.podcast, isNull);
+      expect(state.isIdle, isTrue);
     });
   });
 }

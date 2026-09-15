@@ -11,6 +11,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
+import '../../../core/diagnostics/error_log.dart';
 import '../../../core/prefs/preferences_store.dart';
 import '../../../data/models/chapter.dart';
 import '../../../data/models/episode.dart';
@@ -202,12 +203,34 @@ class PlayerViewModel extends _$PlayerViewModel {
     final localPaths =
         await ref.read(downloadRepositoryProvider).completedPathsForPodcast(podcast.id);
     if (!ref.mounted) return;
-    await _handler.setQueue(
-      [_toMediaItem(podcast, episode, localPath: localPaths[episode.guid])],
-      playFirst: true,
-      initialPosition: savedPosition,
-      autoPlay: autoPlay,
-    );
+    try {
+      await _handler.setQueue(
+        [_toMediaItem(podcast, episode, localPath: localPaths[episode.guid])],
+        playFirst: true,
+        initialPosition: savedPosition,
+        autoPlay: autoPlay,
+      );
+    } catch (error, stack) {
+      await ErrorLog.instance.record(error, stack, context: 'PlayerViewModel.playEpisode');
+      await _handler.stop();
+      if (!ref.mounted) return;
+      // URL inalcançável/travada (Fase de robustez pós-27) — volta pro
+      // estado ocioso em vez de deixar o spinner girando pra sempre; o
+      // usuário tenta de novo tocando o episódio outra vez.
+      _entries = const [];
+      state = state.copyWith(
+        episode: null,
+        podcast: null,
+        queue: const [],
+        isPlaying: false,
+        isBuffering: false,
+        position: Duration.zero,
+        bufferedPosition: Duration.zero,
+        duration: null,
+        chapters: const [],
+      );
+      return;
+    }
 
     // O equalizador do device só fica disponível depois que um áudio foi
     // carregado. Android apenas.
@@ -355,12 +378,19 @@ class PlayerViewModel extends _$PlayerViewModel {
     }
     final newIds = [for (final i in items) i.id];
 
-    if (currentId != null && !newIds.contains(currentId)) {
-      // O item que tocava saiu da fila (reordenação/remoção esquisita) —
-      // recarrega o novo topo, preservando play/pause.
-      await _handler.setQueue(items, playFirst: true, autoPlay: state.isPlaying);
-    } else if (!_sameIds(handlerIds, newIds)) {
-      await _handler.setQueue(items);
+    try {
+      if (currentId != null && !newIds.contains(currentId)) {
+        // O item que tocava saiu da fila (reordenação/remoção esquisita) —
+        // recarrega o novo topo, preservando play/pause.
+        await _handler.setQueue(items, playFirst: true, autoPlay: state.isPlaying);
+      } else if (!_sameIds(handlerIds, newIds)) {
+        await _handler.setQueue(items);
+      }
+    } catch (error, stack) {
+      await ErrorLog.instance.record(error, stack, context: 'PlayerViewModel._syncQueue');
+      await _handler.stop();
+      if (!ref.mounted) return;
+      state = state.copyWith(isPlaying: false, isBuffering: false);
     }
   }
 

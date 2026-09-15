@@ -128,8 +128,18 @@ class PlayerView extends ConsumerWidget {
                                       imageUrl: artUrl,
                                       width: 260,
                                       height: 260,
-                                      memCacheWidth: (260 * MediaQuery.devicePixelRatioOf(context)).round(),
-                                      memCacheHeight: (260 * MediaQuery.devicePixelRatioOf(context)).round(),
+                                      memCacheWidth:
+                                          (260 *
+                                                  MediaQuery.devicePixelRatioOf(
+                                                    context,
+                                                  ))
+                                              .round(),
+                                      memCacheHeight:
+                                          (260 *
+                                                  MediaQuery.devicePixelRatioOf(
+                                                    context,
+                                                  ))
+                                              .round(),
                                       fit: BoxFit.cover,
                                     ),
                             ),
@@ -564,123 +574,51 @@ class _EqualizerSheet extends ConsumerWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Áudio', style: Theme.of(context).textTheme.titleMedium),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Pular silêncio'),
-              subtitle: Text(
-                'Corta pausas longas na fala',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colors.textMuted),
-              ),
-              value: player.skipSilenceEnabled,
-              onChanged: notifier.setSkipSilence,
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Reforço de volume'),
-              subtitle: Text(
-                'Equilibra episódios gravados baixo',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: colors.textMuted),
-              ),
-              value: player.volumeBoostEnabled,
-              onChanged: notifier.setVolumeBoostEnabled,
-            ),
-            if (player.volumeBoostEnabled)
-              Row(
-                children: [
-                  Icon(Icons.volume_up, color: colors.textMuted, size: 20),
-                  Expanded(
-                    child: Slider(
-                      value: player.volumeBoostGainDb.clamp(0.0, 15.0),
-                      max: 15,
-                      divisions: 15,
-                      label: '${player.volumeBoostGainDb.round()} dB',
-                      onChanged: notifier.setVolumeBoostGain,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      '${player.volumeBoostGainDb.round()} dB',
-                      textAlign: TextAlign.end,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: colors.textMuted),
-                    ),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Equalizador',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Switch(
-                  value: player.equalizerEnabled,
-                  onChanged: (v) => notifier.toggleEqualizer(v),
-                ),
-              ],
-            ),
-            if (!player.equalizerAvailable && player.equalizerBands.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  'Toque um episódio pra ajustar o equalizador.',
-                  style: Theme.of(context).textTheme.bodyMedium
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Áudio', style: Theme.of(context).textTheme.titleMedium),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Pular silêncio'),
+                subtitle: Text(
+                  'Corta pausas longas na fala',
+                  style: Theme.of(context).textTheme.bodySmall
                       ?.copyWith(color: colors.textMuted),
                 ),
-              )
-            else ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final preset in EqualizerPreset.values)
-                    ActionChip(
-                      label: Text(_presetLabel(preset)),
-                      onPressed: player.equalizerEnabled
-                          ? () => notifier.applyEqualizerPreset(preset)
-                          : null,
-                    ),
-                ],
+                value: player.skipSilenceEnabled,
+                onChanged: notifier.setSkipSilence,
               ),
-              const SizedBox(height: 8),
-              for (final band in player.equalizerBands)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Reforço de volume'),
+                subtitle: Text(
+                  'Equilibra episódios gravados baixo',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.textMuted),
+                ),
+                value: player.volumeBoostEnabled,
+                onChanged: notifier.setVolumeBoostEnabled,
+              ),
+              if (player.volumeBoostEnabled)
                 Row(
                   children: [
-                    SizedBox(
-                      width: 56,
-                      child: Text(
-                        _hzLabel(band.centerHz),
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: colors.textMuted),
-                      ),
-                    ),
+                    Icon(Icons.volume_up, color: colors.textMuted, size: 20),
                     Expanded(
                       child: Slider(
-                        value: band.gain.clamp(
-                          player.equalizerMinDb,
-                          player.equalizerMaxDb,
-                        ),
-                        min: player.equalizerMinDb,
-                        max: player.equalizerMaxDb,
-                        onChanged: player.equalizerEnabled
-                            ? (v) => notifier.setEqualizerBand(band.index, v)
-                            : null,
+                        value: player.volumeBoostGainDb.clamp(0.0, 15.0),
+                        max: 15,
+                        divisions: 15,
+                        label: '${player.volumeBoostGainDb.round()} dB',
+                        onChanged: notifier.setVolumeBoostGain,
                       ),
                     ),
                     SizedBox(
                       width: 44,
                       child: Text(
-                        '${band.gain.round()} dB',
+                        '${player.volumeBoostGainDb.round()} dB',
                         textAlign: TextAlign.end,
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: colors.textMuted),
@@ -688,8 +626,82 @@ class _EqualizerSheet extends ConsumerWidget {
                     ),
                   ],
                 ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Equalizador',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Switch(
+                    value: player.equalizerEnabled,
+                    onChanged: (v) => notifier.toggleEqualizer(v),
+                  ),
+                ],
+              ),
+              if (!player.equalizerAvailable && player.equalizerBands.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    'Toque um episódio pra ajustar o equalizador.',
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: colors.textMuted),
+                  ),
+                )
+              else ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final preset in EqualizerPreset.values)
+                      ActionChip(
+                        label: Text(_presetLabel(preset)),
+                        onPressed: player.equalizerEnabled
+                            ? () => notifier.applyEqualizerPreset(preset)
+                            : null,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                for (final band in player.equalizerBands)
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 56,
+                        child: Text(
+                          _hzLabel(band.centerHz),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.textMuted),
+                        ),
+                      ),
+                      Expanded(
+                        child: Slider(
+                          value: band.gain.clamp(
+                            player.equalizerMinDb,
+                            player.equalizerMaxDb,
+                          ),
+                          min: player.equalizerMinDb,
+                          max: player.equalizerMaxDb,
+                          onChanged: player.equalizerEnabled
+                              ? (v) => notifier.setEqualizerBand(band.index, v)
+                              : null,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          '${band.gain.round()} dB',
+                          textAlign: TextAlign.end,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.textMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -740,10 +752,7 @@ class _PlayerOverflowMenu extends StatelessWidget {
       },
       itemBuilder: (context) => [
         if (canShare)
-          const PopupMenuItem(
-            value: _actionShare,
-            child: Text('Compartilhar'),
-          ),
+          const PopupMenuItem(value: _actionShare, child: Text('Compartilhar')),
         PopupMenuItem(
           value: _actionSleep,
           child: Text(
@@ -769,7 +778,9 @@ void _showSleepTimerSheet(
     showDragHandle: true,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.surface)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadii.surface),
+      ),
     ),
     builder: (sheetContext) => SafeArea(
       child: ListView(
