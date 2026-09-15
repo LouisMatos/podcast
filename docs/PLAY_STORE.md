@@ -119,7 +119,8 @@ salvo só no seu aparelho — desinstalar o app apaga tudo.
 Importe e exporte suas assinaturas via OPML a qualquer momento.
 ```
 
-## Pendências de asset (Fase 18 não fecha)
+## Pendências de asset
 
-- Ícone e splash finais dependem de arte — hoje é o ícone default do Flutter.
-  Quando houver o PNG fonte: `flutter_launcher_icons` + `flutter_native_splash`.
+Resolvido na Fase 26a do v3 (2026-09-11): ícone adaptativo + splash
+gerados via `flutter_launcher_icons`/`flutter_native_splash`, arte própria
+em `frontend/assets/branding/`. Sem pendência de asset.

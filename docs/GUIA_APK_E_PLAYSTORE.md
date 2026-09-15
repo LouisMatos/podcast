@@ -125,10 +125,10 @@ não versionado, só os PNGs resultantes).
 
 **Textos da loja**
 
-- [ ] Descrição curta (pt-BR)
-- [ ] Descrição longa (pt-BR)
-- [ ] Categoria: "Música e áudio"
-- [ ] Classificação indicativa: "Livre"
+- [x] Descrição curta (pt-BR) — texto pronto em `docs/PLAY_STORE.md`
+- [x] Descrição longa (pt-BR) — texto pronto em `docs/PLAY_STORE.md`
+- [x] Categoria: "Música e áudio"
+- [x] Classificação indicativa: "Livre"
 
 **Política de privacidade**
 
@@ -142,11 +142,11 @@ não versionado, só os PNGs resultantes).
 
 **Teste em device real** (coisas que o emulador não exercita bem)
 
-- [ ] Android Auto (via DHU ou carro real)
-- [ ] App shortcuts (atalhos de long-press no ícone)
-- [ ] Share (compartilhar episódio/podcast)
-- [ ] Deep link (`podcastapp://...`)
-- [ ] Notificações de novo episódio + controle de mídia na tela de bloqueio
+- [x] App shortcuts (atalhos de long-press no ícone) — validado SM-G570M, Fase 26c
+- [x] Share (compartilhar episódio/podcast) — validado SM-G570M, Fase 26c
+- [x] Deep link (`podcastapp://...` e `https://`) — validado SM-G570M, Fase 20/26c
+- [x] Notificações de novo episódio + controle de mídia na tela de bloqueio — validado SM-G570M, Fase 20
+- [ ] Android Auto (via DHU ou carro real) — segue bloqueado, sem hardware disponível (v3 Fase 26c)
 
 **Build final e envio**
 

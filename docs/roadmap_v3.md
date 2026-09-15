@@ -81,7 +81,7 @@ branch `feature/cache-offline-fase27-1-schema` a partir de
 `feature/ui-density-fase4-unify-episode-row`): Fases 27.1–27.6, cache-aside
 em `PodcastRepository`/`RadioRepository` + stale-while-revalidate em
 Discover/Featured/Rádio/Detail, validado em device físico (SM-G570M).
-Falta só mergear com PR #1 (que traz a base v8) antes de abrir PR desta.
+Mergeado em `feat/fase-9` via PR #3 (2026-09-14), junto da Fase 28.
 
 **Polimento UI/UX concluído** (2026-09-14, fora da numeração original da v3
 — capacidade de polimento pontual, não correção de robustez — numerada
