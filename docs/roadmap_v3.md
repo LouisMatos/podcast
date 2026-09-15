@@ -31,7 +31,7 @@ robustez e prontidão de publicação.
 | 5 | IME `InputConnectionWrapper` TimeoutException nos campos de busca (provável ruído de emulador) | Fase 20 (verificação) |
 | 6 | Badge "não-ouvidos" = catálogo inteiro em cache (O Assunto 1836, NerdCast 1730) — número real, inútil como sinal de novidade | Fase 23 |
 | 7 | Warnings KGP em 5 plugins (`file_picker`, `flutter_downloader`, `sensors_plus`, `share_plus`, `workmanager_android`) | Fase 24 |
-| 8 | `permission_handler` fixado em `^12` (o `^13` exige compileSdk 37) | Fase 24 |
+| 8 | `permission_handler` fixado em `^12` (o `^13` exige compileSdk 37) | Fase 24 ✅ (resolvido, `^13.0.2`) |
 | 9 | Emulador é API 31 — caminhos Android 13+ não exercitados | Fase 24 |
 | 10 | Ícone/splash default do Flutter, sem screenshots de loja | Fase 26 |
 | 11 | Senha placeholder da keystore (`podcast-changeme`) | Fase 26 |
@@ -60,14 +60,21 @@ episódio e deep link `https://` — todos sem bug. Falta só a parte AVRCP
 real (fone/carro Bluetooth pareado, sem periférico disponível nesta sessão)
 e o Desktop Head Unit do Android Auto.
 
-**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não resolve),
-25 (schema test formal `drift_dev` — os testes das fases 21/22/23 já
-entraram junto, trabalho de código puro sem bloqueio de hardware), 26c
-Android Auto/DHU (precisa Desktop Head Unit ou carro real) e AVRCP
-Bluetooth real (precisa periférico pareado).
+**Fase 20 e Fase 25 fechadas** (2026-09-15, ver
+`docs/roadmap_pendencias_implementacoes.md` Fases 2-3): testes de
+`_toMediaItem`/deep link/duração adicionados, badge de não-ouvidos já
+tinha cobertura, IME timeout confirmado ruído de emulador no SM-G570M.
 
-Ordem sugerida do resto: **24 → 25** (nenhum dos dois depende mais de
-device físico simples — 24 precisa API 34+, 25 é só código).
+**Fase 24 concluída** (2026-09-15, device Samsung Galaxy A17, API 36/
+Android 16): compileSdk 37 + `permission_handler ^13.0.2`, warning KGP dos
+5 plugins revalidado (persiste, upstream deles não mudou), smoke test de
+permissões (notificação, bateria) sem crash.
+
+**Falta:** 26c Android Auto/DHU (precisa Desktop Head Unit ou carro real) e
+AVRCP Bluetooth real (precisa periférico pareado) — nenhum dos dois
+resolve com device novo sozinho. Schema test formal `drift_dev` avaliado
+na Fase 25 e não coube — segue registrado em
+`docs/roadmap_debito_tecnico.md`.
 
 **Perf em device físico + componentes independentes concluído** (2026-09-
 12/13, fora da numeração de fases desta v3 — branch
@@ -81,7 +88,7 @@ branch `feature/cache-offline-fase27-1-schema` a partir de
 `feature/ui-density-fase4-unify-episode-row`): Fases 27.1–27.6, cache-aside
 em `PodcastRepository`/`RadioRepository` + stale-while-revalidate em
 Discover/Featured/Rádio/Detail, validado em device físico (SM-G570M).
-Falta só mergear com PR #1 (que traz a base v8) antes de abrir PR desta.
+Mergeado em `feat/fase-9` via PR #3 (2026-09-14), junto da Fase 28.
 
 **Polimento UI/UX concluído** (2026-09-14, fora da numeração original da v3
 — capacidade de polimento pontual, não correção de robustez — numerada
@@ -165,14 +172,16 @@ lockscreen sem barra de progresso e o display do carro sem capa.
       reproduz fora do emulador**, era mesmo artefato de stack. Sem fone/
       carro Bluetooth disponível nesta sessão — a parte AVRCP real segue não
       testada (falta o periférico, não é bloqueio de código).
-- [ ] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
-      campos de busca) — provável ruído; confirmar que nenhuma tecla é perdida.
-- [ ] Se for real: garantir `artUri` em todos os itens de `queue` publicados no
-      `audio_service` (pré-resolver / cachear a art antes do `queue.add`).
-      Confirmar que a duração real que o `_broadcastPlaybackState` descobre é
-      propagada pro item correspondente na `queue`, não só pro `mediaItem`.
-- [ ] Teste: `_toMediaItem` produz `duration` + `artUri` corretos (real e
-      `file://`); `_syncQueue` mantém art em todos os itens.
+- [x] Verificar também o item 5 (IME `InputConnectionWrapper` timeout nos
+      campos de busca) — **confirmado ruído de emulador** (2026-09-15,
+      SM-G570M): digitação normal e sob stress na busca de Descobrir,
+      zero ocorrência no `logcat`, nenhuma tecla perdida.
+- [x] "Se for real": N/A — `duration=0`/`image=null` (linha 161-167) e o
+      timeout do IME (item 5) foram ambos confirmados artefato de
+      emulador, não reproduzem em device físico. Sem correção necessária.
+- [x] Teste: `_toMediaItem` produz `duration` + `artUri` corretos —
+      `test/features/player/player_view_model_test.dart` (Fase 25 v3,
+      2026-09-15).
 
 **Arquivos:** `frontend/lib/services/audio/podcast_audio_handler.dart`,
 `frontend/lib/features/player/view_model/player_view_model.dart` (`_toMediaItem`
@@ -269,24 +278,37 @@ não-ouvidos" acompanha sozinha (mesma função pura). No emulador o badge caiu 
 **Muda o número exibido** (é o objetivo). A funcionalidade — badge + ordenar
 por não-ouvidos — continua.
 
-## Fase 24 — Toolchain e SDK · esforço M
+## Fase 24 — Toolchain e SDK · esforço M ✅
 
-**Problema:** 5 plugins disparam warning KGP ("Future versions of Flutter will
-fail to build"). `permission_handler` preso no `^12`. Nunca rodou em API 34+.
+**Concluída (2026-09-15)**, device físico novo (Samsung Galaxy A17, API 36/
+Android 16). SDK 37 já instalado localmente.
 
-- [ ] Subir `compileSdk` / `targetSdk` pro que o Flutter atual pede; revalidar
-      os 5 plugins; tentar `permission_handler ^13`.
-- [ ] Rastrear upstream dos plugins KGP; migrar os que já têm release Built-in
-      Kotlin; anotar issue nos que não têm. Manter `android.builtInKotlin=false`
-      enquanto faltar algum (a migração completa é débito técnico).
-- [ ] Smoke test num AVD API 34+: POST_NOTIFICATIONS runtime, predictive back,
-      notificação de episódio novo, prompt de bateria.
-- [ ] `flutter test` + `dart analyze` verdes depois de cada bump de dep.
+- [x] `compileSdk` pinado a 37 em `android/app/build.gradle.kts` (Flutter
+      3.47.2 ainda default pra 36 — `flutter.compileSdkVersion`). `targetSdk`
+      deixado no default do Flutter (36) — sem necessidade identificada de
+      subir junto.
+- [x] `permission_handler` `^12.0.1` → `^13.0.2`. `pub get` resolveu sem
+      conflito, `dart analyze` limpo.
+- [x] Revalidados os 5 plugins com warning KGP (`file_picker`,
+      `flutter_downloader`, `sensors_plus`, `share_plus`,
+      `workmanager_android`) — warning persiste idêntico, nenhum publicou
+      Built-in Kotlin ainda. `flutter pub outdated` confirma
+      `flutter_downloader`/`workmanager` já na versão mais nova disponível;
+      `file_picker`/`sensors_plus`/`share_plus` têm majors mais novos
+      disponíveis mas fora do escopo desta fase (bump de API não testada,
+      seria trabalho à parte). Segue registrado em
+      `docs/roadmap_debito_tecnico.md`.
+- [x] Smoke test no device físico novo: notificação POST_NOTIFICATIONS
+      (diálogo nativo, permitir funcionou), prompt de otimização de bateria
+      (abre a tela nativa de exceção, sem crash), navegação geral (Início/
+      Descobrir/Biblioteca/Rádio/detalhe de podcast), tema escuro do
+      sistema. Zero crash/FATAL no logcat.
+- [x] `flutter test` 283/283 verde, `dart analyze` limpo após o bump.
 
-**Arquivos:** `frontend/android/` (`build.gradle.kts`, `gradle.properties`),
-`frontend/pubspec.yaml`.
+**Arquivos:** `frontend/android/app/build.gradle.kts`, `frontend/pubspec.yaml`.
 
-**Não muda comportamento:** mesmo app, build mais são e testado em Android novo.
+**Não mudou comportamento:** mesmo app, build mais são e testado em Android
+16 real.
 
 ## Fase 25 — Fechar lacunas de teste · esforço S
 

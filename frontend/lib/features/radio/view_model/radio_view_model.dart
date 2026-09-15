@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart' as audio_service;
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/diagnostics/error_log.dart';
 import '../../../core/prefs/preferences_store.dart';
 import '../../../data/models/radio_station.dart';
 import '../../../data/repositories/radio_repository.dart';
@@ -63,7 +64,20 @@ class RadioViewModel extends _$RadioViewModel {
       isPlaying: false,
       isBuffering: true,
     );
-    await _handler.setQueue([_toMediaItem(station)], playFirst: true);
+    try {
+      await _handler.setQueue([_toMediaItem(station)], playFirst: true);
+    } catch (error, stack) {
+      await ErrorLog.instance.record(error, stack, context: 'RadioViewModel.play');
+      if (!ref.mounted) return;
+      // Estação inalcançável (comum no Radio Browser) — volta pro estado
+      // ocioso em vez de deixar o spinner girando pra sempre.
+      state = state.copyWith(
+        nowPlayingId: null,
+        nowPlaying: null,
+        isPlaying: false,
+        isBuffering: false,
+      );
+    }
   }
 
   Future<void> togglePlayPause() async {
@@ -100,7 +114,17 @@ class RadioViewModel extends _$RadioViewModel {
       }
       return;
     }
-    state = state.copyWith(nowPlayingId: item!.extras?['stationId'] as String?);
+    final stationId = item!.extras?['stationId'] as String?;
+    RadioStation? station = state.nowPlaying;
+    if (stationId != null && station?.id != stationId) {
+      for (final s in state.stations) {
+        if (s.id == stationId) {
+          station = s;
+          break;
+        }
+      }
+    }
+    state = state.copyWith(nowPlayingId: stationId, nowPlaying: station);
   }
 
   void _onPlaybackStateChanged(audio_service.PlaybackState playbackState) {

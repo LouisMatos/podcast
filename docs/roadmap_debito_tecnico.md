@@ -17,6 +17,9 @@
 | Schema test formal `drift_dev` | Só se não fechar na Fase 25 do v3 | Snapshots de schema + `SchemaVerifier` |
 | Sync / conta / backend | Contradiz a premissa local-only | Fora de escopo até rever a premissa |
 | `podcast:transcript`, soundbite, `podcast:person` | Feature nova grande, não é correção | Roadmap v4, se houver |
+| Riverpod 3 `defaultRetry` mascara erro de rede real (~40s+) | Comportamento default do `ProviderContainer` (10 tentativas, backoff 200ms→6.4s) | Avaliar override de retry policy pra providers de rede (ex. `PodcastDetailViewModel`) |
+| Impeller desativado (`--no-enable-impeller`) | Flag será removida em versão futura do Flutter; reabilitar exige revalidar perf em device fraco | Reavaliar quando decisão de engine for tratada como fase própria |
+| Tooltip/acessibilidade ausente em ícones do player (share/equalizer/sleep timer) | Passe de acessibilidade separado, fora do polimento pontual da Fase 28 | Fase própria de acessibilidade |
 
 ---
 
@@ -114,3 +117,38 @@ mudou a estrutura.
 o usuário expandir "Buscar episódios", ou dar hierarquia visual mais forte
 entre os dois. Fora do polimento pontual da Fase 28 — pedir direção antes
 de mexer.
+
+## Riverpod 3 `defaultRetry` mascara erro de rede real
+
+**Hoje:** `ProviderContainer.defaultRetry` reretenta automaticamente
+qualquer `@riverpod` que lance erro — até 10 tentativas, backoff
+exponencial 200ms→6.4s, ~40s+ de retry cumulativo. `PodcastDetailViewModel`
+cai nesse comportamento: um erro de rede real pode levar dezenas de
+segundos pra aparecer como erro na tela, em vez de falhar rápido.
+Achado em `docs/roadmap_perf_device.md`, fora do escopo daquela sessão.
+
+**Como fazer bem:** avaliar override de retry policy nos providers de rede
+(menos tentativas ou backoff mais curto), balanceando com o cache
+stale-while-revalidate da Fase 27 (que já reduz a frequência de erro
+visível).
+
+## Impeller desativado
+
+**Hoje:** app roda com `--no-enable-impeller` (decisão da sessão de perf em
+device físico, Galaxy J5 Prime com pouca RAM). Flutter avisa que a flag
+será removida em versão futura. Achado em `docs/roadmap_perf_device.md`,
+não corrigido por ser decisão de engine maior que o escopo daquela sessão.
+
+**Como fazer bem:** reavaliar quando o Flutter remover a flag —
+provavelmente vai exigir revalidar perf em device fraco com Impeller
+habilitado, fase própria.
+
+## Tooltip/acessibilidade em ícones do player
+
+**Hoje:** ícones de ação sem `tooltip` explícito no player (share/
+equalizer/sleep timer, hoje agrupados no `_PlayerOverflowMenu` da Fase
+28.4). Achado em `docs/roadmap_ui_review.md`, fora de escopo do polimento
+pontual da Fase 28.
+
+**Como fazer bem:** passe de acessibilidade dedicado — `tooltip` em todo
+ícone de ação sem texto visível, não só no player.

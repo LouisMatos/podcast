@@ -65,6 +65,16 @@ const _bands = <EqualizerBand>[
   (index: 2, centerHz: 910, gain: -1),
 ];
 
+/// 5 bandas — típico de equalizador Android real (achado em device físico,
+/// SM-G570M: bottom sheet estourava 286px com reforço de volume + 5 bandas).
+const _fiveBands = <EqualizerBand>[
+  (index: 0, centerHz: 60, gain: 0),
+  (index: 1, centerHz: 230, gain: 2),
+  (index: 2, centerHz: 910, gain: -1),
+  (index: 3, centerHz: 3600, gain: 3),
+  (index: 4, centerHz: 14000, gain: -2),
+];
+
 /// Só as bandas do sheet (o `PlayerView` por baixo tem o slider da barra de
 /// progresso — fora do `BottomSheet`).
 Finder _sheetSliders() => find.descendant(
@@ -78,8 +88,12 @@ Finder _equalizerSwitch() => find.descendant(
     );
 
 void main() {
-  Future<_FakePlayerViewModel> openSheet(WidgetTester tester, PlayerState state) async {
-    tester.view.physicalSize = const Size(1200, 2600);
+  Future<_FakePlayerViewModel> openSheet(
+    WidgetTester tester,
+    PlayerState state, {
+    Size physicalSize = const Size(1200, 2600),
+  }) async {
+    tester.view.physicalSize = physicalSize;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -172,5 +186,28 @@ void main() {
 
     final firstBandSlider = tester.widget<Slider>(_sheetSliders().first);
     expect(firstBandSlider.onChanged, isNull);
+  });
+
+  testWidgets('não estoura numa tela baixa com reforço de volume + 5 bandas (device físico)',
+      (tester) async {
+    await openSheet(
+      tester,
+      const PlayerState(
+        podcast: _podcast,
+        episode: _episode,
+        queue: [_episode],
+        equalizerAvailable: true,
+        equalizerEnabled: true,
+        equalizerMinDb: -15,
+        equalizerMaxDb: 15,
+        equalizerBands: _fiveBands,
+        volumeBoostEnabled: true,
+        volumeBoostGainDb: 6,
+      ),
+      physicalSize: const Size(720, 1280),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(Scrollable), findsWidgets);
   });
 }

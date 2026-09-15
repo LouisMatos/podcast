@@ -141,7 +141,13 @@ class PodcastAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     mediaItem.add(item);
     playbackState.add(playbackState.value.copyWith(queueIndex: index));
 
-    await _player.setAudioSource(just_audio.AudioSource.uri(Uri.parse(item.id)));
+    // Sem timeout aqui, uma conexão que abre mas nunca responde (proxy de
+    // operadora, CDN quebrado) trava esse await pra sempre — nem lança
+    // exceção nem emite erro no stream do just_audio, então o buffering
+    // fica preso indefinidamente sem nada pra tratar.
+    await _player
+        .setAudioSource(just_audio.AudioSource.uri(Uri.parse(item.id)))
+        .timeout(const Duration(seconds: 20));
     if (initialPosition != null && initialPosition > Duration.zero) {
       await _player.seek(initialPosition);
     }

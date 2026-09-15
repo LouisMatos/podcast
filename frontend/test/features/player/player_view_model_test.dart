@@ -25,6 +25,8 @@ import '../../support/fake_preferences.dart';
 class _FakeHandler extends PodcastAudioHandler {
   int calls = 0;
   bool? lastAutoPlay;
+  List<MediaItem>? lastItems;
+  bool shouldThrowOnSetQueue = false;
 
   @override
   Future<void> setQueue(
@@ -33,6 +35,8 @@ class _FakeHandler extends PodcastAudioHandler {
     Duration? initialPosition,
     bool autoPlay = true,
   }) async {
+    if (shouldThrowOnSetQueue) throw Exception('URL inalcançável');
+    lastItems = items;
     if (playFirst) {
       calls++;
       lastAutoPlay = autoPlay;
@@ -98,6 +102,7 @@ void main() {
           episodeGuid: any(named: 'episodeGuid'),
           delta: any(named: 'delta'),
         )).thenAnswer((_) async {});
+    when(() => lib.updateEpisodeDuration(any(), any(), any())).thenAnswer((_) async {});
     when(() => dl.completedPathsForPodcast(any())).thenAnswer((_) async => {});
     when(() => q.replaceWith(any())).thenAnswer((_) async {});
     when(() => q.playNow(any(), any())).thenAnswer((_) async {});
@@ -417,6 +422,108 @@ void main() {
             position: const Duration(minutes: 42),
             completed: any(named: 'completed'),
           ));
+    });
+  });
+
+  group('_toMediaItem (Fase 25 v3)', () {
+    test('usa imagem do episódio, cai pra do podcast se faltar', () async {
+      const withArt = Episode(
+        guid: 'g1',
+        title: 'E1',
+        audioUrl: 'https://x/e1.mp3',
+        imageUrl: 'https://x/ep.png',
+        duration: Duration(minutes: 10),
+      );
+      const podcastArt = Podcast(
+        id: 1,
+        title: 'P',
+        author: 'A',
+        feedUrl: 'https://x/f.xml',
+        artworkUrl: 'https://x/pod.png',
+      );
+
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcastArt, withArt);
+
+      final item = handler.lastItems!.single;
+      expect(item.artUri, Uri.parse('https://x/ep.png'));
+      expect(item.duration, const Duration(minutes: 10));
+
+      const noArt = Episode(guid: 'g2', title: 'E2', audioUrl: 'https://x/e2.mp3');
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcastArt, noArt);
+      final fallback = handler.lastItems!.single;
+      expect(fallback.artUri, Uri.parse('https://x/pod.png'));
+      expect(fallback.duration, isNull);
+    });
+  });
+
+  group('reconciliação de duração real (Fase 21 v3)', () {
+    test('corrige o cache quando diverge > 2s do itunes:duration, só uma vez por guid', () async {
+      final lib = container.read(libraryRepositoryProvider) as _MockLibrary;
+      const ep = Episode(
+        guid: 'g1',
+        title: 'E1',
+        audioUrl: 'https://x/e1.mp3',
+        duration: Duration(minutes: 6),
+      );
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, ep);
+      await Future<void>.delayed(Duration.zero);
+
+      handler.mediaItem.add(MediaItem(
+        id: 'https://x/e1.mp3',
+        title: 'E1',
+        duration: const Duration(minutes: 7, seconds: 11),
+        extras: const {'guid': 'g1', 'podcastId': 1},
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      verify(() => lib.updateEpisodeDuration(1, 'g1', const Duration(minutes: 7, seconds: 11))).called(1);
+
+      handler.mediaItem.add(MediaItem(
+        id: 'https://x/e1.mp3',
+        title: 'E1',
+        duration: const Duration(minutes: 7, seconds: 12),
+        extras: const {'guid': 'g1', 'podcastId': 1},
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      verifyNever(() => lib.updateEpisodeDuration(1, 'g1', const Duration(minutes: 7, seconds: 12)));
+    });
+
+    test('não corrige quando a divergência é <= 2s', () async {
+      final lib = container.read(libraryRepositoryProvider) as _MockLibrary;
+      const ep = Episode(
+        guid: 'g1',
+        title: 'E1',
+        audioUrl: 'https://x/e1.mp3',
+        duration: Duration(minutes: 7, seconds: 10),
+      );
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, ep);
+      await Future<void>.delayed(Duration.zero);
+
+      handler.mediaItem.add(MediaItem(
+        id: 'https://x/e1.mp3',
+        title: 'E1',
+        duration: const Duration(minutes: 7, seconds: 11),
+        extras: const {'guid': 'g1', 'podcastId': 1},
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      verifyNever(() => lib.updateEpisodeDuration(any(), any(), any()));
+    });
+  });
+
+  group('recuperação de falha ao tocar (robustez pós-27)', () {
+    test('setQueue lançando não deixa o spinner preso — volta pro estado ocioso', () async {
+      handler.shouldThrowOnSetQueue = true;
+
+      await container.read(playerViewModelProvider.notifier).playEpisode(podcast, episode);
+
+      final state = container.read(playerViewModelProvider);
+      expect(state.isBuffering, isFalse);
+      expect(state.isPlaying, isFalse);
+      expect(state.episode, isNull);
+      expect(state.podcast, isNull);
+      expect(state.isIdle, isTrue);
     });
   });
 }
