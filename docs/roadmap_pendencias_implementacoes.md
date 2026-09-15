@@ -22,10 +22,18 @@ achados órfãos registrados em `roadmap_debito_tecnico.md` (Riverpod
 `defaultRetry` mascarando erro de rede, Impeller desativado, tooltip
 ausente no player).
 
-**Falta:** Fase 2 (v3 Fase 25 — testes), Fase 3 (v3 Fase 20 — fechar
-investigação), ambas sem bloqueio de hardware mas precisam de device físico
-conectado pra build+install+smoke test ao final. Fase 4 e 5 bloqueadas por
-hardware (device API 34+ novo / Desktop Head Unit) — aguardando usuário.
+**Fase 2 concluída** (2026-09-15) — 7 testes novos (`_toMediaItem`
+duration/artUri, reconciliação de duração Fase 21, 4 testes de resolução
+de deep link em `test/features/deeplink/view_model/` que não existia),
+`dart analyze` limpo, `flutter test` 278/278, build debug instalado e
+aberto no SM-G570M sem crash (MediaSession ativo). Schema test formal
+`drift_dev` deixado registrado em `roadmap_debito_tecnico.md` como estava
+— trabalho grande, sessão própria.
+
+**Falta:** Fase 3 (v3 Fase 20 — fechar investigação), sem bloqueio de
+hardware mas precisa device físico conectado pra build+install+smoke test
+ao final. Fase 4 e 5 bloqueadas por hardware (device API 34+ novo /
+Desktop Head Unit) — aguardando usuário.
 
 ## Fase 1 — Consolidação de documentação ✅
 
@@ -51,22 +59,28 @@ hardware (device API 34+ novo / Desktop Head Unit) — aguardando usuário.
       (~40s+), Impeller desativado (`--no-enable-impeller`), tooltip/
       acessibilidade ausente em ícones do player.
 
-## Fase 2 — v3 Fase 25: fechar lacunas de teste
+## Fase 2 — v3 Fase 25: fechar lacunas de teste ✅
 
 Sem bloqueio de hardware — trabalho de código puro. Precisa device físico
 conectado só pro smoke test final.
 
-- [ ] Teste: `_toMediaItem` produz `duration`/`artUri` corretos.
-- [ ] Teste: resolução de deep link (`deep_link_resolution` view model).
-- [ ] Teste: badge de não-ouvidos com o cálculo novo (Fase 23).
-- [ ] Teste: duração exibida (consistência entre `itunes:duration` e
-      `just_audio`, Fase 21).
-- [ ] Avaliar schema test formal com `drift_dev` (`schema dump` +
-      `schema generate` + `SchemaVerifier`) — fecha dívida aberta desde a
-      Fase 9. Se não couber nesta fase, mantém registrado em
-      `roadmap_debito_tecnico.md` como já está.
-- [ ] Fim de fase: `dart analyze` limpo, `flutter test` verde, build +
-      instalar no device físico, smoke test manual.
+- [x] Teste: `_toMediaItem` produz `duration`/`artUri` corretos
+      (`test/features/player/player_view_model_test.dart`).
+- [x] Teste: resolução de deep link — 4 testes novos em
+      `test/features/deeplink/view_model/deep_link_resolution_test.dart`
+      (pasta não existia).
+- [x] Badge de não-ouvidos — já tinha cobertura da Fase 23 em
+      `test/data/repositories/library_repository_test.dart` (linha 488),
+      confirmado ao investigar, nenhuma ação necessária.
+- [x] Teste: reconciliação de duração exibida (Fase 21) — 2 testes novos
+      cobrindo divergência > 2s (corrige uma vez por guid) e ≤ 2s (não
+      corrige).
+- [x] Schema test formal `drift_dev` avaliado — não coube nesta fase
+      (trabalho grande, precisa de sessão própria), mantido registrado em
+      `roadmap_debito_tecnico.md` como já estava.
+- [x] Fim de fase: `dart analyze` limpo, `flutter test` 278/278 verde,
+      build debug + `adb install` no SM-G570M, app abre sem crash
+      (MediaSession ativo, confirmado via `logcat`).
 
 ## Fase 3 — v3 Fase 20: fechar investigação de metadados de mídia
 
