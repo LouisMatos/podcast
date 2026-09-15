@@ -422,6 +422,10 @@ class PlayerViewModel extends _$PlayerViewModel {
   /// pausar: esvazia a fila e zera o episódio atual, então `isIdle` volta a
   /// `true` (`_onMediaItemChanged` nunca zera sozinho em item nulo).
   Future<void> dismiss() async {
+    // Guard igual ao de _onTick/_onPlaybackStateChanged/_onMediaItemChanged:
+    // rádio toca no mesmo handler compartilhado, fora do fluxo de
+    // fila/episódio deste ViewModel — não é dele parar o stream.
+    if (_radioActive) return;
     unawaited(HapticFeedback.selectionClick());
     await _handler.stop();
     await ref.read(queueRepositoryProvider).clear();
