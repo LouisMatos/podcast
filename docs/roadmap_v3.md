@@ -31,7 +31,7 @@ robustez e prontidão de publicação.
 | 5 | IME `InputConnectionWrapper` TimeoutException nos campos de busca (provável ruído de emulador) | Fase 20 (verificação) |
 | 6 | Badge "não-ouvidos" = catálogo inteiro em cache (O Assunto 1836, NerdCast 1730) — número real, inútil como sinal de novidade | Fase 23 |
 | 7 | Warnings KGP em 5 plugins (`file_picker`, `flutter_downloader`, `sensors_plus`, `share_plus`, `workmanager_android`) | Fase 24 |
-| 8 | `permission_handler` fixado em `^12` (o `^13` exige compileSdk 37) | Fase 24 |
+| 8 | `permission_handler` fixado em `^12` (o `^13` exige compileSdk 37) | Fase 24 ✅ (resolvido, `^13.0.2`) |
 | 9 | Emulador é API 31 — caminhos Android 13+ não exercitados | Fase 24 |
 | 10 | Ícone/splash default do Flutter, sem screenshots de loja | Fase 26 |
 | 11 | Senha placeholder da keystore (`podcast-changeme`) | Fase 26 |
@@ -65,10 +65,15 @@ e o Desktop Head Unit do Android Auto.
 `_toMediaItem`/deep link/duração adicionados, badge de não-ouvidos já
 tinha cobertura, IME timeout confirmado ruído de emulador no SM-G570M.
 
-**Falta:** 24 (precisa AVD/device API 34+ — SM-G570M é API 26, não
-resolve), 26c Android Auto/DHU (precisa Desktop Head Unit ou carro real) e
-AVRCP Bluetooth real (precisa periférico pareado). Schema test formal
-`drift_dev` avaliado na Fase 25 e não coube — segue registrado em
+**Fase 24 concluída** (2026-09-15, device Samsung Galaxy A17, API 36/
+Android 16): compileSdk 37 + `permission_handler ^13.0.2`, warning KGP dos
+5 plugins revalidado (persiste, upstream deles não mudou), smoke test de
+permissões (notificação, bateria) sem crash.
+
+**Falta:** 26c Android Auto/DHU (precisa Desktop Head Unit ou carro real) e
+AVRCP Bluetooth real (precisa periférico pareado) — nenhum dos dois
+resolve com device novo sozinho. Schema test formal `drift_dev` avaliado
+na Fase 25 e não coube — segue registrado em
 `docs/roadmap_debito_tecnico.md`.
 
 **Perf em device físico + componentes independentes concluído** (2026-09-
@@ -273,24 +278,37 @@ não-ouvidos" acompanha sozinha (mesma função pura). No emulador o badge caiu 
 **Muda o número exibido** (é o objetivo). A funcionalidade — badge + ordenar
 por não-ouvidos — continua.
 
-## Fase 24 — Toolchain e SDK · esforço M
+## Fase 24 — Toolchain e SDK · esforço M ✅
 
-**Problema:** 5 plugins disparam warning KGP ("Future versions of Flutter will
-fail to build"). `permission_handler` preso no `^12`. Nunca rodou em API 34+.
+**Concluída (2026-09-15)**, device físico novo (Samsung Galaxy A17, API 36/
+Android 16). SDK 37 já instalado localmente.
 
-- [ ] Subir `compileSdk` / `targetSdk` pro que o Flutter atual pede; revalidar
-      os 5 plugins; tentar `permission_handler ^13`.
-- [ ] Rastrear upstream dos plugins KGP; migrar os que já têm release Built-in
-      Kotlin; anotar issue nos que não têm. Manter `android.builtInKotlin=false`
-      enquanto faltar algum (a migração completa é débito técnico).
-- [ ] Smoke test num AVD API 34+: POST_NOTIFICATIONS runtime, predictive back,
-      notificação de episódio novo, prompt de bateria.
-- [ ] `flutter test` + `dart analyze` verdes depois de cada bump de dep.
+- [x] `compileSdk` pinado a 37 em `android/app/build.gradle.kts` (Flutter
+      3.47.2 ainda default pra 36 — `flutter.compileSdkVersion`). `targetSdk`
+      deixado no default do Flutter (36) — sem necessidade identificada de
+      subir junto.
+- [x] `permission_handler` `^12.0.1` → `^13.0.2`. `pub get` resolveu sem
+      conflito, `dart analyze` limpo.
+- [x] Revalidados os 5 plugins com warning KGP (`file_picker`,
+      `flutter_downloader`, `sensors_plus`, `share_plus`,
+      `workmanager_android`) — warning persiste idêntico, nenhum publicou
+      Built-in Kotlin ainda. `flutter pub outdated` confirma
+      `flutter_downloader`/`workmanager` já na versão mais nova disponível;
+      `file_picker`/`sensors_plus`/`share_plus` têm majors mais novos
+      disponíveis mas fora do escopo desta fase (bump de API não testada,
+      seria trabalho à parte). Segue registrado em
+      `docs/roadmap_debito_tecnico.md`.
+- [x] Smoke test no device físico novo: notificação POST_NOTIFICATIONS
+      (diálogo nativo, permitir funcionou), prompt de otimização de bateria
+      (abre a tela nativa de exceção, sem crash), navegação geral (Início/
+      Descobrir/Biblioteca/Rádio/detalhe de podcast), tema escuro do
+      sistema. Zero crash/FATAL no logcat.
+- [x] `flutter test` 283/283 verde, `dart analyze` limpo após o bump.
 
-**Arquivos:** `frontend/android/` (`build.gradle.kts`, `gradle.properties`),
-`frontend/pubspec.yaml`.
+**Arquivos:** `frontend/android/app/build.gradle.kts`, `frontend/pubspec.yaml`.
 
-**Não muda comportamento:** mesmo app, build mais são e testado em Android novo.
+**Não mudou comportamento:** mesmo app, build mais são e testado em Android
+16 real.
 
 ## Fase 25 — Fechar lacunas de teste · esforço S
 

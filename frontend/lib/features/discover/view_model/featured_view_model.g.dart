@@ -51,7 +51,7 @@ final class FeaturedViewModelProvider
   FeaturedViewModel create() => FeaturedViewModel();
 }
 
-String _$featuredViewModelHash() => r'7ec5b6576d8a1bf9641f5c4825b164bbe5f9bf41';
+String _$featuredViewModelHash() => r'91015e8fc85f4fd8c339da7dca72d4f771641e0e';
 
 /// Carrossel "Mais ouvidos no Brasil" da tela Descobrir. Separado do
 /// [DiscoverViewModel] de propósito: não deve refazer a busca debounced

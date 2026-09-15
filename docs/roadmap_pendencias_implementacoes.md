@@ -37,10 +37,22 @@ zero ocorrência de `InputConnectionWrapper`/`TimeoutException` no
 emulador, não reproduz em device físico. Sem mudança de código — só
 verificação.
 
-**Falta:** Fase 4 e 5, bloqueadas por hardware (device API 34+ novo /
-Desktop Head Unit) — aguardando usuário arranjar o aparelho/DHU. AVRCP
-Bluetooth real (item da Fase 20) segue bloqueado por falta de periférico
-pareado, independente do device novo.
+**Fase 4 concluída** (2026-09-15, device Samsung Galaxy A17, API 36/
+Android 16): `compileSdk` 37 pinado em `build.gradle.kts` (Flutter 3.47.2
+ainda default pra 36), `permission_handler ^12.0.1` → `^13.0.2` sem
+conflito de dependência. Warning KGP dos 5 plugins persiste idêntico
+(nenhum publicou Built-in Kotlin ainda — `flutter_downloader`/
+`workmanager` já na versão mais nova disponível; `file_picker`/
+`sensors_plus`/`share_plus` têm majors mais novos mas bump fica fora
+desta fase). `dart analyze` limpo, `flutter test` 283/283. Smoke test no
+device: diálogo nativo de permissão de notificação (permitir funcionou),
+tela nativa de exceção de otimização de bateria (abre sem crash),
+navegação geral em tema escuro do sistema, zero crash/FATAL no logcat.
+
+**Falta:** Fase 5 (Android Auto DHU), bloqueada — precisa Desktop Head
+Unit ou carro real, o device novo sozinho não resolve. AVRCP Bluetooth
+real (item da Fase 20) segue bloqueado por falta de periférico pareado,
+mesma limitação.
 
 ## Fase 1 — Consolidação de documentação ✅
 
@@ -103,18 +115,21 @@ conectado só pro smoke test final.
       instalado no device físico nesta sessão (Fase 2), smoke test feito
       ao exercitar a busca.
 
-## Fase 4 — v3 Fase 24: toolchain e SDK — BLOQUEADA
+## Fase 4 — v3 Fase 24: toolchain e SDK ✅
 
-Aguarda device/AVD Android API 34+ (SM-G570M é API 26, insuficiente).
-Usuário vai arranjar aparelho mais recente.
+Device Samsung Galaxy A17 (API 36/Android 16) — SDK 37 já instalado
+localmente.
 
-- [ ] Subir `compileSdk`/`targetSdk`; revalidar os 5 plugins com warning
-      KGP (`file_picker`, `flutter_downloader`, `sensors_plus`,
-      `share_plus`, `workmanager_android`); tentar `permission_handler
-      ^13`.
-- [ ] Rastrear upstream dos plugins pra Built-in Kotlin.
-- [ ] Smoke test em device físico novo (API 34+).
-- [ ] `flutter test` + `dart analyze` depois de cada bump.
+- [x] `compileSdk` pinado a 37 em `android/app/build.gradle.kts` (override
+      manual — Flutter 3.47.2 ainda default pra 36). `targetSdk` deixado
+      no default (36).
+- [x] `permission_handler ^12.0.1` → `^13.0.2`, `pub get` sem conflito.
+- [x] Revalidados os 5 plugins com warning KGP — persiste idêntico,
+      nenhum publicou Built-in Kotlin ainda (rastreado em
+      `roadmap_debito_tecnico.md` como já estava).
+- [x] Smoke test em device físico novo: permissão de notificação, prompt
+      de bateria, navegação geral, zero crash.
+- [x] `flutter test` 283/283, `dart analyze` limpo.
 
 ## Fase 5 — v3 Fase 26c: Android Auto DHU — BLOQUEADA
 

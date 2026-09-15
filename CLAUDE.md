@@ -33,8 +33,9 @@ não no arquivo.
 
 ## Mapa
 
-v1+v2 completas (Fases 0–18); v3 Fases 19/21/22/23/26a/26b concluídas,
-20/24/25/26c pendentes (device físico/AVD 34+ — `docs/roadmap_v3.md`).
+v1+v2 completas (Fases 0–18); v3 Fases 19–26b + 24 concluídas, só 26c
+pendente (Android Auto real — precisa Desktop Head Unit ou carro,
+`docs/roadmap_v3.md`).
 
 ```text
 podcast/
@@ -118,8 +119,9 @@ nunca linear/bounce), loading = shimmer.
 just_audio+audio_service, flutter_downloader, shared_preferences,
 flutter_widget_from_html_core, workmanager+flutter_local_notifications,
 connectivity_plus, sensors_plus (sleep timer), share_plus, quick_actions,
-file_picker+xml (OPML), `permission_handler` **pinado `^12.0.1`** (não subir
-— exige compileSdk 37 ausente aqui). `app_links` descartado de propósito
+file_picker+xml (OPML), `permission_handler ^13.0.2`
+(compileSdk 37 pinado à mão em `android/app/build.gradle.kts`, Fase 24 v3
+— Flutter 3.47.2 ainda default pra 36). `app_links` descartado de propósito
 (deep link = custom scheme direto no go_router). Flutter 3.47.2+/Dart 3.13.2+
 obrigatório (freezed 4+riverpod_generator 4+drift_dev 2.34 juntos).
 
