@@ -170,9 +170,9 @@ class PlayerView extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.replay_10),
                               iconSize: 28,
-                              tooltip: 'Voltar 15 segundos',
+                              tooltip: 'Voltar 10 segundos',
                               onPressed: () => notifier.skipBackward(
-                                const Duration(seconds: 15),
+                                const Duration(seconds: 10),
                               ),
                             ),
                             IconButton(
