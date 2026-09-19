@@ -36,15 +36,19 @@ class AppShell extends ConsumerWidget {
         case 'fila':
           unawaited(appRouter.push('/player'));
         case 'continuar':
-          final items = await ref
-              .read(libraryRepositoryProvider)
-              .watchContinueListening(limit: 1)
-              .first;
-          if (items.isEmpty) return;
-          final item = items.first;
-          await ref
-              .read(playerViewModelProvider.notifier)
-              .playEpisode(item.podcast, item.episode, autoPlay: true);
+          try {
+            final items = await ref
+                .read(libraryRepositoryProvider)
+                .watchContinueListening(limit: 1)
+                .first;
+            if (items.isEmpty) return;
+            final item = items.first;
+            await ref
+                .read(playerViewModelProvider.notifier)
+                .playEpisode(item.podcast, item.episode, autoPlay: true);
+          } catch (_) {
+            // widget unmounted or error, silently ignore
+          }
       }
     });
 

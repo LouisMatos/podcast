@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:drift/drift.dart';
 
@@ -47,12 +48,15 @@ class QueryCacheStore {
     String category,
     List<T> items,
     Map<String, dynamic> Function(T) toJson,
-  ) {
-    return _db.into(_db.queryCache).insertOnConflictUpdate(
+  ) async {
+    final payloadJson = await Isolate.run(
+      () => jsonEncode(items.map(toJson).toList()),
+    );
+    await _db.into(_db.queryCache).insertOnConflictUpdate(
           QueryCacheCompanion.insert(
             cacheKey: key,
             category: category,
-            payloadJson: jsonEncode(items.map(toJson).toList()),
+            payloadJson: payloadJson,
             fetchedAt: Value(DateTime.now()),
           ),
         );
@@ -61,7 +65,11 @@ class QueryCacheStore {
   Future<List<T>?> read<T>(String key, T Function(Map<String, dynamic>) fromJson) async {
     final row = await (_db.select(_db.queryCache)..where((t) => t.cacheKey.equals(key))).getSingleOrNull();
     if (row == null) return null;
-    final decoded = jsonDecode(row.payloadJson) as List<dynamic>;
-    return decoded.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+    return Isolate.run(
+      () {
+        final decoded = jsonDecode(row.payloadJson) as List<dynamic>;
+        return decoded.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+      },
+    );
   }
 }
