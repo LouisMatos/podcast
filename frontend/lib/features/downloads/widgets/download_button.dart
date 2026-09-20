@@ -24,10 +24,15 @@ class DownloadButton extends ConsumerWidget {
     final service = ref.read(downloadServiceProvider);
 
     return switch (download?.status) {
-      null || DownloadStatus.failed || DownloadStatus.canceled || DownloadStatus.paused => IconButton(
+      null || DownloadStatus.failed || DownloadStatus.canceled => IconButton(
           icon: Icon(Icons.download_outlined, color: colors.textMuted),
           tooltip: 'Baixar',
           onPressed: () => service.download(podcastId: podcast.id, episode: episode),
+        ),
+      DownloadStatus.paused => IconButton(
+          icon: Icon(Icons.download_outlined, color: colors.textMuted),
+          tooltip: 'Retomar download',
+          onPressed: () => service.resume(taskId: download!.taskId!),
         ),
       DownloadStatus.queued || DownloadStatus.running => SizedBox(
           width: 40,

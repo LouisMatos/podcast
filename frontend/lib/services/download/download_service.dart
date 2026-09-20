@@ -142,6 +142,14 @@ class DownloadService {
     }
   }
 
+  /// Retoma um download pausado sem perder o que já foi baixado. Usado pelo
+  /// botão de download quando o usuário toca em cima de um episódio parado
+  /// em [DownloadStatus.paused] — sem isso, o toque cairia no mesmo caminho
+  /// de [download] e enfileiraria uma tarefa nova, jogando fora o progresso.
+  Future<void> resume({required String taskId}) async {
+    await FlutterDownloader.resume(taskId: taskId);
+  }
+
   Future<void> cancel({required int podcastId, required String episodeGuid}) async {
     final taskId = await _repository.taskIdFor(podcastId, episodeGuid);
     if (taskId != null) await FlutterDownloader.cancel(taskId: taskId);

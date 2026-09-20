@@ -11,8 +11,6 @@ import '../../services/shortcuts/app_shortcuts.dart';
 import 'app_bottom_bar.dart';
 import 'app_router.dart';
 
-const _shellTabPaths = ['/home', '/discover', '/library', '/radio', '/settings'];
-
 /// Casca da navegação: corpo trocado por `StatefulShellRoute.indexedStack`
 /// (cada aba mantém seu próprio estado) + mini-player + barra de navegação.
 class AppShell extends ConsumerWidget {
