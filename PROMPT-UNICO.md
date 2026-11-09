@@ -4,29 +4,30 @@
 
 ---
 
-Você vai criar, do zero nesta máquina, o **projeto base de automação mobile** do time: Java 25 + Appium 3 + Cucumber 8 + Allure 3, um código de teste para Android (UiAutomator2) e iOS (XCUITest), com: suíte Cucumber em pt-BR, runner pelo ▶ do VSCode que sobe emulador e Appium sozinho, relatório Allure 3 em HTML único com screenshot por step e vídeo, e o Mapeador de Elementos (janela Swing que espelha o emulador e gera locators). Fale comigo em pt-BR.
+Você vai criar, do zero nesta máquina, o **projeto base de automação mobile** do time: Java 25 + Appium 3 + Cucumber 8 + Allure 3, um código de teste para Android (UiAutomator2) e iOS (XCUITest), com: suíte Cucumber em pt-BR, runner pelo ▶ do VSCode que sobe emulador e Appium sozinho, relatório Allure 3 em HTML único com screenshot por step e vídeo, o Mapeador de Elementos (janela Swing que espelha o emulador e gera locators) e o Painel de testes (janela Swing que lista os cenários, verifica o ambiente, roda os marcados com reexecução das falhas e abre o relatório). Fale comigo em pt-BR.
 
-Não existe código de referência: você escreve tudo a partir da **especificação** abaixo, que foi extraída de um projeto que já funciona (compila, 31 testes offline verdes, smoke e relatório validados no emulador). Todo o material está **neste próprio prompt**, em anexos no final:
+Não existe código de referência: você escreve tudo a partir da **especificação** abaixo, que foi extraída de um projeto que já funciona (compila, 39 testes offline verdes, smoke, relatório e Painel validados no emulador). Todo o material está **neste próprio prompt**, em anexos no final:
 
 | Ref | Conteúdo |
 |---|---|
 | **Anexo 01** | Preparação da máquina |
-| **Anexo 02** | 53 erros reais já vividos: sintoma → causa → regra |
+| **Anexo 02** | 63 erros reais já vividos: sintoma → causa → regra |
 | **Anexo 03** | Arquitetura: camadas, regras, papel de cada arquivo, fluxo de execução |
-| **Anexo 04** | Gates G0–G8 com comando e resultado esperado |
+| **Anexo 04** | Gates G0–G9 com comando e resultado esperado |
 | **Anexo 05** | Apontar para o app do time e escrever o primeiro teste |
 | **Anexo 06** | Spec de build: estrutura, `pom.xml`, configs, fixture |
 | **Anexo 07** | Spec da camada `core` |
 | **Anexo 08** | Spec dos runners, `BaseScreen` e suíte de fábrica |
 | **Anexo 09** | Spec do Mapeador (`Inspetor` + `MapeadorElementos`) |
-| **Anexo 10** | Spec dos testes offline (17 + 14 casos) |
+| **Anexo 10** | Spec dos testes offline (17 + 14 + 5 + 3 casos) |
 | **Anexo 11** | Spec da documentação, padrões e ADRs do projeto |
 | **Anexo 12** | Padrões de uma suíte real (gabarito de estilo) |
+| **Anexo 13** | Spec do Painel de testes (`tools/PainelTestes`) |
 | **Anexo SH** | Script `verificar-maquina.sh` |
 
 ## Antes de qualquer ação
 
-1. Leia **inteiros**: **Anexo 03**, **Anexo 02**, **Anexo 04** e depois **Anexo 06** a **Anexo 11**. Não pule: a maior parte das falhas possíveis já está catalogada em **Anexo 02**.
+1. Leia **inteiros**: **Anexo 03**, **Anexo 02**, **Anexo 04** e depois **Anexo 06** a **Anexo 11** e **Anexo 13**. Não pule: a maior parte das falhas possíveis já está catalogada em **Anexo 02**.
 2. Me pergunte, numa única pergunta com opções, e **espere a resposta**:
    - pasta do projeto novo (sugira `~/Documents/mobile/automacao`); se existir e não estiver vazia, pare e me mostre o conteúdo;
    - nome do AVD Android (rode `~/Library/Android/sdk/emulator/emulator -list-avds` e ofereça os existentes);
@@ -37,7 +38,8 @@ Não existe código de referência: você escreve tudo a partir da **especifica�
 
 - **A spec é o contrato.** Nomes de pacote, classe, método, constante, chave de config, mensagem de console e de erro **exatamente** como escritos. Onde a spec dá um fragmento literal (import, comando de processo, regex), use-o literalmente. Onde a spec descreve comportamento, implemente exatamente aquele comportamento — nem mais, nem menos. Nada de classe, interface, dependência ou config que a spec não peça.
 - **Versões pinadas e imutáveis** (**Anexo 06**). Não "atualize para a última".
-- **Nunca**: `PageFactory` do Selenium (é `io.appium.java_client.support.PageFactory`); `cucumber.glue` apontando para `...steps`; remover Jackson; adapter Allure oficial; `allure generate` à mão; `exec:java` sem `test-compile`; `exec:java -Dexec.mainClass=...` (o `mainClass` fixo do pom ganha e abre o Mapeador); `Thread.sleep` em steps/screens (o polling de processo do `Ambiente` em `core` usa `Thread.sleep` de propósito); implicit wait; `ProcessBuilder("appium")` cru.
+- **Nunca**: `PageFactory` do Selenium (é `io.appium.java_client.support.PageFactory`); `cucumber.glue` apontando para `...steps`; remover Jackson; adapter Allure oficial; `allure generate` à mão; `exec:java` sem `test-compile`; `Thread.sleep` em steps/screens (o polling de processo do `Ambiente` em `core` usa `Thread.sleep` de propósito); implicit wait; `ProcessBuilder("appium")` cru.
+- `exec:java` abre o Mapeador por default (propriedade `exec.mainClass` do pom); outra classe = `mvn -q test-compile exec:java -Dexec.mainClass=br.com.automacao.tools.PainelTestes`.
 - **Fronteiras de camada** (**Anexo 03**): só `core` importa Appium/Selenium; step não toca driver; screen não expõe locator; um Page Object para as duas plataformas; driver só no `ThreadLocal` do `DriverManager` (exceção: `Inspetor`).
 - **Estilo**: Java 25 idiomático (records, `switch` expressão, pattern matching de `instanceof`, `var` não), classes utilitárias `final` com construtor privado, Javadoc de uma linha por classe, comentário só para o "por quê" não óbvio, mensagens em pt-BR.
 - **Gate obrigatório.** Cada fase termina rodando o gate de **Anexo 04**. Só avance com o resultado esperado. Se falhar: procure o sintoma em **Anexo 02** primeiro, corrija a causa raiz, rode o gate de novo. Se em 2 tentativas não passar, pare e me mostre o erro exato.
@@ -64,9 +66,15 @@ Me peça para subir `appium` numa aba (com `ANDROID_HOME`) e o emulador, ou suba
 
 ### F5 — Mapeador e testes offline (gates G2, G7)
 1. Com emulador + Appium no ar e o Settings na tela inicial, gere a fixture `src/test/resources/fixtures/settings-android.xml` com os comandos de **Anexo 06** e confira o que **Anexo 06** pede que ela contenha.
-2. `core/Inspetor` e `tools/MapeadorElementos` conforme **Anexo 09**; o `exec-maven-plugin` já está no pom.
+2. `core/Inspetor` e `tools/MapeadorElementos` conforme **Anexo 09** (inclui o visual FlatLaf: `tema()` antes da janela, `destacar()`, barra em `JPanel`); o `exec-maven-plugin` e o `flatlaf` já estão no pom.
 3. `core/InspetorTest` e `tools/MapeadorElementosTest` com **todos** os casos de **Anexo 10** (mesmos nomes de método).
 4. G2 (17 + 14 verdes; o `[Fatal Error] ... DOCTYPE` é esperado). Depois `mvn -q test-compile exec:java` e me guie no roteiro de G7, pedindo confirmação visual (você não enxerga a janela).
+
+### F5b — Painel de testes (gates G2, G9)
+1. Reconfira em `core` o que o Painel usa (**Anexo 07**): `Config` com cache por plataforma, `DriverFactory` com `udid`, `Ambiente` com `Alvo`/`devices`/`diagnostico`, `RelatorioAllure` com `relatorio.manual`.
+2. `tools/PainelTestes` conforme **Anexo 13**.
+3. `core/AmbienteTest` e `tools/PainelTestesTest` com **todos** os casos de **Anexo 10**.
+4. G2 (17 + 14 + 5 + 3 verdes). Depois `mvn -q test-compile exec:java -Dexec.mainClass=br.com.automacao.tools.PainelTestes` e me guie no roteiro de G9, pedindo confirmação visual.
 
 ### F6 — ▶ do VSCode (gate G6)
 Me guie: abrir o projeto no VSCode, extensão Java com runtime 25, fechar emulador e matar o Appium (`lsof -ti tcp:4723 | xargs kill`), abrir `RodarPorTag.java`, clicar **Run**. Me peça para colar o console e compare com G6.
@@ -75,7 +83,7 @@ Me guie: abrir o projeto no VSCode, extensão Java com runtime 25, fechar emulad
 Siga **Anexo 05** de ponta a ponta, com os padrões de **Anexo 12**. Ao tornar o app do time o default, troque a tag do `ajustes.feature` para só `@ajustes`.
 
 ### F8 — Documentação e entrega
-Escreva `CLAUDE.md`, `README.md`, `standards/` (README, architecture, code-style, ADRs 0001–0004), `docs/` (README com template e índice, `features/ajustes.md`, `features/evidencias.md`, `features/mapeador-elementos.md`, `padroes-suite-real.md`, `mapeamento/.gitkeep`), `plans/README.md` e `plans/0001-setup-inicial.md` conforme **Anexo 11** — a seção **Rotina obrigatória de documentação** do `CLAUDE.md` vai com o texto exato. Se houve F7: doc da feature nova + linha nos índices + plano. Se pedi git: `git init`, conferir `.gitignore`, commit `chore: projeto base de automação mobile`.
+Escreva `CLAUDE.md`, `README.md`, `standards/` (README, architecture, code-style, ADRs 0001–0004), `docs/` (README com template e índice, `features/ajustes.md`, `features/evidencias.md`, `features/mapeador-elementos.md`, `features/painel-testes.md`, `padroes-suite-real.md`, `mapeamento/.gitkeep`), `plans/README.md` e `plans/0001-setup-inicial.md` conforme **Anexo 11** — a seção **Rotina obrigatória de documentação** do `CLAUDE.md` vai com o texto exato. Se houve F7: doc da feature nova + linha nos índices + plano. Se pedi git: `git init`, conferir `.gitignore`, commit `chore: projeto base de automação mobile`.
 
 ## Formato de cada resposta de fase
 
@@ -87,7 +95,7 @@ Resultado: <trecho decisivo da saída>  ✔ | ✘
 Próximo: <fase seguinte ou o que preciso fazer>
 ```
 
-Ao final: caminho do projeto, gates aprovados, pendências (ex.: iOS sem Xcode) e os 3 comandos do dia a dia (`▶ RodarPorTag`, `mvn test -Dcucumber.filter.tags="@smoke"`, `mvn -q test-compile exec:java`).
+Ao final: caminho do projeto, gates aprovados, pendências (ex.: iOS sem Xcode) e os 4 comandos do dia a dia (`▶ RodarPorTag`, `mvn test -Dcucumber.filter.tags="@smoke"`, `mvn -q test-compile exec:java`, `mvn -q test-compile exec:java -Dexec.mainClass=br.com.automacao.tools.PainelTestes`).
 
 
 ---
@@ -329,12 +337,35 @@ Cada item: **sintoma** → causa → **regra que a spec impõe** (o "→"). As s
 
 ### G. Runner e escrita de teste
 
-49. **Constantes do `RodarPorTag` ignoradas.** `Config` carrega o `.properties` uma vez no primeiro acesso.
-    → `System.setProperty` **antes** de qualquer `Config.get`. Nunca em bloco inicializador `{ ... }` (não roda num `main` estático).
+49. **Constantes do `RodarPorTag` ignoradas.** O `RodarPorTag` só define a system property se ela ainda não existe, e o `.properties` é carregado (e cacheado por plataforma) no primeiro acesso a `Config`.
+    → `System.setProperty` **antes** de qualquer `Config.get`. Nunca em bloco inicializador `{ ... }` (não roda num `main` estático). O cache é **por plataforma** (não um `Properties` único): o Painel troca `platform` em runtime e o arquivo certo passa a valer.
 50. **App nasce vazio a cada cenário** (UiAutomator2 faz `pm clear`). → Cenário cria o próprio dado (seed), nunca depende de outro.
 51. **Dado ao vivo muda de nome.** → Selecionar por posição/slot (`descriptionStartsWith("1")`), nunca por título.
 52. **Botão ignora toque enquanto a tela carrega** (skeleton) e `elementToBeClickable` não ajuda. → Esperar um elemento que só aparece com a tela carregada antes de tocar.
 53. **Locator de app de sistema quebra** em outra versão de Android/fabricante/idioma (`resource-id` do Settings, `accessibility="Settings"` vs "Ajustes"). → Em app do time, `accessibility id` combinado com dev.
+
+### H. Painel de testes e UI Swing
+
+54. **Botão de destaque (azul) aparece sem fundo.** O FlatLaf pinta botão dentro de `JToolBar` sem fundo.
+    → Barra de botões é `JPanel` + `FlowLayout(LEFT, 6, 6)`, nunca `JToolBar` (Mapeador e Painel).
+55. **Janela abre com o L&F antigo (Metal) em parte dos componentes.** Componentes são campos de instância: nascem com o L&F instalado na hora do `new`.
+    → `MapeadorElementos.tema()` roda no `main`, **antes** do `invokeLater(() -> new ...)`.
+56. **Contador `n de N selecionados` some da barra.** `FlowLayout` em `BorderLayout.NORTH` não quebra linha: o que passa da largura (1100 px) é cortado.
+    → Barra da aba Testes em duas linhas (`GridLayout(2, 1)`): seleção em cima, onde rodar embaixo.
+57. **Painel roda mas nenhum driver é achado / Verificar trava atrás da suíte.** `DriverManager` é `ThreadLocal`: o `Hooks` cria o driver na thread que executa.
+    → Execução num `newSingleThreadExecutor`; Verificar num **segundo** executor single-thread (adb/xcrun/HTTP não precisam do driver e não podem esperar uma run longa).
+58. **Cenário marcado não roda pelo Painel.** Filtro de tag vindo do `junit-platform.properties` filtra em silêncio o que foi marcado.
+    → O Painel manda `cucumber.filter.tags` **vazio** na descoberta e na execução: a seleção na tela manda.
+59. **Reexecução gera relatório só da última rodada e polui o histórico.** Cada `Launcher.execute` dispara `TestRunStarted` (zera `target/allure-results`) e `TestRunFinished` (gera HTML + 1 linha no histórico).
+    → `-Drelatorio.manual=true` desliga o listener do `RelatorioAllure`; o Painel chama `limparResultados()` antes da 1ª rodada e `gerar()` uma vez no fim (um HTML com as tentativas, **uma** linha de histórico por clique em Rodar).
+60. **`Abrir relatório` não faz nada.** `Desktop.getDesktop().browse(...)` não abre o navegador quando roda dentro do `exec:java` (isolado abre).
+    → `new ProcessBuilder("open", <index.html absoluto>).start()` (macOS only, como o resto).
+61. **Sessão cai no device errado com emulador e celular plugados.** UiAutomator2/XCUITest pegam o primeiro device.
+    → `Ambiente.garantirNoAr()` fixa a system property `udid` (mantém `-Dudid` se ele está na lista, senão o primeiro do alvo) e o `DriverFactory` faz `setUdid`.
+62. **iOS simulador desligado barrava a run.** O XCUITest liga o simulador do `deviceName` sozinho.
+    → Alvo `IOS_SIMULADOR` sem nenhum ligado não falha: `System.clearProperty("udid")` (um `udid` de run anterior apontaria pro device errado).
+63. **Verificar mostra Android emulador vermelho com o emulador aberto.** `adb devices` lista `offline` durante o boot, há dois `adb` na máquina (SDK + Homebrew) ou o adb não está no caminho esperado; a tela só dizia "nenhum".
+    → Linha vermelha mostra o motivo via `Ambiente.diagnostico(alvo)`: `não pronto: emulator-5554 offline`, `adb não encontrado em <path>`, `adb: <erro>`, `Xcode não instalado` ou `nenhum`.
 
 
 ## Anexo 03
@@ -356,7 +387,7 @@ core                      driver, config, hooks, evidência, ambiente, relatóri
    ↓
 Appium Server → device
 
-tools                     utilitário de dev (Mapeador), fora do teste; só chama core
+tools                     utilitários de dev (Mapeador, Painel de testes), fora do teste; só chamam core
 ```
 
 Dependência só para baixo. Regras duras:
@@ -365,28 +396,29 @@ Dependência só para baixo. Regras duras:
 2. Step nunca toca driver, `By` ou `Thread.sleep`.
 3. Screen expõe comportamento (`boolean estaVisivel()`), nunca elemento (`WebElement getTitulo()`).
 4. Um Page Object para Android e iOS: dois locators no mesmo campo. Nada de `if (android)` espalhado.
-5. Driver só em `ThreadLocal` (`DriverManager`). Nenhum outro estado estático mutável (exceção documentada: `Inspetor`).
+5. Driver só em `ThreadLocal` (`DriverManager`). Nenhum outro estado estático mutável (exceções documentadas: `Inspetor`; o cache por plataforma do `Config`, só leitura de arquivo).
 
 ### Arquivos
 
 | Arquivo | Papel |
 |---|---|
-| `pom.xml` | Versões pinadas; Surefire só `Run*Test`; `cucumber.plugin` com timestamp por run; `exec-maven-plugin` abre o Mapeador com `waitSeconds=600` |
+| `pom.xml` | Versões pinadas; Surefire só `Run*Test`; `cucumber.plugin` com timestamp por run; `exec-maven-plugin` abre `${exec.mainClass}` (default Mapeador, `-Dexec.mainClass=` troca) com `waitSeconds=600`; FlatLaf para as janelas de `tools` |
 | `allurerc.json` | Allure 3: HTML único (`singleFile`), pt, histórico em `evidencias/historico-allure.jsonl` |
-| `config/android.properties` / `ios.properties` | Capabilities + app sob teste + vídeo + Mapeador. Qualquer chave sobreposta por `-Dchave=valor` |
+| `config/android.properties` / `ios.properties` | Capabilities + app sob teste + vídeo + Mapeador (inclui `mapeador.tema`). Qualquer chave sobreposta por `-Dchave=valor` |
 | `src/test/resources/junit-platform.properties` | `cucumber.glue` na raiz, plugins (pretty, Allure, ResumoMarkdown, RelatorioAllure) |
 | `src/test/resources/allure.properties` | `allure.results.directory=target/allure-results` |
-| `core/Config` | Lê `config/<platform>.properties` **uma vez**; system property ganha do arquivo |
-| `core/DriverFactory` | Monta `AndroidDriver`/`IOSDriver` a partir do config. `create()` abre o app; `create(false)` anexa ao que está na tela (Mapeador) |
+| `core/Config` | Lê `config/<platform>.properties` uma vez **por plataforma** (cache); system property ganha do arquivo |
+| `core/DriverFactory` | Monta `AndroidDriver`/`IOSDriver` a partir do config. `create()` abre o app; `create(false)` anexa ao que está na tela (Mapeador). Com `udid` definido, fixa o device |
 | `core/DriverManager` | `ThreadLocal<AppiumDriver>`: `set`/`get`/`quit` |
 | `core/Hooks` | `@Before` cria driver + inicia vídeo; `@AfterStep` anexa screenshot; `@After` anexa falha + vídeo e faz `quit` (cada etapa em try/catch) |
 | `core/Evidencias` | Screenshot e vídeo como `byte[]` (nada em disco) |
-| `core/Ambiente` | Sobe emulador (AVD do config) e Appium (`/bin/zsh -ic`) se não estiverem no ar; no-op em dry-run |
-| `core/RelatorioAllure` | Listener Cucumber: zera `target/allure-results` no início, roda `npx allure@3.22.1 generate` no fim, grava `environment.properties` (plataforma/app) |
+| `core/Ambiente` | Alvo (`Alvo`: Android emulador/físico, iOS simulador/físico) = `platform` + `device`; detecta devices (`adb`/`xcrun`), explica por que não achou, sobe emulador (AVD do config) e Appium (`/bin/zsh -ic`) se não estiverem no ar e fixa `udid`; no-op em dry-run |
+| `core/RelatorioAllure` | Listener Cucumber: zera `target/allure-results` no início, roda `npx allure@3.22.1 generate` no fim, grava `environment.properties` (plataforma/app). Com `relatorio.manual=true` o listener não faz nada e quem chama `limparResultados()`/`gerar()` é o Painel |
 | `core/ResumoMarkdown` | Listener Cucumber: `resumo.md` leve com link pro `index.html` |
 | `core/Inspetor` | Lógica do Mapeador: lê hierarquia, sugere locator único, testa locator. Driver próprio num executor single-thread |
-| `core/InspetorTest`, `tools/MapeadorElementosTest` | Testes offline (sem device); o `InspetorTest` usa a fixture `fixtures/settings-android.xml` |
-| `tools/MapeadorElementos` | Janela Swing: espelho ao vivo com hover, escolher elemento, copiar locator (clique direito), testar locator (match em vermelho), relatório em `docs/mapeamento/` |
+| `core/InspetorTest`, `tools/MapeadorElementosTest`, `core/AmbienteTest`, `tools/PainelTestesTest` | Testes offline (sem device); o `InspetorTest` usa a fixture `fixtures/settings-android.xml` |
+| `tools/MapeadorElementos` | Janela Swing (FlatLaf, tema claro/escuro): espelho ao vivo com hover, escolher elemento, copiar locator (clique direito), testar locator (match em vermelho), relatório em `docs/mapeamento/` |
+| `tools/PainelTestes` | Janela Swing: lista todos os cenários, marca por checkbox/tag, escolhe plataforma e destino, roda com N reexecuções das falhas, barras + % de sucesso + log ao vivo, abre o último relatório; aba Ambiente verifica Appium e devices |
 | `runner/RunCucumberTest` | Entrada do `mvn test` (`@Suite` + `@SelectPackages("features")`) |
 | `runner/RodarPorTag` | Entrada do ▶ do VSCode: constantes `TAGS`/`PLATAFORMA`/`APP_*`, `Ambiente.garantirNoAr()`, Launcher API |
 | `screens/BaseScreen` | `PageFactory` do Appium + `WebDriverWait`; helpers `visivel(el)` e `clicar(el)` |
@@ -408,6 +440,19 @@ Dependência só para baixo. Regras duras:
 ```
 
 `mvn test` faz o mesmo a partir do `RunCucumberTest`, mas **não** chama `Ambiente` (Appium/emulador precisam estar no ar).
+
+Pelo Painel (`relatorio.manual=true`, o listener do `RelatorioAllure` fica quieto):
+
+```
+Rodar
+  → System.setProperty(platform, device)      (combos Plataforma/Destino)
+  → Ambiente.garantirNoAr()                   (emulador se alvo = Android emulador, Appium, fixa udid)
+  → RelatorioAllure.limparResultados()
+  → Launcher(selectUniqueId dos marcados, tags "")      ← rodada 0
+  → enquanto houver falhas e tentativas: Launcher(só os que falharam)
+  → RelatorioAllure.gerar()                   (um HTML, uma linha no histórico)
+  → "NN% de sucesso" + botão Abrir relatório
+```
 
 
 ## Anexo 04
@@ -441,11 +486,11 @@ Esperado: nenhuma saída, exit 0. A primeira vez baixa as dependências (alguns 
 ### G2 — Testes offline (sem device)
 
 ```bash
-mvn -q test -Dtest='InspetorTest,MapeadorElementosTest'
+mvn -q test -Dtest='InspetorTest,MapeadorElementosTest,AmbienteTest,PainelTestesTest'
 grep -h '<testsuite' target/surefire-reports/*.xml | grep -o 'name="[^"]*".*failures="[0-9]*"'
 ```
 
-Esperado: `InspetorTest` **17** testes e `MapeadorElementosTest` **14** (os casos de Anexo 10), todos com `errors="0"` e `failures="0"`.
+Esperado: `InspetorTest` **17**, `MapeadorElementosTest` **14**, `AmbienteTest` **5** e `PainelTestesTest` **3** (os casos de Anexo 10), todos com `errors="0"` e `failures="0"`. Antes da F5b só existem os dois primeiros: rode `-Dtest='InspetorTest,MapeadorElementosTest'`.
 A linha `[Fatal Error] :1:31: DOCTYPE fica desativado...` é **esperada** (teste de XXE).
 
 ### G3 — Descoberta (dry-run, sem device)
@@ -484,7 +529,7 @@ Esperado: um `index.html` único (abre offline) com o cenário verde, screenshot
 
 Esperado no console: `[rodar] android · Ajustes (com.android.settings) · tags @smoke`, `[ambiente] Nenhum device online, subindo emulador ...`, `[ambiente] Emulador pronto.`, `[ambiente] Subindo Appium...`, `[ambiente] Appium no ar.`, cenário verde, resumo com `0 tests failed`. Relatório em `evidencias/relatorio-allure/index.html`.
 
-Sem VSCode (headless, mesmo efeito): `mvn -q dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/cp.txt` e `java -cp "target/test-classes:$(cat target/cp.txt)" br.com.automacao.runner.RodarPorTag`. **Não** use `exec:java -Dexec.mainClass` (o pom fixa o Mapeador). Ao derrubar o emulador para o teste, espere ele sumir do `adb devices` antes de rodar.
+Sem VSCode (headless, mesmo efeito): `mvn -q dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/cp.txt` e `java -cp "target/test-classes:$(cat target/cp.txt)" br.com.automacao.runner.RodarPorTag`. Ao derrubar o emulador para o teste, espere ele sumir do `adb devices` antes de rodar.
 
 ### G7 — Mapeador
 
@@ -494,11 +539,31 @@ Com emulador e Appium no ar:
 mvn -q test-compile exec:java
 ```
 
-Esperado: abre a janela; **Conectar** liga sem abrir app nenhum (usa o que está na tela); passar o mouse no espelho destaca o elemento; clique direito → **Copiar @FindBy**; colar um locator no campo ao lado de **Testar** e clicar marca o match em vermelho. **Reiniciar Appium** destrava server preso. Fechar a janela encerra o `mvn`.
+Esperado: abre a janela; **Conectar** liga sem abrir app nenhum (usa o que está na tela); passar o mouse no espelho destaca o elemento; clique direito → **Copiar @FindBy**; colar um locator no campo ao lado de **Testar** e clicar marca o match em vermelho. **Reiniciar Appium** destrava server preso. Fechar a janela encerra o `mvn`. Visual FlatLaf: Conectar/Scanear em azul de destaque, tabela listrada, status com linha separadora; segue a Aparência do macOS (`mapeador.tema=auto`) e `-Dmapeador.tema=escuro` força o escuro. No Espelho, resultado do Testar em verde (≥1), amarelo (0) ou vermelho (erro).
 
 ### G8 — Primeiro cenário do app do time
 
 Ver Anexo 05. Esperado: `RodarPorTag` com `TAGS="@smoke"` verde contra o app do time, e a 1ª linha do console mostrando plataforma/app corretos (`[rodar] android · <app> (<package>) · tags @smoke`). O `RelatorioAllure` também grava `environment.properties` (Plataforma/App/Pacote) nos results; se o Allure 3 exibe isso no HTML ainda não foi confirmado.
+
+
+### G9 — Painel de testes
+
+Com emulador e Appium no ar (ou não: o Rodar sobe o que faltar para Android emulador):
+
+```bash
+mvn -q test-compile exec:java -Dexec.mainClass=br.com.automacao.tools.PainelTestes
+wc -l < evidencias/historico-allure.jsonl          # anotar antes de rodar
+```
+
+Esperado:
+1. Aba **Testes** lista `Ajustes do sistema · Abrir a tela de Ajustes · @ajustes @smoke`; `Marcar pela tag` com `@smoke` marca e mostra `1 de 1 selecionados`. Segunda linha: `Plataforma` (android), `Destino` (Emulador/Simulador), `Reexecutar falhas` (0), `Rodar`.
+2. Aba **Ambiente** → `Verificar`: `Appium ● no ar`, `Android emulador ● emulator-5554` em verde; `Android físico`, `iOS simulador`, `iOS físico` em vermelho com o motivo (`nenhum` / `Xcode não instalado`). Com o Appium parado: `fora (http://127.0.0.1:4723/)`.
+3. **Rodar** com Android + Emulador: abre a aba Execução, log mostra `[ambiente] Android emulador · udid=emulator-5554`, cenário ✔ verde, barras `1/1`, `100% de sucesso` em verde, rodapé `Fim: 1 de 1 passaram (100%) · relatório <caminho>`; `historico-allure.jsonl` com **uma** linha a mais.
+4. **Abrir relatório** abre `evidencias/relatorio-allure/index.html` no navegador padrão.
+5. Destino **Device físico** sem celular plugado: rodapé `Falha ao rodar: Nenhum Android físico online.`, sem travar.
+6. Reexecução (sem device): crie `src/test/resources/features/zz-temp.feature` (`# language: pt`, `Funcionalidade: Temp falha`, `@temp`, `Cenário: Falha de propósito`, `Dado um passo que não existe xyz`), abra o Painel com `-Dcucumber.execution.dry-run=true`, marque só ele, `Reexecutar falhas` = 2, Rodar: log com `[painel] reexecutando 1 falha(s), tentativa 1/2` e `2/2`, Erro `1/1`, `0% de sucesso` em vermelho, rodapé com `2 reexecução(ões)`. **Apague a feature temporária** e rode `mvn -q -DskipTests test-compile` (senão a cópia em `target/test-classes` continua sendo descoberta).
+
+Fechar a janela encerra o `mvn`.
 
 
 ## Anexo 05
@@ -630,6 +695,8 @@ Coordenadas do projeto: `br.com.automacao:automacao-mobile:1.0.0-SNAPSHOT`, `pac
 | `surefire.version` | `3.6.1` |
 | `allure.cucumber8.version` | `10.4.20261102` |
 | `allure.java.version` | `3.0.1` |
+| `flatlaf.version` | `3.8` |
+| `exec.mainClass` | `br.com.automacao.tools.MapeadorElementos` (comentário: `-Dexec.mainClass=br.com.automacao.tools.PainelTestes` abre o painel de testes) |
 | `maven.build.timestamp.format` | `yyyy-MM-dd_HH-mm-ss` |
 
 #### dependencyManagement (import de BOM, `type=pom`, `scope=import`)
@@ -652,6 +719,7 @@ Coordenadas do projeto: `br.com.automacao:automacao-mobile:1.0.0-SNAPSHOT`, `pac
 | `com.fasterxml.jackson.core:jackson-databind` | `${jackson.version}` | Selenium 4.5x delega JSON ao Jackson e não o traz transitivo |
 | `com.fasterxml.jackson.datatype:jackson-datatype-jdk8` | `${jackson.version}` | idem |
 | `org.slf4j:slf4j-simple` | `${slf4j.version}` | |
+| `com.formdev:flatlaf` | `${flatlaf.version}` | visual das janelas de `tools` (Mapeador, Painel) |
 
 `junit-platform-launcher` (usado pelo `RodarPorTag`) vem transitivo — não declarar.
 
@@ -664,7 +732,7 @@ Coordenadas do projeto: `br.com.automacao:automacao-mobile:1.0.0-SNAPSHOT`, `pac
   - `cucumber.plugin` = `pretty, io.qameta.allure.cucumber8jvm.AllureCucumber8Jvm, br.com.automacao.core.ResumoMarkdown, br.com.automacao.core.RelatorioAllure`
 
 **`org.codehaus.mojo:exec-maven-plugin` `3.5.0`**
-- `mainClass` = `br.com.automacao.tools.MapeadorElementos`
+- `mainClass` = `${exec.mainClass}` (propriedade, para `-Dexec.mainClass=` trocar a classe; valor fixo aqui ganharia do `-D`)
 - `classpathScope` = `test` (comentário: não há `src/main`)
 - `systemProperties`: `waitSeconds` = `600` (comentário: vira `newCommandTimeout`; 20 s mataria a sessão enquanto o usuário navega)
 
@@ -713,8 +781,9 @@ JSON e não `.mjs`: o `.mjs` importa `defineConfig` e exigiria `npm install` loc
 | `mapeador.intervaloSegundos` | `3` | |
 | `mapeador.saida` | `docs/mapeamento` | |
 | `mapeador.todos` | `false` | |
+| `mapeador.tema` | `auto` | comentário: `auto = segue Aparência do macOS \| claro \| escuro` |
 
-Chaves opcionais lidas pelo código: `avd` (default = `deviceName`), `noReset` (default `false`).
+Chaves opcionais lidas pelo código: `avd` (default = `deviceName`), `noReset` (default `false`), `udid` (fixa o device; o `Ambiente.garantirNoAr()` define sozinho). System property `device` = `emulador` (default) | `fisico` escolhe o alvo junto com `platform` (o Painel define pelos combos).
 
 ### config/ios.properties
 
@@ -735,6 +804,7 @@ Chaves opcionais lidas pelo código: `avd` (default = `deviceName`), `noReset` (
 | `mapeador.intervaloSegundos` | `3` |
 | `mapeador.saida` | `docs/mapeamento` |
 | `mapeador.todos` | `false` |
+| `mapeador.tema` | `auto` |
 
 ### .gitignore
 
@@ -781,9 +851,9 @@ Lê `config/<platform>.properties`. Qualquer chave pode ser sobreposta por `-Dch
 | `static int getInt(String key, int padrao)` | |
 | `static boolean getBoolean(String key, boolean padrao)` | |
 
-- O `Properties` é um campo `static final` carregado **uma única vez** na inicialização da classe, de `Path.of("config", platform() + ".properties")` (relativo ao diretório de trabalho).
+- Cache **por plataforma**: `private static final Map<String, Properties> PROPS = new ConcurrentHashMap<>()`; `private static Properties props()` = `PROPS.computeIfAbsent(platform(), Config::load)`; `load(String platform)` lê `Path.of("config", platform + ".properties")` (relativo ao diretório de trabalho). Javadoc: o PainelTestes troca `platform` em runtime e o arquivo certo passa a valer.
 - Arquivo ausente: `IllegalStateException("Arquivo de configuração não encontrado: " + caminhoAbsoluto)`. Falha de leitura: `IllegalStateException("Falha ao ler " + arquivo, causa)`.
-- Consequência que o resto do projeto respeita: quem quer mudar `platform`/app por código precisa fazer `System.setProperty` **antes** do primeiro acesso a `Config` (lição 49).
+- System property é lida a cada `get` (ganha do arquivo sempre). O `RodarPorTag` ainda define tudo **antes** do primeiro acesso a `Config` (lição 49).
 
 ### DriverManager
 
@@ -805,9 +875,9 @@ Lê `config/<platform>.properties`. Qualquer chave pode ser sobreposta por `-Dch
 | `static AppiumDriver create(boolean abrirApp)` | `abrirApp=false` = sessão sem app, só se anexa ao que está na tela (Mapeador) |
 
 Comportamento de `create(abrirApp)` — `switch` (expressão) em `Config.platform()`:
-- comum: `serverUrl` vira `URL` (`MalformedURLException` → `IllegalStateException("serverUrl inválida", e)`); `newCommandTimeout` = `Duration.ofSeconds(Config.getInt("waitSeconds"))`; `noReset` = `Config.getBoolean("noReset", false)`.
-- `"android"`: `UiAutomator2Options` com `deviceName`; se `abrirApp`, `appPackage` + `appActivity`; devolve `new AndroidDriver(url, options)`.
-- `"ios"`: `XCUITestOptions` com `deviceName`, `platformVersion`; se `abrirApp`, `bundleId`; devolve `new IOSDriver(url, options)`.
+- comum: `serverUrl` vira `URL` (`MalformedURLException` → `IllegalStateException("serverUrl inválida", e)`); `newCommandTimeout` = `Duration.ofSeconds(Config.getInt("waitSeconds"))`; `noReset` = `Config.getBoolean("noReset", false)`; `udid = Config.get("udid", null)` (comentário: fixado pelo `Ambiente.garantirNoAr()`, escolhe emulador ou físico quando há mais de um plugado).
+- `"android"`: `UiAutomator2Options` com `deviceName`; se `udid != null`, `setUdid(udid)`; se `abrirApp`, `appPackage` + `appActivity`; devolve `new AndroidDriver(url, options)`.
+- `"ios"`: `XCUITestOptions` com `deviceName`, `platformVersion`; se `udid != null`, `setUdid(udid)`; se `abrirApp`, `bundleId`; devolve `new IOSDriver(url, options)`.
 - outro: `IllegalArgumentException("Plataforma não suportada: " + plataforma)`.
 - Pacotes: `io.appium.java_client.android.options.UiAutomator2Options`, `io.appium.java_client.ios.options.XCUITestOptions`.
 
@@ -845,15 +915,39 @@ Anexo é sempre `scenario.attach(bytes, mime, nome)` — **não** `Allure.addAtt
 
 ### Ambiente
 
-Sobe o que faltar (emulador Android + Appium) para o `RodarPorTag` e o Mapeador. **Não importa Appium/Selenium**: só `ProcessBuilder` e `java.net.http.HttpClient`. Javadoc diz: macOS only.
+Sobe o que faltar (emulador Android + Appium) e detecta devices para o `RodarPorTag`, o Mapeador e o Painel. **Não importa Appium/Selenium**: só `ProcessBuilder` e `java.net.http.HttpClient`. Javadoc diz: macOS only.
+
+`public enum Alvo` (Javadoc: onde a suíte roda: `platform` + `device`), com campo `public final String rotulo`:
+`ANDROID_EMULADOR("Android emulador")`, `ANDROID_FISICO("Android físico")`, `IOS_SIMULADOR("iOS simulador")`, `IOS_FISICO("iOS físico")`.
+`public static Alvo atual()`: `fisico = System.getProperty("device", "emulador").equals("fisico")`; `Config.platform()` `ios` → `IOS_FISICO`/`IOS_SIMULADOR`, senão `ANDROID_FISICO`/`ANDROID_EMULADOR`.
+
+Regex (constantes privadas, literais):
+- `UDID_ENTRE_PARENTESES = Pattern.compile("\\(([0-9A-Fa-f-]{20,})\\)")`
+- `XCTRACE_DEVICE = Pattern.compile("\\(\\d+(\\.\\d+)*\\) \\(([0-9A-Fa-f-]{20,})\\)\\s*$")`
 
 | Assinatura | Comportamento |
 |---|---|
-| `static void garantirNoAr() throws Exception` | se `System.getProperty("cucumber.execution.dry-run")` for `true`, retorna. Senão `garantirDevice()` e depois `garantirAppium()` |
+| `static void garantirNoAr() throws Exception` | ver abaixo |
+| `static boolean appiumNoAr() throws InterruptedException` | `GET <serverUrl>/status` com um `HttpClient` novo; 200 = `true`; `IOException` = `false` (reusa o privado `appiumNoAr(http, status)`) |
+| `static List<String> devices(Alvo alvo) throws Exception` | ids online (serial Android / UDID iOS). `ANDROID_EMULADOR` → `filtrarAdb(rodar(adb(), "devices"), false)`; `ANDROID_FISICO` → idem com `true`; `IOS_SIMULADOR` → `filtrarSimctl(rodar("xcrun", "simctl", "list", "devices", "booted"))`; `IOS_FISICO` → `filtrarXctrace(rodar("xcrun", "xctrace", "list", "devices"))` |
+| `static String diagnostico(Alvo alvo) throws Exception` | por que `devices` veio vazio. Android: se `!Files.isExecutable(Path.of(adb()))` → `"adb não encontrado em " + adb()`; senão `explicar(alvo, rodar(adb(), "devices"))`. iOS: `explicar(alvo, rodar("xcrun", "simctl", "help"))` |
 | `static void garantirAppium() throws Exception` | ver abaixo |
 | `static void matarAppium() throws Exception` | `lsof -ti tcp:<porta do serverUrl> -sTCP:LISTEN`; para cada PID, `kill`; espera 1,5 s. Usado pelo botão "Reiniciar Appium" |
 | `static void garantirDevice() throws Exception` | ver abaixo |
 | `static void exigirDevice() throws Exception` | Android sem device online: `IllegalStateException("Nenhum emulador/device online. Suba o " + deviceName + ".")`. Usado pelo Mapeador (que não sobe emulador sozinho) |
+
+Package-private, puras (cobertas pelo `AmbienteTest`):
+- `filtrarAdb(String saida, boolean fisico)`: linhas que terminam com `\tdevice`; serial = antes do `\t`; fica se `serial.startsWith("emulator-") != fisico` (`offline`/`unauthorized` ficam de fora).
+- `filtrarSimctl(String saida)`: linhas com `(Booted)`; UDID = 1º grupo de `UDID_ENTRE_PARENTESES`.
+- `filtrarXctrace(String saida)`: só a seção `== Devices ==` (linha que começa com `==` troca a seção; `secaoDevices = linha.equals("== Devices ==")`) e só linha que casa `XCTRACE_DEVICE` (versão de SO + UDID; a linha do próprio Mac não tem versão); UDID = grupo 2.
+- `explicar(Alvo alvo, String saida)`, nesta ordem: saída contém `unable to find utility` → `"Xcode não instalado"`; Android: linhas com `\t` que **não** terminam com `\tdevice` e do tipo do alvo (`startsWith("emulator-") != fisico`), com `\t` trocado por espaço → `"não pronto: " + join(", ")`; senão 1ª linha com `error` ou `cannot` → `"adb: " + linha`; resto → `"nenhum"`.
+- `rodar(String... comando)` (privado): `ProcessBuilder` com stderr no stdout, lê tudo, `waitFor`; `IOException` (ferramenta ausente) devolve `""`.
+
+`garantirNoAr()`:
+1. Dry-run (`cucumber.execution.dry-run=true`) → retorna.
+2. `alvo = Alvo.atual()`; `garantirDevice()`; `ids = devices(alvo)`.
+3. `ids` vazio e alvo `IOS_SIMULADOR` → `System.clearProperty("udid")` (comentário: XCUITest liga o simulador do `deviceName` sozinho; `udid` velho de outra run apontaria pro device errado). Vazio com outro alvo → `IllegalStateException("Nenhum " + alvo.rotulo + " online.")`. Senão, se `ids` não contém `System.getProperty("udid")` → `System.setProperty("udid", ids.get(0))`.
+4. Imprime `[ambiente] <rotulo> · udid=<udid>` e chama `garantirAppium()`.
 
 `garantirAppium()`:
 1. `GET <serverUrl>/status`; status 200 = no ar → retorna. `IOException` conta como "fora do ar".
@@ -865,15 +959,15 @@ Sobe o que faltar (emulador Android + Appium) para o `RodarPorTag` e o Mapeador.
 5. Até 30 vezes: dorme 1 s; se `/status` responde 200 → imprime `[ambiente] Appium no ar.` e retorna; se o processo morreu → `IllegalStateException("Appium encerrou ao subir (código N), veja target/appium.log")`.
 6. Esgotou: `IllegalStateException("Appium não respondeu em 30 s, veja target/appium.log")`.
 
-`garantirDevice()`:
-1. Se plataforma não é `android` ou já há device online → retorna (iOS é no-op).
+`garantirDevice()` (Javadoc: alvo Android emulador sem emulador online sobe o AVD; outros alvos: no-op):
+1. Se `Alvo.atual() != ANDROID_EMULADOR` ou `devices(ANDROID_EMULADOR)` não está vazio → retorna (físico e iOS nunca são ligados aqui).
 2. `avd = Config.get("avd", Config.get("deviceName"))`. Imprime `[ambiente] Nenhum device online, subindo emulador <avd>...`.
 3. Processo `<androidHome>/emulator/emulator -avd <avd> -no-snapshot-save`, log em `target/emulator.log`, com `ANDROID_HOME`/`ANDROID_SDK_ROOT` no ambiente.
 4. Até 180 s, a cada 2 s: se `bootCompleted()` → `[ambiente] Emulador pronto.` e retorna; se o processo morreu → `IllegalStateException("Emulador encerrou (código N), veja <log>\n" + últimas 20 linhas do log)` (se não der para ler: `(sem log)`).
 5. Esgotou: `IllegalStateException("Emulador não ficou pronto em 180 s, veja <log>")`.
 
 Privados:
-- `deviceOnline()`: `adb devices`; alguma linha termina com `\tdevice`.
+- `deviceOnline()`: `adb devices`; alguma linha termina com `\tdevice` (qualquer device; usado só pelo `exigirDevice()` do Mapeador).
 - `bootCompleted()`: `adb shell getprop sys.boot_completed` com trim igual a `1`.
 - `adb()` = `androidHome() + "/platform-tools/adb"`.
 - `androidHome()` = env `ANDROID_HOME`, ou se ausente/branco `user.home + "/Library/Android/sdk"`.
@@ -882,15 +976,15 @@ Privados:
 
 `public final class RelatorioAllure implements io.cucumber.plugin.ConcurrentEventListener` (construtor público implícito: Cucumber instancia). Não importa Appium/Selenium. Constantes: `CLI = "allure@3.22.1"`, `RESULTADOS = Path.of("target/allure-results")`.
 
-- `setEventPublisher`: registra `TestRunStarted` → `limparResultados()` e `TestRunFinished` → `gerar()`. Eventos ficam em `io.cucumber.plugin.event` (jar `cucumber-plugin`, lição 37).
-- `limparResultados()`: se a pasta existe, apaga tudo dentro e ela própria (walk em ordem reversa). `IOException` → `UncheckedIOException`.
-- `gerar()`:
+- `setEventPublisher`: se `Boolean.getBoolean("relatorio.manual")` → retorna sem registrar nada (lição 59). Senão registra `TestRunStarted` → `limparResultados()` e `TestRunFinished` → `gerar()`. Eventos ficam em `io.cucumber.plugin.event` (jar `cucumber-plugin`, lição 37).
+- `public static void limparResultados()`: se a pasta existe, apaga tudo dentro e ela própria (walk em ordem reversa). `IOException` → `UncheckedIOException`.
+- `public static void gerar()` (o `gravarAmbiente()` privado também é `static`):
   1. dry-run (`cucumber.execution.dry-run=true`) → retorna sem gerar.
   2. `saida = Path.of(System.getProperty("evidencias.dir", "evidencias"), "relatorio-allure")`; log `target/allure.log`.
   3. Grava `target/allure-results/environment.properties` com três linhas: `Plataforma=<platform>`, `App=<appNome ou id>`, `Pacote=<id>`, onde id = `bundleId` no iOS e `appPackage` no Android.
   4. Processo **exatamente**: `/bin/zsh -ic "exec npx --yes allure@3.22.1 generate target/allure-results --output <saida>"`, saída no log.
   5. Código 0 → `[allure] Relatório: <caminho absoluto do index.html>`. Senão `System.err`: `[allure] Falha ao gerar o relatório (código N), veja target/allure.log`. `IOException` → `[allure] Falha ao gerar o relatório: <msg>`. `InterruptedException` → reinterrompe a thread.
-- Javadoc explica: mora na JVM (não numa fase do Maven) para rodar também no ▶ e mesmo com teste falhando; cada generate acrescenta uma linha ao histórico.
+- Javadoc explica: mora na JVM (não numa fase do Maven) para rodar também no ▶ e mesmo com teste falhando; cada generate acrescenta uma linha ao histórico; com `-Drelatorio.manual=true` o listener não faz nada e quem chama `limparResultados()`/`gerar()` é o PainelTestes, uma vez por clique em Rodar, pra reexecuções caírem no mesmo relatório.
 
 ### ResumoMarkdown
 
@@ -1142,7 +1236,18 @@ Estáticos de conveniência **públicos**: `public static Map<String,String> noE
 
 ### tools/MapeadorElementos
 
-`public final class MapeadorElementos`. Javadoc: janela que observa a navegação no emulador e grava, por tela visitada, os locators sugeridos; só Swing + executor; rodar com `mvn -q test-compile exec:java`. `main` faz `SwingUtilities.invokeLater(() -> new MapeadorElementos().abrir())`.
+`public final class MapeadorElementos`. Javadoc: janela que observa a navegação no emulador e grava, por tela visitada, os locators sugeridos; só Swing + executor; rodar com `mvn -q test-compile exec:java`. `main` faz `tema()` e depois `SwingUtilities.invokeLater(() -> new MapeadorElementos().abrir())` (comentário: antes de qualquer componente, os campos da instância já nascem com o L&F instalado — lição 55).
+
+#### Visual (FlatLaf; package-private, reusado pelo PainelTestes)
+
+- `static void tema()` (Javadoc: FlatLaf claro/escuro; `mapeador.tema=auto` segue a Aparência do macOS):
+  1. `tema = Config.get("mapeador.tema", "auto")`; `escuro = tema.equals("escuro") || tema.equals("auto") && macEscuro()`.
+  2. `System.setProperty("apple.awt.application.appearance", "system")` (comentário: title bar nativa acompanha o sistema).
+  3. `FlatLaf.setGlobalExtraDefaults(Map.of("Table.rowHeight", "28", "Table.showHorizontalLines", "true", "Table.alternateRowColor", escuro ? "lighten($Table.background,4%)" : "darken($Table.background,3%)"))` — vale para todas as tabelas sem código por tabela.
+  4. `FlatMacDarkLaf.setup()` se `escuro`, senão `FlatMacLightLaf.setup()` (pacote `com.formdev.flatlaf.themes`).
+- `private static boolean macEscuro()` (Javadoc: `AppleInterfaceStyle` só existe no modo escuro; qualquer falha cai no claro): `defaults read -g AppleInterfaceStyle`, saída `strip()` igual a `Dark`; `IOException` → `false`.
+- `static void destacar(JButton b)`: `b.putClientProperty("FlatLaf.style", "background: $Component.accentColor; foreground: #fff")` — ação principal em azul.
+- Status bar (`JLabel` do sul, nas duas janelas de `tools`): cor `UIManager.getColor("Label.disabledForeground")`, borda `createCompoundBorder(createMatteBorder(1, 0, 0, 0, UIManager.getColor("Component.borderColor")), createEmptyBorder(6, 10, 6, 10))`.
 
 #### Partes testáveis (package-private, cobertas pelo `MapeadorElementosTest`)
 
@@ -1168,9 +1273,9 @@ Estáticos de conveniência **públicos**: `public static Map<String,String> noE
 
 #### Janela principal "Mapeador de Elementos" (`JFrame`, 1100×600, `setLocationByPlatform`)
 
-- Norte: `JToolBar` não flutuante com botões **Conectar**, **Scanear**, **Stop**, **Inspecionar**, separador, **Reiniciar Appium**. Scanear/Stop/Inspecionar começam desabilitados.
-- Centro: tabela de scan (não editável) com colunas `Tela, Tipo, Id, Texto, Estratégia, Valor`, com popup de copiar (abaixo).
-- Sul: `JLabel` de status, começa `Desconectado`.
+- Norte: `JPanel` com `FlowLayout(LEFT, 6, 6)` — **não** `JToolBar` (comentário: o FlatLaf pinta botão de toolbar sem fundo e o destaque sumiria; lição 54) — com botões **Conectar**, **Scanear**, **Stop**, **Inspecionar**, `Box.createHorizontalStrut(18)`, **Reiniciar Appium**. `destacar(conectar)` e `destacar(scanear)`. Scanear/Stop/Inspecionar começam desabilitados.
+- Centro: tabela de scan (não editável) com colunas `Tela, Tipo, Id, Texto, Estratégia, Valor`, larguras preferidas `{140, 110, 180, 160, 100, 410}` (comentário: Valor é o mais longo e o que se copia), com popup de copiar (abaixo).
+- Sul: `JLabel` de status com o estilo de status bar acima, começa `Desconectado`.
 - Fechar: `DO_NOTHING_ON_CLOSE` + `WindowListener.windowClosing` → `fechar()`.
 
 Config lida no construtor: `mapeador.intervaloSegundos` (default 3), `mapeador.saida` (default `docs/mapeamento`).
@@ -1213,7 +1318,7 @@ Config lida no construtor: `mapeador.intervaloSegundos` (default 3), `mapeador.s
 
 #### Espelho (janela única "Espelho", criada uma vez, `HIDE_ON_CLOSE`)
 
-- Norte: painel de teste — combo de estratégias (`id`, `accessibility id`, `xpath`, `class name`, `-android uiautomator`, `ios predicate`, `ios class chain`), campo de texto (32 colunas), checkbox **tela atual**, botão **Testar** (Enter no campo também testa).
+- Norte: painel de teste (`JPanel` `FlowLayout(LEFT, 8, 6)`) — combo de estratégias (`id`, `accessibility id`, `xpath`, `class name`, `-android uiautomator`, `ios predicate`, `ios class chain`), campo de texto (32 colunas, `putClientProperty("JTextField.placeholderText", "id, xpath ou cole @AndroidFindBy / AppiumBy...")`), checkbox **tela atual**, botão **Testar** com `destacar` (Enter no campo também testa).
 - Centro: `JSplitPane` horizontal: imagem (JLabel alinhado topo-esquerda, desenha por cima retângulos vermelhos com traço 3 — os matches do teste, ou senão o destaque do hover) | tabela `Atributo, Valor` (não editável).
 - Sul: label de resultado do teste.
 - Mostrar quadro: se a janela principal já foi descartada → não faz nada (lição: tick em voo não ressuscita o espelho). Se há resultado de teste na tela → não troca a foto. Senão troca a imagem; congelado → só some o destaque; não congelado → recalcula o hover no último ponto do mouse. Primeira vez: `pack` + `setLocationByPlatform`. Só fica visível quando Scanear/Inspecionar pediram (o tick só atualiza).
@@ -1227,7 +1332,7 @@ Config lida no construtor: `mapeador.intervaloSegundos` (default 3), `mapeador.s
 2. `parseLocator(texto)`; se casou usa estratégia/valor colados; senão valor cru com `estrategiaDoCru(texto, combo)`. Atualiza o combo para a estratégia usada.
 3. Foto nova se **tela atual** desmarcado ou não há quadro. Desabilita Testar, `Testando...`.
 4. No executor: (foto nova?) fotografar; `encontrar(estrategia, valor)`; (foto nova?) quadro. EDT: mostra resultado. Erro → só a **primeira linha** da mensagem (`erro: <linha>`; sem mensagem usa o nome da classe).
-5. Mostrar resultado: reabilita Testar; janela descartada → sai; com quadro novo troca a imagem e congela; matches = bounds/`r` em vermelho; destaque some em **todos** os ramos; `N encontrado(s)` ou `erro: ...`.
+5. Mostrar resultado: reabilita Testar; janela descartada → sai; com quadro novo troca a imagem e congela; matches = bounds/`r` em vermelho; destaque some em **todos** os ramos; `N encontrado(s)` ou `erro: ...`; cor do texto `UIManager.getColor(erro != null ? "Actions.Red" : bounds.isEmpty() ? "Actions.Yellow" : "Actions.Green")` (o retângulo de match continua vermelho).
 
 #### Popups de copiar (lição 33)
 
@@ -1258,7 +1363,7 @@ Célula: `|` vira `\|`, quebras de linha viram espaço. Valor entre crases, exce
 
 ## 10 — Spec: testes offline (sem device)
 
-JUnit Jupiter (`org.junit.jupiter.api.Test` + `Assertions`). Classes package-private, mesmo pacote da classe testada. Rodam com `mvn -q test -Dtest='InspetorTest,MapeadorElementosTest'` (o Surefire só inclui `Run*Test`; `-Dtest` sobrepõe).
+JUnit Jupiter (`org.junit.jupiter.api.Test` + `Assertions`). Classes package-private, mesmo pacote da classe testada. Rodam com `mvn -q test -Dtest='InspetorTest,MapeadorElementosTest,AmbienteTest,PainelTestesTest'` (o Surefire só inclui `Run*Test`; `-Dtest` sobrepõe). Total: 17 + 14 + 5 + 3 = **39**.
 
 ### core/InspetorTest — 17 testes
 
@@ -1309,6 +1414,36 @@ Strings abaixo são o **valor Java resultante** (não o literal do código-fonte
 | 13 | `cruComBarraViraXpathIgnorandoOCombo` | `estrategiaDoCru` com (`//android.widget.Button`, `accessibility id`), (`/hierarchy/android.widget.FrameLayout`, `id`), (`br.app:id/botao`, `id`), (`android.widget.Button`, `class name`) | `xpath`, `xpath`, `id`, `class name` |
 | 14 | `estrategiaDesconhecidaCaiComoXpath` | `snippet(BY, "desconhecida", "//x", false)` | `AppiumBy.xpath("//x")` |
 
+### core/AmbienteTest — 5 testes
+
+Javadoc: check offline do parsing de adb/simctl/xctrace (sem device nem Xcode). Fixture `ADB` (text block, `\t` = tab):
+
+```
+List of devices attached
+emulator-5554\tdevice
+R58M123ABC\tdevice
+emulator-5556\toffline
+ZY22XYZ\tunauthorized
+```
+
+| # | Nome | Dado | Esperado |
+|---|---|---|---|
+| 1 | `adbSeparaEmuladorDeFisicoEIgnoraOfflineEUnauthorized` | `filtrarAdb(ADB, false)` e `filtrarAdb(ADB, true)` | `[emulator-5554]` e `[R58M123ABC]` |
+| 2 | `simctlPegaSoBooted` | `== Devices ==` / `-- iOS 18.0 --` / `    iPhone 16 (8A1B2C3D-1111-2222-3333-444455556666) (Booted)` / `    iPhone 15 (9A1B2C3D-1111-2222-3333-444455556666) (Shutdown)` | `[8A1B2C3D-1111-2222-3333-444455556666]` |
+| 3 | `xctracePegaSoDeviceFisicoComVersao` | `== Devices ==` / `MacBook Pro de Luis (6C2D1A44-AAAA-BBBB-CCCC-DDDDEEEEFFFF)` / `iPhone de Luis (18.1) (00008110-001A2B3C4D5E801E)` / `== Devices Offline ==` / `iPad velho (17.2) (00008020-0000000000000000)` / `== Simulators ==` / `iPhone 16 (18.0) (8A1B2C3D-1111-2222-3333-444455556666)` | `[00008110-001A2B3C4D5E801E]` (Mac sem versão, offline e simulador ficam de fora) |
+| 4 | `explicaPorQueNaoAchou` | `explicar(ANDROID_EMULADOR, ADB)`; `explicar(ANDROID_FISICO, ADB)`; `explicar(ANDROID_EMULADOR, "List of devices attached\n\n")`; `explicar(ANDROID_EMULADOR, "* cannot connect to daemon\n")`; `explicar(IOS_SIMULADOR, <erro do xcrun sem simctl>)` | `não pronto: emulator-5556 offline`; `não pronto: ZY22XYZ unauthorized`; `nenhum`; `adb: * cannot connect to daemon`; `Xcode não instalado` |
+| 5 | `semXcodeDaVazio` | `xcrun: error: unable to find utility "simctl", not a developer tool or in PATH` em `filtrarSimctl` e `filtrarXctrace` | lista vazia nos dois |
+
+### tools/PainelTestesTest — 3 testes
+
+Javadoc: check offline da descoberta e do filtro por tag do painel (sem emulador). Contagens do projeto base (só a suíte de fábrica); a cada feature nova, atualizar.
+
+| # | Nome | Chamada | Esperado |
+|---|---|---|---|
+| 1 | `descobreOsCenariosDeFeatures` | `PainelTestes.descobrir()` | 1 cenário (`Abrir a tela de Ajustes`); 1 casa `@smoke`; todos com `funcionalidade()` e `nome()` não vazios |
+| 2 | `percentualDeSucesso` | `percentual(0, 0)`, `percentual(5, 6)`, `percentual(6, 6)` | `0`, `83`, `100` |
+| 3 | `expressaoComposta` | `casa("@smoke and not @wip", ...)` com `[@smoke]` e com `[@smoke, @wip]` | `true` e `false` |
+
 
 ## Anexo 11
 
@@ -1321,9 +1456,10 @@ Tudo aqui é **texto** do projeto gerado (Markdown). Escrever em pt-BR.
 Primeira linha `# CLAUDE.md` + frase "This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository."
 
 1. **`## O que é este repositório`** — projeto base de automação mobile do time: Java 25 + Appium 3 + Cucumber 8 + Allure 3, Android (UiAutomator2) e iOS (XCUITest) com o mesmo código. App default = Settings do Android (`com.android.settings`/`.Settings`); iOS = `com.apple.Preferences`; trocar de app = só config ou constantes do `RodarPorTag`. Padrões de suíte real em `docs/padroes-suite-real.md`.
-2. **`## Comandos`** — bloco bash com: `mvn -q -DskipTests test-compile`; `mvn test -Dplatform=android`; `mvn test -Dplatform=ios`; `mvn test -Dcucumber.filter.tags="@smoke"`; `mvn test -Dcucumber.features=src/test/resources/features/ajustes.feature`; `mvn test -Dtest=InspetorTest`; `mvn test -Dtest=MapeadorElementosTest`; `mvn -q test-compile exec:java`. Depois um parágrafo sobre o ▶ do `RodarPorTag` (constantes, `System.setProperty` antes do `Config`, `-D` ganha, sobe emulador+Appium via `Ambiente.garantirNoAr()`, dry-run não sobe nada). Depois os pré-requisitos por execução via Maven (exports de `JAVA_HOME`/`PATH`/`ANDROID_HOME`, `appium`, `emulator -avd`, `adb devices`), e a nota de que `emulator`/`adb` não estão no PATH e que qualquer chave do config é sobreposta por `-Dchave=valor`.
+2. **`## Comandos`** — bloco bash com: `mvn -q -DskipTests test-compile`; `mvn test -Dplatform=android`; `mvn test -Dplatform=ios`; `mvn test -Dcucumber.filter.tags="@smoke"`; `mvn test -Dcucumber.features=src/test/resources/features/ajustes.feature`; `mvn test -Dtest=InspetorTest`; `mvn test -Dtest=MapeadorElementosTest`; `mvn -q test-compile exec:java` (Mapeador); `mvn -q test-compile exec:java -Dexec.mainClass=br.com.automacao.tools.PainelTestes` (Painel de testes); `mvn test -Dtest=PainelTestesTest`; `mvn test -Dtest=AmbienteTest`. Depois um parágrafo sobre o ▶ do `RodarPorTag` (constantes, `System.setProperty` antes do `Config`, `-D` ganha, sobe emulador+Appium via `Ambiente.garantirNoAr()`, dry-run não sobe nada). Depois os pré-requisitos por execução via Maven (exports de `JAVA_HOME`/`PATH`/`ANDROID_HOME`, `appium`, `emulator -avd`, `adb devices`), e a nota de que `emulator`/`adb` não estão no PATH e que qualquer chave do config é sobreposta por `-Dchave=valor`.
+   Logo após o bloco de comandos, um parágrafo por ferramenta de `tools/`: Mapeador (espelho com hover, copiar e testar locator, FlatLaf com `mapeador.tema`) e Painel de testes (lista todos os cenários, marca por checkbox ou tag, escolhe plataforma/destino, reexecuta falhas N vezes, barras + % de sucesso + log ao vivo, `Abrir relatório`; aba Ambiente verifica Appium e devices com o motivo quando falta).
 3. **`## Arquitetura`** — diagrama `feature → steps → screens → core` e as 5 fronteiras (só `core` importa Appium/Selenium; steps nunca tocam driver; screens não expõem locators; um Page Object para as duas plataformas via `@AndroidFindBy` + `@iOSXCUITFindBy`; driver só no `ThreadLocal`). Camada `tools/`. Ponteiro para `standards/` (ADR 0002 substituído pelo 0004).
-4. **`## Pegadinhas`** — uma linha por lição de Anexo 02 dos grupos A, B, F e G (PageFactory do Appium; glue na raiz; Selenium pinado; `ANDROID_HOME` no shell do appium com a mensagem de erro exata; Jackson; `# language: pt`; `@SelectPackages`; Surefire só `Run*Test`; `exec:java` não compila; ThreadLocal × Mapeador; `create(false)`; `/appium/sessions` e `--allow-insecure=*:session_discovery`; `Ambiente` via `/bin/zsh -ic`, macOS only; relatório Allure único e onde fica; adapter shafthq; CLI via `npx` e não rodar `allure generate` à mão; evidência via `scenario.attach`, vídeo em Desmontagem, ~22 MB; app nasce vazio; locator de app de sistema é frágil).
+4. **`## Pegadinhas`** — uma linha por lição de Anexo 02 dos grupos A, B, F e G (PageFactory do Appium; glue na raiz; Selenium pinado; `ANDROID_HOME` no shell do appium com a mensagem de erro exata; Jackson; `# language: pt`; `@SelectPackages`; Surefire só `Run*Test`; `exec:java` não compila; ThreadLocal × Mapeador; `create(false)`; `/appium/sessions` e `--allow-insecure=*:session_discovery`; `Ambiente` via `/bin/zsh -ic`, macOS only; relatório Allure único e onde fica; adapter shafthq; CLI via `npx` e não rodar `allure generate` à mão; evidência via `scenario.attach`, vídeo em Desmontagem, ~22 MB; app nasce vazio; locator de app de sistema é frágil) e do grupo H (barra em `JPanel` e não `JToolBar` com FlatLaf; `tema()` antes da janela; `exec.mainClass` é propriedade e `-Dexec.mainClass=` troca a classe; `Config` cacheia por plataforma; `device` + `udid` escolhem o alvo e o `Ambiente` fixa o `udid`; Painel manda `cucumber.filter.tags` vazio; `-Drelatorio.manual=true` desliga limpar/gerar automáticos e o Painel gera uma vez por Rodar; `Abrir relatório` usa `open`).
 5. **`## Rotina obrigatória de documentação`** — **texto exato**:
 
 ```
@@ -1339,7 +1475,7 @@ Toda sessão que adicionar ou mudar feature/automação **deve, antes de encerra
 
 ### README.md (raiz)
 
-Seções: título "Automação Mobile — Java + Appium + Cucumber + Allure"; **Stack** (tabela de versões: Java 25, Maven 3.9+, Node 20.19+, Appium 3.9.0 + uiautomator2 8.7.3, java-client 11.0.0, Selenium 4.52.0 pinado, Cucumber 8.0.4, JUnit Platform 6.1.3, Allure adapter/commons/CLI); **Setup** (JAVA_HOME, `npm i -g appium@3.9.0`, drivers); **Rodando** (▶ recomendado; Maven em 3 abas); **Relatório** (HTML único, `resumo.md`, histórico, `-Dvideo.enabled=false`); **Mapeador de elementos** (o que faz, 2 comandos); **Estrutura** (árvore de pastas com uma linha por pasta e as classes de cada pacote).
+Seções: título "Automação Mobile — Java + Appium + Cucumber + Allure"; **Stack** (tabela de versões: Java 25, Maven 3.9+, Node 20.19+, Appium 3.9.0 + uiautomator2 8.7.3, java-client 11.0.0, Selenium 4.52.0 pinado, Cucumber 8.0.4, JUnit Platform 6.1.3, Allure adapter/commons/CLI); **Setup** (JAVA_HOME, `npm i -g appium@3.9.0`, drivers); **Rodando** (▶ recomendado; Maven em 3 abas); **Relatório** (HTML único, `resumo.md`, histórico, `-Dvideo.enabled=false`); **Mapeador de elementos** (o que faz, 2 comandos); **Painel de testes** (o que faz, comando com `-Dexec.mainClass`); **Estrutura** (árvore de pastas com uma linha por pasta e as classes de cada pacote).
 
 ### standards/
 
@@ -1356,7 +1492,7 @@ Tabela: `architecture.md` (camadas, fronteiras, imports), `code-style.md` (nomes
 | `screens` | declarar locators, estender `BaseScreen`, usar `wait` | `System.out`, assert, conhecer step/feature |
 | `steps` | chamar screens, assertar | `driver.findElement`, locator, `By`, `Thread.sleep` |
 | `runner` | configurar a suíte | lógica de teste |
-| `tools` | chamar `core`, Swing/JDK, gravar em `docs/` | importar `io.appium`/`org.openqa`, ser chamada por outras camadas, guardar driver |
+| `tools` | chamar `core` (inclusive Launcher API do JUnit para rodar a suíte, no caso do Painel), Swing/JDK/FlatLaf, gravar em `docs/` | importar `io.appium`/`org.openqa`, ser chamada por outras camadas, guardar driver |
 
 - Regras duras numeradas (as 6): só core importa Appium/Selenium (exceção: screens importam as anotações e `WebElement`, e a `BaseScreen` importa também `AppiumDriver`/`AppiumFieldDecorator`/`PageFactory`/`WebDriverWait`/`ExpectedConditions`; `Evidencias` é a única classe de core além de DriverFactory/DriverManager que toca `CanRecordScreen`/`TakesScreenshot`); steps não tocam driver; screen expõe comportamento; um Page Object para as duas plataformas (divergiu demais → subclasse, nunca `if (android)`); driver em ThreadLocal, nenhum outro estático mutável (exceção documentada: `Inspetor`, ADR 0003); `BaseScreen` resolve o PageFactory.
 - Seção "Por que não hexagonal, saga, DDD": não há domínio de negócio, o repo inteiro é um adaptador que conversa com device; a fronteira que paga é "o teste não sabe como o device é dirigido" (core × resto); o equivalente local de saga é o `@After` garantindo `quit()`. Revisitar se surgir lógica própria.
@@ -1383,7 +1519,7 @@ Formato: `# ADR NNNN — <título>`, `**Data:**` (a data de hoje), `**Status:**`
 ### docs/
 
 #### docs/README.md
-"Uma página por feature automatizada, em `features/<slug>.md`, com o mesmo slug do `.feature`. Atualizar sempre que a automação mudar — regra em `CLAUDE.md`." + **Índice** (tabela Feature | Arquivo | Plataformas | Status) com as 3 páginas abaixo + seção "Relatórios de mapeamento" (`mapeamento/` guarda os `.md` do Mapeador, **é versionado**, diferente de `evidencias/`) + **Template**:
+"Uma página por feature automatizada, em `features/<slug>.md`, com o mesmo slug do `.feature`. Atualizar sempre que a automação mudar — regra em `CLAUDE.md`." + **Índice** (tabela Feature | Arquivo | Plataformas | Status) com as 4 páginas abaixo + seção "Relatórios de mapeamento" (`mapeamento/` guarda os `.md` do Mapeador, **é versionado**, diferente de `evidencias/`) + **Template**:
 
 ```markdown
 # <Nome da feature>
@@ -1409,7 +1545,24 @@ Pelo template: smoke do próprio framework contra o Settings nativo (sem APK); p
 Infra não Gherkin (`Evidencias`, `Hooks`, `RelatorioAllure`, `ResumoMarkdown`; ADR 0004). Seções: **O que gera** (árvore `evidencias/historico-allure.jsonl` + `<timestamp>/resumo.md` + `<timestamp>/relatorio-allure/index.html` — o anexo da GMUD é só o `index.html`; pela IDE vai para `evidencias/relatorio-allure/` e sobrescreve); **Como funciona** (Cucumber → AllureCucumber8Jvm → `target/allure-results`; Hooks anexam png/mp4; `RelatorioAllure` no fim roda `npx allure generate`); pinos; **Pegadinhas** (não gerar à mão; vídeo em Desmontagem; ~22 MB; adapter não oficial; timestamp UTC); **Compressão do vídeo** (tabela das chaves `video.*` com defaults Android/iOS e efeito; `video.quality` aceita `LOW`/`MEDIUM`/`HIGH`/`PHOTO`); **Pendências** (iOS não testado; teto de 180 s; sem limpeza automática — `find evidencias -maxdepth 1 -mtime +7 -type d -name '20*' -exec rm -rf {} +`, sem apagar o histórico); **Plataforma e app no relatório** (`environment.properties`; exibição no Allure 3 ainda a confirmar, alternativa `--report-name`).
 
 #### docs/features/mapeador-elementos.md
-Ferramenta (não Gherkin). Seções: o que é; como rodar (pré-requisitos + `mvn -q test-compile exec:java` + `mvn test -Dtest=InspetorTest`); passo a passo de uso (Conectar → Scanear/Inspecionar → hover/clique congela → clique direito copia → Testar → Stop grava em `docs/mapeamento/`); como o locator é escolhido (prioridade, unicidade no snapshot, absoluto como último recurso); assinatura de tela; config `mapeador.*`; limitações (iOS não testado, heurística de filtro, Appium 3 `/appium/sessions`).
+Ferramenta (não Gherkin). Seções: o que é; como rodar (pré-requisitos + `mvn -q test-compile exec:java` + `mvn test -Dtest=InspetorTest`); passo a passo de uso (Conectar → Scanear/Inspecionar → hover/clique congela → clique direito copia → Testar → Stop grava em `docs/mapeamento/`); como o locator é escolhido (prioridade, unicidade no snapshot, absoluto como último recurso); assinatura de tela; config `mapeador.*`; visual (FlatLaf, `mapeador.tema=auto|claro|escuro`, cores do resultado do Testar); limitações (iOS não testado, heurística de filtro, Appium 3 `/appium/sessions`).
+
+#### docs/features/painel-testes.md
+Ferramenta (não Gherkin; plano no `plans/`). Seções:
+- **O que faz** — as três abas:
+  - **Testes**: tabela com checkbox; `Tag` com expressão Cucumber e `Marcar pela tag`; `Marcar todos`/`Limpar`; segunda linha com `Plataforma`, `Destino`, `Reexecutar falhas` (0–5) e `Rodar`.
+  - **Execução**: barras Total/Sucesso/Erro com resultado final; lista ⏳/✔/✘, onde o clique no vermelho mostra a stack; `NN% de sucesso`; `Abrir relatório`; log ao vivo sem ANSI; rodapé com contagem, reexecuções e caminho do relatório.
+  - **Ambiente**: checkboxes, `Verificar` e o motivo quando está vermelho.
+- **Como usar** — comando, `Ambiente.garantirNoAr()` por destino e fixação do `udid`.
+- **Como funciona** — Launcher API, `selectUniqueId`, tags vazias, executores, `relatorio.manual`, reexecução pelos `uniqueId` falhos, dry-run.
+- **Testes** — `PainelTestesTest`, `AmbienteTest`.
+- **Pendências conhecidas**:
+  - sem botão de parar;
+  - nomes de cenário iguais colidem na lista;
+  - iOS físico exige assinatura do WDA (`xcodeOrgId`/`xcodeSigningId`) e `platformVersion` do aparelho;
+  - Page Objects só com `@AndroidFindBy` falham em iOS;
+  - só o emulador Android sobe sozinho;
+  - reexecução que passa (Erro→Sucesso) só exercitada com device real.
 
 #### docs/padroes-suite-real.md
 Conteúdo de Anexo 12 (padrões de suíte real), com o título "Padrões de uma suíte real".
@@ -1422,7 +1575,7 @@ Arquivo vazio (a pasta é versionada).
 "Histórico de tudo que foi planejado neste repositório. Este diretório é a fonte da verdade — Claude Code grava planos em `~/.claude/plans/`, fora do repo." **Convenção**: `NNNN-<slug>.md`, 4 dígitos sequenciais, nunca reaproveitar; cabeçalho obrigatório (`# <Título>`, `**Status:** proposto | implementado`, `**Data:** AAAA-MM-DD`, `**Implementado em:** AAAA-MM-DD (ou "—")`); nasce `proposto`, vira `implementado` só quando o código entra; plano aprovado não autoriza implementação. **Índice** (tabela # | Plano | Status) com a linha `0001 | Setup inicial do projeto base | implementado`.
 
 #### plans/0001-setup-inicial.md
-Criado no fim do setup: cabeçalho com status `implementado` e a data; resumo do que foi construído por fase e o resultado de cada gate (G0–G8), pendências (ex.: iOS sem Xcode).
+Criado no fim do setup: cabeçalho com status `implementado` e a data; resumo do que foi construído por fase e o resultado de cada gate (G0–G9), pendências (ex.: iOS sem Xcode).
 
 
 ## Anexo 12
@@ -1479,6 +1632,96 @@ Testar o que o estado limpo permite: "Continuar ouvindo" exige progresso real de
 | Biblioteca | assina 1 podcast → abre Biblioteca | existe botão "Desassinar …" |
 | Rádio | abre Rádio → toca a 1ª rádio | player com SeekBar "Volume" |
 | Ajustes do app | abre Ajustes → toca "Escuro" | botão "Escuro" com `selected=true` |
+
+
+## Anexo 13
+
+## 13 — Spec: Painel de testes (`tools/PainelTestes`)
+
+`public class PainelTestes`. Javadoc: janela que lista os cenários Cucumber do projeto, roda os marcados (à mão ou por tag) e acompanha a execução: barras de total/sucesso/erro, status por cenário e log ao vivo; mesmo engine/descoberta do `RodarPorTag`, via Launcher API; glue e plugins (Allure incluso) continuam vindo do `junit-platform.properties`. Fica em `tools`: não importa Appium/Selenium; chama `core.Ambiente`, `core.Config`, `core.RelatorioAllure` e reusa `MapeadorElementos.tema()`/`destacar()`.
+
+### main
+
+```
+System.setProperty("relatorio.manual", "true");   // comentário: o painel limpa/gera o Allure uma vez por clique em Rodar, cobrindo as reexecuções
+MapeadorElementos.tema();
+SwingUtilities.invokeLater(() -> new PainelTestes().abrir());
+```
+
+### Partes testáveis (package-private, cobertas pelo `PainelTestesTest`)
+
+- `record Cenario(String id, String funcionalidade, String nome, List<String> tags)` — `id` é o `UniqueId` do JUnit Platform, usado pra rodar só ele.
+- `static List<Cenario> descobrir()`: `LauncherFactory.create().discover(request(List.of(DiscoverySelectors.selectPackage("features"))))`; para cada descendente das raízes que `isTest()`: funcionalidade = display name do pai (ou `""`), tags = nomes com `@` na frente se faltar, ordenadas.
+- `private static LauncherDiscoveryRequest request(List<? extends DiscoverySelector> seletores)`: `selectors(seletores)`, `filters(EngineFilter.includeEngines("cucumber"))`, `configurationParameter(Constants.FILTER_TAGS_PROPERTY_NAME, "")` (Javadoc: filtro de tag vazio sobrepõe qualquer filtro do `junit-platform.properties`; a seleção manda — lição 58).
+- `static boolean casa(String expressao, List<String> tags)`: `TagExpressionParser.parse(expressao).evaluate(tags)` (`io.cucumber.tagexpressions`, transitivo do Cucumber).
+- `static int percentual(int ok, int total)`: `total == 0 ? 0 : ok * 100 / total`.
+
+### Estado
+
+- `enum Status` privado: `RODANDO("⏳")`, `PASSOU("✔")`, `FALHOU("✘")`.
+- `private record Item(Alvo alvo, JCheckBox caixa, JLabel resultado)` — linha da aba Ambiente; `alvo` nulo = Appium.
+- Cores `VERDE = new Color(0x2E, 0xA0, 0x43)`, `VERMELHO = new Color(0xD1, 0x3B, 0x3B)`; `ANSI = "\u001B\\[[;\\d]*m"`.
+- `Map<String, Status> status` e `Map<String, String> falhas` (chave = nome do cenário; só a EDT mexe).
+- `Set<String> falhos` (uniqueId dos que falharam na rodada) e `int tentativa` — só a thread do executor mexe.
+- `executor = Executors.newSingleThreadExecutor()` (comentário: o Hooks cria o driver ThreadLocal na thread que executa) e `verificacao = Executors.newSingleThreadExecutor()` (comentário: Verificar não espera uma execução longa terminar) — lição 57.
+- UI só na EDT via `ui(Runnable)` = `SwingUtilities.invokeLater`.
+
+### Janela "Painel de testes" (`JFrame` 1100×700, `setLocationRelativeTo(null)`, `EXIT_ON_CLOSE`)
+
+`JTabbedPane` com as abas **Testes**, **Execução**, **Ambiente**; sul = rodapé (`JLabel " "`, estilo de status bar do Anexo 09).
+
+#### Aba Testes
+- Tabela: modelo com colunas `{"", "Funcionalidade", "Cenário", "Tags"}`, coluna 0 `Boolean` e a única editável; uma linha por cenário (`false`, funcionalidade, nome, tags unidas por espaço). Larguras `{36, 220, 560, 160}`, coluna 0 `setMaxWidth(40)`, `setAutoCreateRowSorter(true)`. Mudança no modelo → `contar()` = `"<n> de <total> selecionados"`.
+- Linha 1 (`JPanel` `FlowLayout(LEFT, 6, 6)`): `Tag:` + combo editável com todas as tags descobertas (`TreeSet`), `setPrototypeDisplayValue("@smoke and not @wip")`; **Marcar pela tag** (marca exatamente os que casam, desmarca o resto; expressão inválida → rodapé `Expressão de tag inválida: <msg>`); **Marcar todos**; **Limpar**; label de selecionados.
+- Linha 2 (mesmo layout): `Plataforma:` combo `{"android", "ios"}` (selecionado = `Config.platform()`), `Destino:` combo `{"Emulador/Simulador", "Device físico"}`, `Reexecutar falhas:` `JSpinner(new SpinnerNumberModel(0, 0, 5, 1))`, **Rodar** com `destacar`.
+- As duas linhas num `JPanel(new GridLayout(2, 1))` no norte (lição 56); tabela num `JScrollPane` no centro.
+
+#### Aba Execução
+- Barras num `GridLayout(3, 1, 0, 6)` com borda vazia 10: `Total` (cor `Component.accentColor`), `Sucesso` (`VERDE`), `Erro` (`VERMELHO`); cada linha = `JLabel` 70×20 à esquerda + `JProgressBar` com `setStringPainted(true)` e texto `"0/0"`.
+- Abaixo das barras (`FlowLayout(LEFT, 10, 0)`): `percentual` (`JLabel " "`, fonte `BOLD` 22) e **Abrir relatório** (habilitado se `relatorio()` existe, inclusive de run anterior).
+- Centro: `JSplitPane` horizontal (divisor em 360): lista de execução | log (`JTextArea` não editável, `Font.MONOSPACED` 12).
+- Renderer da lista: `<ícone>  <nome>`; fora da seleção, `PASSOU` em verde e `FALHOU` em vermelho. Clique num nome com falha → `JOptionPane.showMessageDialog` `ERROR_MESSAGE` com a stack num `JTextArea` 20×80 monoespaçado.
+
+#### Aba Ambiente
+- Itens: `Appium` + um por `Alvo` (rótulo do enum), todos `JCheckBox` marcados. Cada item numa linha `FlowLayout(LEFT, 8, 0)` (checkbox com largura preferida 170 + label de resultado colado), linhas num `GridLayout(n, 1, 0, 4)` (comentário: resultado colado no checkbox; `GridLayout` de 2 colunas jogava o texto pra longe).
+- Barra: `Marque o que verificar:` + **Verificar** com `destacar`.
+- `verificar()`: marcados = itens selecionados; cada resultado volta à cor `Label.foreground` com `verificando...` (marcados) ou `" "`; desabilita Verificar; no executor `verificacao`, para cada marcado: Appium → `Ambiente.appiumNoAr()`, detalhe `no ar` ou `fora (<serverUrl>)`; alvo → `Ambiente.devices(alvo)`, detalhe = ids unidos por `, ` ou `Ambiente.diagnostico(alvo)` se vazio; exceção → `erro: <msg>`. Na EDT: cor `VERDE`/`VERMELHO`, texto `●  <detalhe>`. No fim reabilita Verificar.
+
+### Rodar
+
+`aoRodar()` (EDT):
+1. Nenhum marcado → rodapé `Marque ao menos um cenário.` e sai.
+2. Desabilita Rodar; limpa `status`, `falhas`, lista, log e `percentual`; as três barras com máximo = marcados, valor 0, texto `0/<n>`.
+3. `System.setProperty("platform", <combo>)`, `System.setProperty("device", destino == "Device físico" ? "fisico" : "emulador")` (comentário: antes de tocar no Config/Ambiente, que leem na hora).
+4. Vai para a aba Execução; rodapé `Rodando <n> cenário(s) em <Alvo.atual().rotulo>...`; submete `executar(escolhidos, <valor do spinner>)` ao `executor`.
+
+`executar(escolhidos, vezes)` (executor):
+1. Troca `System.out`/`System.err` por `tee` (escreve no original e no log da tela, removendo `ANSI`; `PrintStream` UTF-8 autoflush; comentário `ponytail:` ANSI cortado entre dois writes escapa do regex).
+2. `[painel] subindo ambiente (emulador + Appium) se preciso...` e `Ambiente.garantirNoAr()`.
+3. `RelatorioAllure.limparResultados()`; `rodada` = ids dos escolhidos; `tentativa = 0`; laço: `falhos.clear()`, `LauncherFactory.create().execute(request(selectUniqueId de cada id), new Ouvinte())`; para se `falhos` vazio ou `tentativa == vezes`; senão `tentativa++`, `rodada = List.copyOf(falhos)` e imprime `[painel] reexecutando <n> falha(s), tentativa <k>/<vezes>`.
+4. `RelatorioAllure.gerar()` e, na EDT, `fim(tentativa)`.
+5. Exceção → stack no log e rodapé `Falha ao rodar: <msg>`. `finally`: restaura `System.out`/`System.err` e reabilita Rodar.
+
+`Ouvinte implements TestExecutionListener` (só `isTest()`):
+- `executionStarted`: EDT → `status.put(nome, RODANDO)`; se não havia entrada, adiciona o nome na lista (reexecução reaproveita a linha e só volta pra ⏳); repaint.
+- `executionFinished`: `ok = SUCCESSFUL`; não ok → `falhos.add(uniqueId)`; `reexecucao = tentativa > 0`; falha = stack do throwable ou o status; EDT → `concluir(nome, ok, falha, reexecucao)`.
+- `executionSkipped`: adiciona na lista e `concluir(nome, false, "Pulado: " + motivo, false)`.
+
+`concluir(nome, ok, falha, reexecucao)` (Javadoc: barras mostram o resultado final):
+- `status` = `PASSOU`/`FALHOU`; não ok → `falhas.put`; ok → `falhas.remove`.
+- Rodada 0: avança Total e (Sucesso ou Erro). Reexecução que passou: Erro −1 (texto atualizado) e Sucesso +1, Total não muda. Reexecução que falhou de novo: barras não mudam.
+- Barras mostram `<valor>/<máximo>`.
+
+`fim(reexecucoes)` (EDT):
+- `pct = percentual(sucesso, total.getMaximum())`; `percentual` = `<pct>% de sucesso`, verde se 100, senão vermelho.
+- Reavalia o Abrir relatório.
+- Rodapé `Fim: <ok> de <total> passaram (<pct>%)` + (` · <k> reexecução(ões)` se k > 0) + ` · relatório <caminho absoluto>`.
+
+`relatorio()` = `Path.of(System.getProperty("evidencias.dir", "evidencias"), "relatorio-allure", "index.html")`.
+
+`abrirRelatorio()` (Javadoc: HTML único do Allure abre offline no navegador padrão; `ponytail:` `open` do macOS, `Desktop.browse` não abria nada dentro do `exec:java` — lição 60): `new ProcessBuilder("open", relatorio().toAbsolutePath().toString()).start()`; exceção → rodapé `Não deu para abrir o navegador; relatório em <caminho>`.
+
+Dry-run (`-Dcucumber.execution.dry-run=true`) funciona: o `Ambiente` não sobe nada, nenhuma sessão é aberta e o `gerar()` pula.
 
 
 ## Anexo SH — verificar-maquina.sh
