@@ -15,9 +15,10 @@ Fora de escopo por natureza: Library/Home (já 100% drift, sem rede no
 caminho) e refresh de assinatura via RSS (`LibraryRepository.refreshFeed`,
 já tem cache-fallback próprio).
 
-Branch base: `feature/ui-density-fase4-unify-episode-row` (PR #1 ainda
-aberto) — schema já em v8 lá; `feat/fase-9` (main) ainda está em v7.
-Rebasear quando o PR #1 mergear.
+Branch base: `feature/ui-density-fase4-unify-episode-row` (schema v8) —
+mergeado em `feat/fase-9` via PR #3 (2026-09-14), junto da Fase 28. `feat/
+fase-9` já está em v8. Nota antiga de "falta mergear com PR #1" ficou
+stale — PR #1 foi superado pelo PR #3, que já trouxe tudo.
 
 ## Design: tabela única `QueryCache` (blob JSON)
 

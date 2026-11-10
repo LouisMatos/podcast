@@ -22,6 +22,7 @@ import '../../support/fake_preferences.dart';
 /// tanto o que o `PlayerViewModel` mandou quanto o estado resultante.
 class _FakeHandler extends PodcastAudioHandler {
   final List<({List<String> ids, bool playFirst, bool autoPlay})> calls = [];
+  bool shouldThrowOnSetQueue = false;
 
   @override
   Future<void> setQueue(
@@ -30,6 +31,7 @@ class _FakeHandler extends PodcastAudioHandler {
     Duration? initialPosition,
     bool autoPlay = true,
   }) async {
+    if (shouldThrowOnSetQueue) throw Exception('URL inalcançável');
     calls.add((
       ids: [for (final i in items) i.id],
       playFirst: playFirst,
@@ -173,5 +175,20 @@ void main() {
     expect(await queueRepo.currentQueue(), isEmpty);
     expect(handler.last.ids, isEmpty);
     expect(handler.queue.value, isEmpty);
+  });
+
+  test('_syncQueue: setQueue lançando não deixa isPlaying/isBuffering presos', () async {
+    final vm = container.read(playerViewModelProvider.notifier);
+
+    await vm.playEpisode(podcast, ep('a'));
+    await settle();
+
+    handler.shouldThrowOnSetQueue = true;
+    await vm.enqueue(podcast, ep('b'));
+    await settle();
+
+    final state = container.read(playerViewModelProvider);
+    expect(state.isPlaying, isFalse);
+    expect(state.isBuffering, isFalse);
   });
 }

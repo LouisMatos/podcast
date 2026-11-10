@@ -53,7 +53,7 @@ final class RadioViewModelProvider
   }
 }
 
-String _$radioViewModelHash() => r'f2be26f68da3112cdef3d3b7337d50b80f0ec6dd';
+String _$radioViewModelHash() => r'a4587c007f25d86c20d9adf696368745de00e779';
 
 /// ViewModel da aba Rádio. Sem import de Flutter — testável sem widget.
 /// Toca direto no `PodcastAudioHandler` compartilhado, fora do fluxo de

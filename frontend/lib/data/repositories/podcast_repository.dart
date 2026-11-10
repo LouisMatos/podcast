@@ -3,9 +3,6 @@
 // pra usar initializing formals aqui.
 // ignore_for_file: prefer_initializing_formals
 
-import 'dart:convert';
-
-import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
@@ -16,6 +13,7 @@ import '../models/podcast.dart';
 import '../sources/apple_charts_api.dart';
 import '../sources/itunes_search_api.dart';
 import '../sources/rss_feed_parser.dart';
+import 'query_cache_store.dart';
 
 part 'podcast_repository.g.dart';
 
@@ -37,16 +35,16 @@ class PodcastRepository {
   })  : _searchApi = searchApi,
         _feedParser = feedParser,
         _chartsApi = chartsApi,
-        _db = db;
+        _cache = QueryCacheStore(db);
 
   final ItunesSearchApi _searchApi;
   final RssFeedParser _feedParser;
   final AppleChartsApi _chartsApi;
-  final AppDatabase _db;
+  final QueryCacheStore _cache;
 
   Future<List<Podcast>> search(String term) {
     final key = 'podcast_search:${_norm(term)}';
-    return _cacheAsideList<Podcast>(
+    return _cache.cacheAside<Podcast>(
       key: key,
       category: 'podcast_search',
       fetch: () => _searchApi.search(term),
@@ -57,11 +55,11 @@ class PodcastRepository {
 
   /// Último resultado salvo pra essa busca, `null` se nunca buscou.
   Future<List<Podcast>?> cachedSearchResults(String term) =>
-      _readCache('podcast_search:${_norm(term)}', _podcastFromJson);
+      _cache.read('podcast_search:${_norm(term)}', _podcastFromJson);
 
   Future<List<Episode>> episodesFor(Podcast podcast) {
     final key = 'podcast_episodes:${podcast.id}';
-    return _cacheAsideList<Episode>(
+    return _cache.cacheAside<Episode>(
       key: key,
       category: 'podcast_episodes',
       fetch: () => _feedParser.fetchEpisodes(podcast.feedUrl),
@@ -73,12 +71,12 @@ class PodcastRepository {
   /// Último feed salvo desse podcast, `null` se nunca abriu. Cobre inclusive
   /// podcast não-assinado (sem FK, ao contrário de `LibraryRepository`).
   Future<List<Episode>?> cachedEpisodesFor(Podcast podcast) =>
-      _readCache('podcast_episodes:${podcast.id}', _episodeFromJson);
+      _cache.read('podcast_episodes:${podcast.id}', _episodeFromJson);
 
   /// Busca episódios avulsos via iTunes (`entity=podcastEpisode`).
   Future<List<EpisodeSearchResult>> searchEpisodes(String term) {
     final key = 'episode_search:${_norm(term)}';
-    return _cacheAsideList<EpisodeSearchResult>(
+    return _cache.cacheAside<EpisodeSearchResult>(
       key: key,
       category: 'episode_search',
       fetch: () => _searchApi.searchEpisodes(term),
@@ -88,7 +86,7 @@ class PodcastRepository {
   }
 
   Future<List<EpisodeSearchResult>?> cachedEpisodeSearchResults(String term) =>
-      _readCache('episode_search:${_norm(term)}', _episodeSearchResultFromJson);
+      _cache.read('episode_search:${_norm(term)}', _episodeSearchResultFromJson);
 
   /// Resolve um único `collectionId` iTunes em [Podcast] completo, pro
   /// resolvedor de deep link `podcastapp://podcast/<id>`. `null` se a iTunes
@@ -104,7 +102,7 @@ class PodcastRepository {
   /// Os [limit] podcasts mais ouvidos no Brasil, em ordem de ranking.
   Future<List<RankedPodcast>> topPodcasts({int limit = 20}) {
     final key = 'top_podcasts:br:$limit';
-    return _cacheAsideList<RankedPodcast>(
+    return _cache.cacheAside<RankedPodcast>(
       key: key,
       category: 'top_podcasts',
       fetch: () async {
@@ -117,13 +115,13 @@ class PodcastRepository {
   }
 
   Future<List<RankedPodcast>?> cachedTopPodcasts({int limit = 20}) =>
-      _readCache('top_podcasts:br:$limit', _rankedFromJson);
+      _cache.read('top_podcasts:br:$limit', _rankedFromJson);
 
   /// Os podcasts mais ouvidos no Brasil dentro de uma categoria (genreId da
   /// Apple), em ordem de ranking.
   Future<List<Podcast>> podcastsByGenre(int genreId, {int limit = 50}) {
     final key = 'genre_podcasts:$genreId:$limit';
-    return _cacheAsideList<Podcast>(
+    return _cache.cacheAside<Podcast>(
       key: key,
       category: 'genre_podcasts',
       fetch: () async {
@@ -137,7 +135,7 @@ class PodcastRepository {
   }
 
   Future<List<Podcast>?> cachedPodcastsByGenre(int genreId, {int limit = 50}) =>
-      _readCache('genre_podcasts:$genreId:$limit', _podcastFromJson);
+      _cache.read('genre_podcasts:$genreId:$limit', _podcastFromJson);
 
   /// Resolve ids em [Podcast]s e reordena pela posição original — o
   /// `/lookup` não devolve na ordem pedida, e ids sem `feedUrl` somem.
@@ -156,50 +154,6 @@ class PodcastRepository {
   }
 
   String _norm(String term) => term.trim().toLowerCase();
-
-  /// Tenta a rede; sucesso escreve no `QueryCache`. Falha cai pro cache
-  /// salvo (se houver algo); sem cache, relança — mesmo comportamento de
-  /// antes do cache existir, pra primeira consulta de cada chave.
-  Future<List<T>> _cacheAsideList<T>({
-    required String key,
-    required String category,
-    required Future<List<T>> Function() fetch,
-    required Map<String, dynamic> Function(T) toJson,
-    required T Function(Map<String, dynamic>) fromJson,
-  }) async {
-    try {
-      final result = await fetch();
-      await _writeCache(key, category, result, toJson);
-      return result;
-    } catch (_) {
-      final cached = await _readCache(key, fromJson);
-      if (cached != null && cached.isNotEmpty) return cached;
-      rethrow;
-    }
-  }
-
-  Future<void> _writeCache<T>(
-    String key,
-    String category,
-    List<T> items,
-    Map<String, dynamic> Function(T) toJson,
-  ) {
-    return _db.into(_db.queryCache).insertOnConflictUpdate(
-          QueryCacheCompanion.insert(
-            cacheKey: key,
-            category: category,
-            payloadJson: jsonEncode(items.map(toJson).toList()),
-            fetchedAt: Value(DateTime.now()),
-          ),
-        );
-  }
-
-  Future<List<T>?> _readCache<T>(String key, T Function(Map<String, dynamic>) fromJson) async {
-    final row = await (_db.select(_db.queryCache)..where((t) => t.cacheKey.equals(key))).getSingleOrNull();
-    if (row == null) return null;
-    final decoded = jsonDecode(row.payloadJson) as List<dynamic>;
-    return decoded.map((e) => fromJson(e as Map<String, dynamic>)).toList();
-  }
 }
 
 Map<String, dynamic> _podcastToJson(Podcast p) => {

@@ -171,7 +171,13 @@ class _Bar extends ConsumerWidget {
               child: Row(
                 children: [
                   Hero(
-                    tag: 'podcast-artwork-${podcast?.id}',
+                    // Tag própria, não `podcast-artwork-<id>` — o mini-player
+                    // fica montado o tempo todo (shell persistente), então
+                    // compartilhar a tag com PodcastListTile/DiscoverScreen/
+                    // PodcastDetailScreen colide ("multiple heroes share
+                    // the same tag") sempre que o podcast tocando também
+                    // aparece na tela atual.
+                    tag: 'mini-player-artwork-${podcast?.id}',
                     // Capa decorativa: o título ao lado já é lido.
                     child: ExcludeSemantics(
                       child: ClipRRect(

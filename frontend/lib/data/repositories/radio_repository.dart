@@ -3,15 +3,13 @@
 // formal aqui.
 // ignore_for_file: prefer_initializing_formals
 
-import 'dart:convert';
-
-import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/network/dio_client.dart';
 import '../models/radio_station.dart';
 import '../sources/radio_browser_api.dart';
+import 'query_cache_store.dart';
 
 part 'radio_repository.g.dart';
 
@@ -23,42 +21,23 @@ const _brStationsCacheKey = 'radio_stations:br';
 /// Cache-aside via `QueryCache` (Fase 27): sucesso escreve a lista salva;
 /// falha de rede cai pro último resultado salvo, se houver.
 class RadioRepository {
-  RadioRepository({required this.api, required AppDatabase db}) : _db = db;
+  RadioRepository({required this.api, required AppDatabase db}) : _cache = QueryCacheStore(db);
 
   final RadioBrowserApi api;
-  final AppDatabase _db;
+  final QueryCacheStore _cache;
 
-  Future<List<RadioStation>> brStations() async {
-    try {
-      final result = await api.fetchBrStations();
-      await _writeCache(result);
-      return result;
-    } catch (_) {
-      final cached = await cachedBrStations();
-      if (cached != null && cached.isNotEmpty) return cached;
-      rethrow;
-    }
+  Future<List<RadioStation>> brStations() {
+    return _cache.cacheAside<RadioStation>(
+      key: _brStationsCacheKey,
+      category: 'radio_stations',
+      fetch: api.fetchBrStations,
+      toJson: _stationToJson,
+      fromJson: _stationFromJson,
+    );
   }
 
   /// Última lista salva, `null` se nunca buscou.
-  Future<List<RadioStation>?> cachedBrStations() async {
-    final row = await (_db.select(_db.queryCache)..where((t) => t.cacheKey.equals(_brStationsCacheKey)))
-        .getSingleOrNull();
-    if (row == null) return null;
-    final decoded = jsonDecode(row.payloadJson) as List<dynamic>;
-    return decoded.map((e) => _stationFromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  Future<void> _writeCache(List<RadioStation> stations) {
-    return _db.into(_db.queryCache).insertOnConflictUpdate(
-          QueryCacheCompanion.insert(
-            cacheKey: _brStationsCacheKey,
-            category: 'radio_stations',
-            payloadJson: jsonEncode(stations.map(_stationToJson).toList()),
-            fetchedAt: Value(DateTime.now()),
-          ),
-        );
-  }
+  Future<List<RadioStation>?> cachedBrStations() => _cache.read(_brStationsCacheKey, _stationFromJson);
 }
 
 Map<String, dynamic> _stationToJson(RadioStation s) => {

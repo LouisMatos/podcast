@@ -48,8 +48,12 @@ sem commit).
 - [x] `dart analyze` limpo, 236/236 testes
 
 ## Pendente
-- Fase 5+ não definidas (plano original de 8 fases perdido). Próximo passo:
-  revisar com usuário se quer definir fases 5–8 ou fechar aqui.
-- Medir APK size pós Fase 1–4 (ainda não feito nesta sessão).
+- Fases 1-4 commitadas (`ab2bd82`, branch `feat/radio` → herdada em
+  `feature/ui-review-fase28`, confirmado via `git log`/`git branch
+  --contains` em 2026-09-15) — nota antiga de "nada commitado" ficou
+  stale.
+- Fase 5+ não definidas (plano original de 8 fases perdido). Ver
+  `docs/roadmap_pendencias_implementacoes.md` pra decisão de fechar aqui ou
+  retomar.
+- Medir APK size pós Fase 1–4 (ainda não feito).
 - Verificação manual visual da fonte Nunito vendorizada (Fase 2, pendente).
-- Nada commitado ainda — mudanças de Fase 1–4 estão só no working tree.

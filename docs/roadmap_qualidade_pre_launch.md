@@ -101,9 +101,10 @@ agora custa pouco e evita re-trabalho depois.
 
 ## Fase C — Fechamento
 
-- [ ] **C1** — Atualizar `docs/roadmap_debito_tecnico.md`: remover/ajustar
-      a linha de iOS se a Fase B tiver sido concluída; ou manter como está
-      se ainda bloqueado por ambiente.
+- [x] **C1** — Checado em 2026-09-15: Fase B (B3/B4) segue bloqueada por
+      ambiente (sem Xcode/CocoaPods), então a linha de iOS em
+      `docs/roadmap_debito_tecnico.md` foi mantida como está — critério do
+      item já satisfeito, nenhuma edição necessária.
 - [x] **C2** — Commit + push das Fases A/B. **Feito**: commits `bdfa159`,
       `d40e894`, `249d7a5` já pushados em
       `perf/device-profiling-and-concurrent-refresh` (confirmado via

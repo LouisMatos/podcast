@@ -18,7 +18,10 @@ if (hasReleaseSigning) {
 
 android {
     namespace = "com.luismatos.podcast_app"
-    compileSdk = flutter.compileSdkVersion
+    // Flutter 3.47.2 ainda default pra 36 (flutter.compileSdkVersion) — 37
+    // pinado à mão pra permission_handler ^13 (Fase 24 v3). Remover o
+    // override quando o Flutter subir o default sozinho.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
